@@ -75,10 +75,9 @@ result.aov <- optim_aov(N = N,
                         range = range,
                         formula = formula,
                         integer = integer,
-                        max_step = .1,
                         tolerance = 1e-8,
-                        max_iter = 1e3,
-                        init_temp = 1,
+                        max_iter = 1e4,
+                        init_temp = .01,
                         cooling_rate = NULL)
 ```
 
@@ -112,7 +111,7 @@ plot_histogram(data.aov[,4, drop = FALSE])
 Additionally, I executed the ANOVA module in multiple parallel runs to quantify both the convergence variability of RMSE within each run (compared to the target values) and the variability of RMSE across runs (compared to the average simulated values).
 ```{r parallel aov,results='hide', message=FALSE}
 result.parallel.aov <- parallel_aov(
-                        parallel_start = 100,
+                        parallel_start = 14,
                         return_best_solution = FALSE,
                         N = N,
                         levels =levels,
@@ -122,12 +121,11 @@ result.parallel.aov <- parallel_aov(
                         range = range,
                         formula = formula,
                         tolerance = 1e-8,
-                        max_iter = 1e3,
-                        init_temp = 1,
+                        max_iter = 1e4,
+                        init_temp = .01,
                         cooling_rate = NULL,
-                        integer = FALSE,
+                        integer = integer,
                         checkGrim = FALSE,
-                        max_step = .2,
                         min_decimals = 1)
 ```
 

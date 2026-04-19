@@ -35,136 +35,124 @@ mod_optim_lm_ui <- function(id) {
     div(style = "white-space: nowrap;",
         div(
           style = "display:inline-block; vertical-align:top; margin-right:10px;",
-            wellPanel(
-              h4("Reported Summary Statistics"),
-              tags$hr(),
-              p(tags$b(name_with_info(
-                  "Descriptives",
-                  "The data simulated by the descriptives module, matching means and standard deviations."
-                ))),
-              actionButton(ns("match_descr"),
-                           "Start Descriptives Module",
-                           class = "btn-sm btn-info"),
-              tags$div(
-                style = "
+          wellPanel(
+            h4("Reported Summary Statistics"),
+            tags$hr(),
+            p(tags$b(name_with_info(
+              "Descriptives",
+              "The data simulated by the descriptives module, matching means and standard deviations."
+            ))),
+            actionButton(ns("match_descr"),
+                         "Start Descriptives Module",
+                         class = "btn-sm btn-info"),
+            tags$div(
+              style = "
                 margin-top: 6px;
                 font-size: 0.8em;
                 color: #444;
                 line-height: 1.1;
               ",
-                tags$style(HTML("
+              tags$style(HTML("
                 .shrink-p p { margin: 2px 0; }
               ")),
-                div(class = "shrink-p", uiOutput(ns("var_names")))
-              ),
-              tags$hr(),
-              p(tags$b(name_with_info(
-                "Correlations",
-                "The correlation matrix containing the upper triangle of the reported bivariate correlations. If a value is not available, the cell is supposed to be blank."
-              ))),
-              div(
-                style = "width:100%; overflow-x: auto;",
-                rHandsontableOutput(ns("corr_table"), width = "100%")
-              ),
-              tags$hr(),
-              p(tags$b(name_with_info(
-                "Regression Model",
-                "The model specifications determining the formula of the reported regression model."
-              ))),
-              tags$div(
-                style = "margin-top: 6px; font-style: italic; color: #555;",
-                textOutput(ns("lm_formula"))
-              ),
-              selectInput(
-                ns("lm_outcome"),
-                label = tags$span(style = "font-size:90%;", "Dependent Variable:"),
-                choices = NULL
-              ),
-              fluidRow(
-                column(
-                  width = 6,
-                  checkboxGroupInput(
-                    ns("lm_predictors"),
-                    label = tags$span(style = "font-size:90%;", "Predictors:"),
-                    choices = NULL
-                  )
-                ),
-                column(
-                  width = 6,
-                  checkboxGroupInput(
-                    ns("lm_interactions"),
-                    label = tags$span(style = "font-size:90%;", "Interactions:"),
-                    choices = NULL
-                  )
+              div(class = "shrink-p", uiOutput(ns("var_names")))
+            ),
+            tags$hr(),
+            p(tags$b(name_with_info(
+              "Correlations",
+              "The correlation matrix containing the upper triangle of the reported bivariate correlations. If a value is not available, the cell is supposed to be blank."
+            ))),
+            div(
+              style = "width:100%; overflow-x: auto;",
+              rHandsontableOutput(ns("corr_table"), width = "100%")
+            ),
+            tags$hr(),
+            p(tags$b(name_with_info(
+              "Regression Model",
+              "The model specifications determining the formula of the reported regression model."
+            ))),
+            tags$div(
+              style = "margin-top: 6px; font-style: italic; color: #555;",
+              textOutput(ns("lm_formula"))
+            ),
+            selectInput(
+              ns("lm_outcome"),
+              label = tags$span(style = "font-size:90%;", "Dependent Variable:"),
+              choices = NULL
+            ),
+            fluidRow(
+              column(
+                width = 6,
+                checkboxGroupInput(
+                  ns("lm_predictors"),
+                  label = tags$span(style = "font-size:90%;", "Predictors:"),
+                  choices = NULL
                 )
               ),
-              p(tags$b(name_with_info(
-                "Regression Table",
-                "The reported unstandardized regression coefficients (estiamtes) and their standard erorrs (SE). If a value is not available, the cell is supposed to be blank."
-              ))),
-              div(
-                style = "margin-top:10px; overflow-x:auto; width:100%;",
-                rHandsontableOutput(ns("coef_table"), width = "100%")
-              ))
-            ),
-
-            div(
-              style = "display:inline-block; vertical-align:top; margin-right:20px;",
-              wellPanel(
-              h4("Algorithm Hyperparameters"),
-              numericInput(
-                ns("tolerance"),
-                name_with_info(
-                  "Tolerance",
-                  "The threshold for the weighted objective function value below which the optimization will stop."),
-                value = 1e-12,
-                min   = 0,
-                step  = 1e-12,
-                width = "100%"
-              ),
-              numericInput(ns("max_iter"), name_with_info(
-                "Max Iterations",
-                "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e4,   min = 1,    step = 1000),
-              numericInput(ns("init_temp"), name_with_info(
-                "Initial Temperature",
-                "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
-                1, min = 0, max = 10,    step = 0.01),
-              numericInput(ns("cooling_rate"), name_with_info(
-                "Cooling Rate",
-                "The factor by which the temperature is multiplied after each iteration, governing how quickly the algorithm reduces its acceptance of worse solutions."),
-                (1e4-10)/1e4, min = 0, max = 1, step = 0.0001),
-              numericInput(ns("hill_climbs"), name_with_info(
-                "Hill Climbs",
-                "The number of hill climbing iterations for further refinement ."), 1e3,   min = 1,    step = 1000),
-              numericInput(ns("max_starts"), name_with_info(
-                "Max Starts",
-                "The maximum number of times the optimization algorithm will restart from the current best solution using reduced inital temperatures."),
-                1,     min = 1,    step = 1),
-              numericInput(ns("parallel_start"),
-                           name_with_info(
-                             "Number of Datasets",
-                             "How many independent optimization runs to perform."),
-                           value = 1, min = 1, step = 1),
-              checkboxInput(ns("return_best"), name_with_info(
-                "Return Best Dataset",
-                "If checked, only the dataset with the lowest objective value is returned."),
-                value = FALSE),
-              tags$hr(),
-              h5(name_with_info(
-                "Weights of Objective Function",
-                "The  weights multiplied with each term in the objective function; adjusting these values can steer the optimization toward preferred trade offs and improve performance.")),
-              div(style = "width:100%; margin-bottom:10px; overflow-x:auto;",
-                  rHandsontableOutput(ns("weight_table"), width = "100%")
-              ),
-              actionButton(ns("estimate_weights"), name_with_info(
-                "Estimate Weights",
-                "Automatically compute the objective function weights from each term's initial contribution, using their means and standard deviations."), class = "btn-info btn-block"),
-              div(
-                id    = ns("processing_msg_weight"),
-                style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
-                "Processing, please wait ..."
+              column(
+                width = 6,
+                checkboxGroupInput(
+                  ns("lm_interactions"),
+                  label = tags$span(style = "font-size:90%;", "Interactions:"),
+                  choices = NULL
+                )
               )
+            ),
+            p(tags$b(name_with_info(
+              "Regression Table",
+              "The reported unstandardized regression coefficients (estimates) and their standard errors (SE). If a value is not available, the cell is supposed to be blank."
+            ))),
+            div(
+              style = "margin-top:10px; overflow-x:auto; width:100%;",
+              rHandsontableOutput(ns("coef_table"), width = "100%")
+            ))
+        ),
+
+        div(
+          style = "display:inline-block; vertical-align:top; margin-right:20px;",
+          wellPanel(
+            h4("Algorithm Hyperparameters"),
+            numericInput(
+              ns("tolerance"),
+              name_with_info(
+                "Tolerance",
+                "The threshold for the weighted objective function value below which the optimization will stop."),
+              value = 1e-3,
+              min   = 0,
+              step  = 1e-4,
+              width = "100%"
+            ),
+            numericInput(ns("max_iter"), name_with_info(
+              "Max Iterations",
+              "The maximum number of iterations the algorithm will run each time it restarts."), 1e5,   min = 1,    step = 1000),
+            numericInput(ns("init_temp"), name_with_info(
+              "Initial Temperature",
+              "The starting temperature for the simulated annealing. Leave at default for automatic calibration."),
+              NA, min = 0, max = 100,    step = 0.01),
+            numericInput(ns("cooling_rate"), name_with_info(
+              "Cooling Rate",
+              "The factor by which the temperature is multiplied after each iteration."),
+              (1e5-10)/1e5, min = 0, max = 1, step = 0.0001),
+            numericInput(ns("hill_climbs"), name_with_info(
+              "Hill Climbs",
+              "The number of hill climbing iterations for further refinement."), 1e4,   min = 0,    step = 1000),
+            numericInput(ns("max_starts"), name_with_info(
+              "Max Starts",
+              "The maximum number of times the optimization algorithm will restart."),
+              3,     min = 1,    step = 1),
+            numericInput(ns("n_datasets"),
+                         name_with_info(
+                           "Number of Datasets",
+                           "How many independent sequential optimization runs to perform."),
+                         value = 1, min = 1, step = 1),
+            tags$hr(),
+            h5(name_with_info(
+              "Weights of Objective Function",
+              "The weights multiplied with each term in the objective function.")),
+            div(style = "width:100%; margin-bottom:10px; overflow-x:auto;",
+                rHandsontableOutput(ns("weight_table"), width = "100%")
             )
+          )
         ),
 
         div(style = "display:inline-block; vertical-align:top; margin-left:20px; width: calc(100% - auto);",
@@ -185,15 +173,13 @@ mod_optim_lm_ui <- function(id) {
             h5(name_with_info("Objective Function Value","The minimum weighted value of the objective function attained by the optimization.")),
             tableOutput(ns("best_error")),
             fluidRow( style = "margin-bottom: 10px;",
-              column(12,
-                     actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                     actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
-                     actionButton(ns("plot_error_ratio"),name_with_info("Plot Error Ratio","Show trajectory of objective ratio corelations/regression"), class = "btn-sm"),
-                     actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
-                     actionButton(ns("plot_rmse"),       name_with_info("Plot RMSE","Plot RMSE across runs"), class = "btn-sm"),
-                     actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm"),
-                     actionButton(ns("get_rmse_parallel"),name_with_info("Get All RMSE","Compute RMSE across all runs"), class = "btn-sm")
-              )
+                      column(12,
+                             actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
+                             actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
+                             actionButton(ns("plot_error_ratio"),name_with_info("Plot Error Ratio","Show trajectory of objective ratio correlations/regression"), class = "btn-sm"),
+                             actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
+                             actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm")
+                      )
             ),
             fluidRow(
               column(12,
@@ -217,30 +203,29 @@ mod_optim_lm_server <- function(id, root_session){
 
     rv <- reactiveValues(
       dirty       = TRUE,
-      result      = NULL
+      result      = NULL,
+      status      = "ready"
     )
 
     observeEvent({
       list(
-      input$corr_table,
-      input$lm_outcome,
-      input$lm_predictors,
-      input$lm_interactions,
-      input$tolerance,
-      input$max_iter,
-      input$init_temp,
-      input$cooling_rate,
-      input$hill_climbs,
-      input$max_starts,
-      input$parallel_start,
-      input$return_best,
-      input$weight_table,
-      input$estimate_weights)
+        input$corr_table,
+        input$lm_outcome,
+        input$lm_predictors,
+        input$lm_interactions,
+        input$tolerance,
+        input$max_iter,
+        input$init_temp,
+        input$cooling_rate,
+        input$hill_climbs,
+        input$max_starts,
+        input$n_datasets,
+        input$weight_table)
     }, {
       rv$dirty <- TRUE
       for (btn in c(
-        "plot_error", "plot_error_ratio", "get_rmse", "get_rmse_parallel",
-        "plot_summary", "plot_rmse", "plot_cooling",
+        "plot_error", "plot_error_ratio", "get_rmse",
+        "plot_summary", "plot_cooling",
         "display_data", "download", "dataset_selector"
       )) {
         shinyjs::disable(btn)
@@ -374,7 +359,7 @@ mod_optim_lm_server <- function(id, root_session){
       rownames(mat) <- vars
       colnames(mat) <- vars
       if (length(vars) == 5) {
-      mat[upper.tri(mat)] <-  c(0.011, -0.177, 0.091, 0.035, 0.114, 0.246, -0.110, 0.119, 0.357, 0.263)
+        mat[upper.tri(mat)] <-  c(0.011, -0.177, 0.091, 0.035, 0.114, 0.246, -0.110, 0.119, 0.357, 0.263)
       }
       as.data.frame(mat, check.names = FALSE, stringsAsFactors = FALSE)
     })
@@ -413,8 +398,8 @@ mod_optim_lm_server <- function(id, root_session){
         dimnames = list(c("Est.", "SE"), all_terms)
       )
       if (length(all_terms) == 7) {
-        mat[1,] <- target_reg <- c(0.115, -0.016, 0.292, 0.052, 0.203, 0.000, 0.009)
-        mat[2,] <- target_se <- c(0.123, 0.008, 0.151, 0.009, 0.036, 0.001, 0.012)
+        mat[1,] <- c(0.115, -0.016, 0.292, 0.052, 0.203, 0.000, 0.009)
+        mat[2,] <- c(0.123, 0.008, 0.151, 0.009, 0.036, 0.001, 0.012)
       }
       as.data.frame(mat, check.names = FALSE, stringsAsFactors = FALSE)
     })
@@ -455,100 +440,9 @@ mod_optim_lm_server <- function(id, root_session){
       tbl
     })
 
-    observeEvent(input$estimate_weights, {
-      shinyjs::show("processing_msg_weight")
-      on.exit(shinyjs::hide("processing_msg_weight"), add = TRUE)
-      sim_data <- simulated_data()
-      df_corr <- hot_to_r(input$corr_table)
-      mat_corr <- as.matrix(df_corr)
-      target_cor <- mat_corr[upper.tri(mat_corr, diag = FALSE)]
-      coef_df <- hot_to_r(input$coef_table)
-      estimates   <- as.numeric(coef_df["Est.",     ])
-      target_reg <- estimates
-      names(target_reg) <- colnames(coef_df)
-      ses     <- as.numeric(coef_df["SE",       ])
-      target_se <- ses
-      names(target_se) <- colnames(coef_df)
-      reg_equation <- paste(deparse(lm_formula_reactive()), collapse = "")
-      max_iter      <- input$max_iter
-      init_temp     <- input$init_temp
-      cooling_rate  <- input$cooling_rate
-      tolerance           <- input$tolerance
-      max_starts    <- input$max_starts
-      weight            <- c(1, 1)
-      hill_climbs       <- input$hill_climbs
-      parallel_start     <- input$parallel_start
-      return_best_solution <- input$return_best
-      input.check <- check_lm_inputs(
-        tolerance = tolerance,
-        max_iter = max_iter,
-        init_temp = init_temp,
-        cooling_rate = cooling_rate,
-        hill_climbs = hill_climbs,
-        max_starts = max_starts,
-        parallel_start = parallel_start
-      )
-      input.check
-      if (!input.check) {return()}
-      for (btn in c(
-        "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
-        "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "parallel_start", "return_best",
-        "weight_table", "estimate_weights", "run", "plot_error",
-        "plot_error_ratio", "get_rmse", "get_rmse_parallel", "plot_summary",
-        "plot_rmse", "plot_cooling", "display_data", "download", "dataset_selector"
-      )) {
-        shinyjs::disable(btn)
-      }
-      for (tbl in c("corr_table","coef_table","weight_table")) {
-        shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"none","opacity":0.5});',
-                  ns(tbl))
-        )
-      }
-      withProgress(message = "Running optimization...", value = 0, {
-      w_list <- weights_est(
-        sim_runs = 1,
-        sim_data       = sim_data,
-        target_cor     = target_cor,
-        target_reg     = target_reg,
-        reg_equation   = reg_equation,
-        target_se      = target_se,
-        weight         = weight,
-        max_iter       = max_iter,
-        init_temp      = init_temp,
-        cooling_rate   = cooling_rate,
-        tolerance            = tolerance,
-        max_starts     = max_starts,
-        parallel_start = parallel_start,
-        progress_mode = "shiny"
-      )
-      })
-      w_mat <- w_list$weights
-      weight_df(data.frame(
-        Correlation = w_mat[1],
-        Regression   = w_mat[2],
-        stringsAsFactors = FALSE
-      ))
-      for (btn in c(
-        "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
-        "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "parallel_start", "return_best",
-        "weight_table", "estimate_weights", "run"
-      )) {
-        shinyjs::enable(btn)
-      }
-      for (tbl in c("corr_table","coef_table","weight_table")) {
-        shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                  ns(tbl))
-        )
-      }
-    })
-
     for (btn in c(
-      "run", "plot_error", "plot_error_ratio", "get_rmse", "get_rmse_parallel",
-      "plot_summary", "plot_rmse", "plot_cooling", "estimate_weights",
+      "run", "plot_error", "plot_error_ratio", "get_rmse",
+      "plot_summary", "plot_cooling",
       "display_data", "download", "dataset_selector"
     )) {
       shinyjs::disable(btn)
@@ -561,59 +455,73 @@ mod_optim_lm_server <- function(id, root_session){
         any(!is.na(as.numeric(tbl["Est.", ])))
       if (preds_ok && coef_present) {
         shinyjs::enable("run")
-        shinyjs::enable("estimate_weights")
       } else {
         shinyjs::disable("run")
-        shinyjs::disable("estimate_weights")
       }
     })
 
     observeEvent(input$run, {
       shinyjs::show("processing_msg")
       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
+
       sim_data <- simulated_data()
+      req(is.data.frame(sim_data), ncol(sim_data) > 0)
+
+      # Extract inputs from UI
       df_corr <- hot_to_r(input$corr_table)
       mat_corr <- as.matrix(df_corr)
       target_cor <- mat_corr[upper.tri(mat_corr, diag = FALSE)]
-      coef_df <- hot_to_r(input$coef_table)
-      estimates   <- as.numeric(coef_df["Est.",     ])
+
+      coef_df    <- hot_to_r(input$coef_table)
+      estimates  <- as.numeric(coef_df["Est.", ])
       target_reg <- estimates
       names(target_reg) <- colnames(coef_df)
-      ses     <- as.numeric(coef_df["SE",       ])
+
+      ses       <- as.numeric(coef_df["SE", ])
       target_se <- ses
       names(target_se) <- colnames(coef_df)
+      # If all SE are NA, set to NULL
+      if (all(is.na(target_se))) target_se <- NULL
+
       reg_equation <- paste(deparse(lm_formula_reactive()), collapse = "")
-      max_iter      <- input$max_iter
-      init_temp     <- input$init_temp
-      cooling_rate  <- input$cooling_rate
-      tolerance           <- input$tolerance
-      max_starts    <- input$max_starts
-      weight            <- c(1, 1)
-      hill_climbs       <- input$hill_climbs
-      parallel_start     <- input$parallel_start
-      return_best_solution <- input$return_best
-      wdf <- hot_to_r(input$weight_table)
-      fn_args <- list(
-        sim_data       = sim_data,
-        target_cor     = target_cor,
-        target_reg     = target_reg,
-        reg_equation   = reg_equation,
-        target_se      = target_se,
-        weight         = c(wdf$Correlation, wdf$Regression),
-        max_iter       = max_iter,
-        init_temp      = init_temp,
-        cooling_rate   = cooling_rate,
-        tolerance      = tolerance,
-        max_starts     = max_starts,
-        hill_climbs    = hill_climbs,
-        parallel_start       = parallel_start,
-        return_best_solution = return_best_solution,
-        progress_mode = "shiny"
+
+      # Derive N, target_mean, target_sd, range, integer from sim_data
+      N           <- nrow(sim_data)
+      vars        <- colnames(sim_data)
+      target_mean <- vapply(sim_data, mean, numeric(1))
+      target_sd   <- vapply(sim_data, stats::sd, numeric(1))
+      # Infer integer status
+      is_int      <- vapply(sim_data, function(x) all(abs(x - round(x)) < 1e-8), logical(1))
+      # Infer range from data (use data min/max)
+      range_mat   <- rbind(
+        vapply(sim_data, min, numeric(1)),
+        vapply(sim_data, max, numeric(1))
       )
-      check.args <- fn_args[names(fn_args) %in% names(formals(check_lm_inputs))]
-      input.check <- do.call(check_lm_inputs, check.args)
-      input.check
+
+      max_iter     <- input$max_iter
+      init_temp    <- input$init_temp
+      if (is.na(init_temp)) init_temp <- NULL
+      cooling_rate <- input$cooling_rate
+      tolerance    <- input$tolerance
+      max_starts   <- input$max_starts
+      hill_climbs  <- input$hill_climbs
+      n_datasets   <- input$n_datasets
+
+      wdf    <- hot_to_r(input$weight_table)
+      weight <- c(wdf$Correlation, wdf$Regression)
+
+      # Input checks
+      input.check <- check_lm_inputs(
+        tolerance    = tolerance,
+        max_iter     = max_iter,
+        init_temp    = if (is.null(init_temp)) 1 else init_temp,
+        cooling_rate = cooling_rate,
+        hill_climbs  = hill_climbs,
+        max_starts   = max_starts
+      )
       if (!input.check) {return()}
+
+      # Disable all inputs
       for (tbl in c("corr_table","coef_table","weight_table")) {
         shinyjs::runjs(
           sprintf('$("#%s .ht_master").css({"pointer-events":"none","opacity":0.5});',
@@ -623,45 +531,88 @@ mod_optim_lm_server <- function(id, root_session){
       for (btn in c(
         "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
         "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "parallel_start", "return_best",
-        "weight_table", "estimate_weights", "run", "plot_error",
-        "plot_error_ratio", "get_rmse", "get_rmse_parallel", "plot_summary",
-        "plot_rmse", "plot_cooling", "display_data", "download", "dataset_selector"
+        "hill_climbs", "max_starts", "n_datasets",
+        "weight_table", "run", "plot_error",
+        "plot_error_ratio", "get_rmse",
+        "plot_summary", "plot_cooling",
+        "display_data", "download", "dataset_selector"
       )) {
         shinyjs::disable(btn)
       }
       rv$status <- "running"
+
       withProgress(message = "Running optimization...", value = 0, {
-        if (parallel_start > 1) {
-        rv$result <- do.call(parallel_lm, fn_args)
+        if (n_datasets > 1) {
+          results_list <- vector("list", n_datasets)
+          for (ds in seq_len(n_datasets)) {
+            incProgress(1 / n_datasets,
+                        detail = sprintf("Dataset %d / %d", ds, n_datasets))
+            results_list[[ds]] <- optim_mlr(
+              N            = N,
+              target_mean  = target_mean,
+              target_sd    = target_sd,
+              range        = range_mat,
+              integer      = is_int,
+              target_cor   = target_cor,
+              target_reg   = target_reg,
+              reg_equation = reg_equation,
+              sprite_prec  = c(2, 2),
+              target_se    = target_se,
+              weight       = weight,
+              tolerance    = tolerance,
+              max_iter     = max_iter,
+              init_temp    = init_temp,
+              cooling_rate = cooling_rate,
+              max_starts   = max_starts,
+              hill_climbs  = hill_climbs,
+              progress_mode = "off"
+            )
+          }
+          rv$result <- results_list
         } else {
-        seq_args <- fn_args[names(fn_args) %in% names(formals(optim_lm))]
-        rv$result <- do.call(optim_lm, seq_args)
+          rv$result <- optim_mlr(
+            N            = N,
+            target_mean  = target_mean,
+            target_sd    = target_sd,
+            range        = range_mat,
+            integer      = is_int,
+            target_cor   = target_cor,
+            target_reg   = target_reg,
+            reg_equation = reg_equation,
+            sprite_prec  = c(2, 2),
+            target_se    = target_se,
+            weight       = weight,
+            tolerance    = tolerance,
+            max_iter     = max_iter,
+            init_temp    = init_temp,
+            cooling_rate = cooling_rate,
+            max_starts   = max_starts,
+            hill_climbs  = hill_climbs,
+            progress_mode = "shiny"
+          )
         }
       })
-      is_parallel <- input$parallel_start > 1 && !input$return_best
+
+      is_multi <- n_datasets > 1
       rv$status <- "done"
       rv$dirty  <- FALSE
       shinyjs::enable("run")
       for (btn in c(
         "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
         "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "parallel_start", "return_best",
-        "weight_table", "estimate_weights", "run", "plot_error",
-        "plot_error_ratio", "get_rmse", "get_rmse_parallel", "plot_summary",
-        "plot_rmse", "plot_cooling", "display_data", "download", "dataset_selector"
+        "hill_climbs", "max_starts", "n_datasets",
+        "weight_table", "run", "plot_error",
+        "plot_error_ratio", "get_rmse",
+        "plot_summary", "plot_cooling",
+        "display_data", "download"
       )) {
         shinyjs::enable(btn)
       }
-      if (is_parallel) {
-        shinyjs::enable("get_rmse_parallel")
-        shinyjs::enable("plot_rmse")
+      if (is_multi) {
         updateSelectInput(session, "dataset_selector",
-                          choices = seq_len(length(rv$result)), selected = 1)
+                          choices = seq_len(n_datasets), selected = 1)
         shinyjs::enable("dataset_selector")
       } else {
-        shinyjs::disable("get_rmse_parallel")
-        shinyjs::disable("plot_rmse")
         updateSelectInput(session, "dataset_selector", choices = 1, selected = 1)
         shinyjs::disable("dataset_selector")
       }
@@ -675,8 +626,8 @@ mod_optim_lm_server <- function(id, root_session){
 
     selected_dataset <- reactive({
       if (rv$dirty) return(NULL)
-      #req(last_action())
-      if (is.list(rv$result) && input$parallel_start > 1 && !input$return_best) {
+      if (is.list(rv$result) && !inherits(rv$result, "stats2data_mlr") &&
+          input$n_datasets > 1) {
         rv$result[[as.integer(input$dataset_selector)]]
       } else rv$result
     })
@@ -705,9 +656,7 @@ mod_optim_lm_server <- function(id, root_session){
     observeEvent(input$plot_error,         last_action("plot_error"))
     observeEvent(input$plot_error_ratio,   last_action("plot_error_ratio"))
     observeEvent(input$get_rmse,           last_action("get_rmse"))
-    observeEvent(input$get_rmse_parallel,  last_action("get_rmse_parallel"))
     observeEvent(input$plot_summary,       last_action("plot_summary"))
-    observeEvent(input$plot_rmse,          last_action("plot_rmse"))
     observeEvent(input$plot_cooling,       last_action("plot_cooling"))
     observeEvent(input$display_data,       last_action("display_data"))
 
@@ -727,15 +676,11 @@ mod_optim_lm_server <- function(id, root_session){
       ) })
     output$plot_error_ratio <- renderPlot({
       if (rv$dirty) return(NULL)
-      plot_error_ratio(selected_dataset())
+      plot_error(selected_dataset(), ratio = TRUE)
     })
     output$get_rmse <- renderPrint({
       if (rv$dirty) return(NULL)
       get_rmse(selected_dataset())
-    })
-    output$get_rmse_parallel <- renderPrint({
-      if (rv$dirty) return(NULL)
-      get_rmse_parallel(rv$result)
     })
     output$plot_summary <- renderPlot({
       if (rv$dirty) return(NULL)
@@ -744,10 +689,6 @@ mod_optim_lm_server <- function(id, root_session){
     output$plot_cooling <- renderPlot({
       if (rv$dirty) return(NULL)
       plot_cooling(selected_dataset())
-    })
-    output$plot_rmse <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_rmse(rv$result)
     })
     output$display_data <- renderTable({
       if (rv$dirty) return(NULL)
@@ -775,20 +716,15 @@ mod_optim_lm_server <- function(id, root_session){
                      ),
                      value = isolate(input$iter_select %||% 1),
                      min   = 1,
-                     max   = length(
-                       rv$result$track_error[[
-                         as.integer(input$run_select %||% 1)
-                       ]]
-                     ),
+                     max   = length(selected_dataset()$track_error),
                      step  = 100,
                      width = "100px"
                    )
                  )
                )
              ),
-             "plot_error_ratio"        = plotOutput(ns("plot_error_ratio"),   width = "600px", height = "400px"),
+             "plot_error_ratio"  = plotOutput(ns("plot_error_ratio"),   width = "600px", height = "400px"),
              "get_rmse"          = verbatimTextOutput(ns("get_rmse")),
-             "get_rmse_parallel" = verbatimTextOutput(ns("get_rmse_parallel")),
              "plot_summary"      = tagList(
                plotOutput(ns("plot_summary"), width = "600px", height = "400px"),
                fluidRow(
@@ -804,7 +740,6 @@ mod_optim_lm_server <- function(id, root_session){
                      width = "100%"
                    ),
                  ))),
-             "plot_rmse"         = plotOutput(ns("plot_rmse"),   width = "600px", height = "400px"),
              "plot_cooling"      = plotOutput(ns("plot_cooling"),   width = "600px", height = "400px"),
              "display_data"      = tableOutput(ns("display_data"))
       )

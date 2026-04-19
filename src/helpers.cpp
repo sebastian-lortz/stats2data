@@ -140,17 +140,14 @@ arma::mat candidate_reg_cpp_se(const arma::mat &candidate,
 }
 
 
-// Helper: Objective function for the integer vector optimization
+// Helper: Objective function for the vector optimization
 #include <Rcpp.h>
 #include <cmath>
 using namespace Rcpp;
 
 // [[Rcpp::export]]
 double objective_cpp(NumericVector x,
-                     double target_mean,
-                     double target_sd,
-                     int mean_dec,
-                     int sd_dec) {
+                     double target_sd) {
   int n = x.size();
   if(n < 2) return NA_REAL; // Avoid division by zero in sd calculation
 
@@ -169,15 +166,11 @@ double objective_cpp(NumericVector x,
   }
   double sd_x = std::sqrt(ssd / (n - 1));
 
-  // Compute squared relative errors (using inline multiplication for speed).
-  double diff_mean = (std::round(mean_x * std::pow(10.0, mean_dec)) / std::pow(10.0, mean_dec)) - target_mean;
-  double diff_sd   = (std::round(sd_x   * std::pow(10.0, sd_dec)) / std::pow(10.0, sd_dec)) - target_sd;
+  // Compute squared errors
+  double diff_sd = sd_x - target_sd;
 
-  double mean_error = (diff_mean) * (diff_mean);
-  double sd_error   = (diff_sd) * (diff_sd);
-
-  // Combine errors using the provided weights.
-  double total_error = std::sqrt((mean_error + sd_error) / 2.0);
+  // Compute error.
+  double total_error = std::sqrt((diff_sd) * (diff_sd));
 
   return total_error;
 }
@@ -195,43 +188,36 @@ Rcpp::List error_function_cpp(const arma::mat &candidate,
                               const arma::vec &target_cor,
                               const arma::vec &target_reg,
                               const arma::vec &weight,
-                              const arma::uvec &positions,
-                              const double cor_dec,
-                              const double reg_dec) {
-  // Compute candidate's correlation vector.
+                              const arma::uvec &positions) {
+
+  // Compute candidate's correlation vector (no rounding).
   arma::vec cor_vec = candidate_cor_cpp(candidate, outcome);
 
-  // Round each element of the correlation vector using a single decimals value.
-  double factor_cor = std::pow(10.0, cor_dec);
-  for (arma::uword i = 0; i < cor_vec.n_elem; i++) {
-    cor_vec(i) = std::round(cor_vec(i) * factor_cor) / factor_cor;
-  }
-
-  // Calculate the RMSE for correlations.
+  // RMSE for correlations (over non-missing targets).
   arma::uvec idx = arma::find_finite(target_cor);
-  double cor_error = std::sqrt( arma::accu( arma::square(cor_vec.elem(idx) - target_cor.elem(idx)) ) / idx.n_elem );
+  double cor_error = std::sqrt(
+    arma::accu(arma::square(cor_vec.elem(idx) - target_cor.elem(idx))) / idx.n_elem
+  );
 
-  // Compute candidate's regression coefficients.
+  // Compute candidate's regression coefficients (no rounding).
   arma::vec reg_vec = candidate_reg_cpp(candidate, outcome, positions);
 
-  // Round each element of the regression vector using a single decimals value.
-  double factor_reg = std::pow(10.0, reg_dec);
-  for (arma::uword i = 0; i < reg_vec.n_elem; i++) {
-    reg_vec(i) = std::round(reg_vec(i) * factor_reg) / factor_reg;
-  }
-
-  // Calculate the RMSE for regression coefficients.
+  // RMSE for regression coefficients (over non-missing targets).
   arma::uvec idxx = arma::find_finite(target_reg);
-  double reg_error = std::sqrt( arma::accu( arma::square(reg_vec.elem(idxx) - target_reg.elem(idxx)) ) / idxx.n_elem );
+  double reg_error = std::sqrt(
+    arma::accu(arma::square(reg_vec.elem(idxx) - target_reg.elem(idxx))) / idxx.n_elem
+  );
 
-  // Compute the total weighted error.
-  double total_error = cor_error * weight(0) + reg_error * weight(1);
+  // Weighted average of the two RMSE components.
+  double total_error = (cor_error * weight(0) + reg_error * weight(1)) / 2.0;
 
-  // Compute the error ratio (with protection against division by zero).
+  // Error ratio (with protection against division by zero).
   double error_ratio = (reg_error == 0.0) ? R_PosInf : cor_error / reg_error;
 
-  return Rcpp::List::create(Rcpp::Named("total_error") = total_error,
-                            Rcpp::Named("error_ratio") = error_ratio);
+  return Rcpp::List::create(
+    Rcpp::Named("total_error") = total_error,
+    Rcpp::Named("error_ratio") = error_ratio
+  );
 }
 
 
@@ -242,45 +228,37 @@ Rcpp::List error_function_cpp_se(const arma::mat &candidate,
                                  const arma::vec &target_cor,
                                  const arma::mat &target_reg_se,
                                  const arma::vec &weight,
-                                 const arma::uvec &positions,
-                                 const double cor_dec,
-                                 const double reg_dec) {
-  // Compute candidate's correlation vector.
+                                 const arma::uvec &positions) {
+
+  // Compute candidate's correlation vector (no rounding).
   arma::vec cor_vec = candidate_cor_cpp(candidate, outcome);
 
-  // Round each element of the correlation vector.
-  double factor_cor = std::pow(10.0, cor_dec);
-  for (arma::uword i = 0; i < cor_vec.n_elem; i++) {
-    cor_vec(i) = std::round(cor_vec(i) * factor_cor) / factor_cor;
-  }
-
-  // Calculate the RMSE for correlations.
+  // RMSE for correlations (over non-missing targets).
   arma::uvec idx = arma::find_finite(target_cor);
-  double cor_error = std::sqrt( arma::accu( arma::square(cor_vec.elem(idx) - target_cor.elem(idx)) ) / idx.n_elem );
+  double cor_error = std::sqrt(
+    arma::accu(arma::square(cor_vec.elem(idx) - target_cor.elem(idx))) / idx.n_elem
+  );
 
-  // Compute candidate's regression coefficients' standard error.
+  // Compute candidate's regression coefficients and standard errors (no rounding).
   arma::mat reg_se = candidate_reg_cpp_se(candidate, outcome, positions);
 
-  // Round each element of the regression SE matrix.
-  double factor_reg = std::pow(10.0, reg_dec);
-  for (arma::uword i = 0; i < reg_se.n_elem; i++) {
-    reg_se(i) = std::round(reg_se(i) * factor_reg) / factor_reg;
-  }
-
-  // Calculate the RMSE for regression standard errors.
+  // RMSE for regression coefficients and SEs (over non-missing targets).
   arma::uvec idxx = arma::find_finite(target_reg_se);
-  double reg_error = std::sqrt( arma::accu( arma::square(reg_se.elem(idxx) - target_reg_se.elem(idxx)) ) / idxx.n_elem );
+  double reg_error = std::sqrt(
+    arma::accu(arma::square(reg_se.elem(idxx) - target_reg_se.elem(idxx))) / idxx.n_elem
+  );
 
-  // Compute the total weighted error.
-  double total_error = cor_error * weight(0) + reg_error * weight(1);
+  // Weighted average of the two RMSE components.
+  double total_error = (cor_error * weight(0) + reg_error * weight(1)) / 2.0;
 
-  // Compute the error ratio (with protection against division by zero).
+  // Error ratio (with protection against division by zero).
   double error_ratio = (reg_error == 0.0) ? R_PosInf : cor_error / reg_error;
 
-  return Rcpp::List::create(Rcpp::Named("total_error") = total_error,
-                            Rcpp::Named("error_ratio") = error_ratio);
+  return Rcpp::List::create(
+    Rcpp::Named("total_error") = total_error,
+    Rcpp::Named("error_ratio") = error_ratio
+  );
 }
-
 
 
 

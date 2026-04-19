@@ -1,262 +1,352 @@
-#' Plot Summary of Simulated vs. Target Statistics for a nds3.object
+# --------------------------------------------------------------------------
+# stats2data: plot (summary) S3 methods
+# --------------------------------------------------------------------------
+
+# ---- Internal workhorse --------------------------------------------------
+
+#' Build a target-vs-simulated lollipop chart
 #'
-#' Visualizes discrepancies between simulated and target summary statistics
-#' (e.g., means, SDs, F-values, correlations, regression coefficients) for a single `nds3.object`.
+#' Shared plotting logic used by all \code{plot.stats2data_*} methods.
+#' Not exported.
 #'
-#' @param nds3_obj A `nds3.object` produced by `optim_*` functions,
-#'   containing both simulated data/results and `inputs$target_*` values.
-#' @param standardised Logical; if `TRUE`, differences are divided by target values
-#'   (except when targets are near zero); default `TRUE`.
-#' @param eps Numeric; threshold below which a target is treated as zero for standardization;
-#'   default `1e-12`.
+#' @param df Data frame with columns \code{Measure}, \code{Variable},
+#'   \code{Simulated}, \code{Target}, \code{Centered}, \code{SimulatedType}.
+#' @param standardised Logical; whether centered values are standardised.
+#' @param x_lab Character; x-axis label.
+#' @param title_module Character; module name for the title.
 #'
-#' @return A `ggplot2` object.
+#' @return A \code{\link[ggplot2]{ggplot}} object.
+#'
+#' @noRd
+.plot_summary_engine <- function(df, standardised, x_lab,
+                                 title_module = "") {
+
+  y_label <- if (standardised) {
+    "(Simulated \u2013 Target) / Target"
+  } else {
+    "Simulated \u2013 Target"
+  }
+
+  title_prefix <- if (standardised) "Standardised" else "Unstandardised"
+  title <- paste(title_prefix, "Difference of Summary Statistics")
+  if (nzchar(title_module)) {
+    title <- paste0(title, " \u2014 ", title_module)
+  }
+
+  if (any(df$SimulatedType == "Unstandardized Diff", na.rm = TRUE)) {
+    warning(
+      "One or more target values were practically 0; ",
+      "the unstandardised difference was computed for these values.",
+      call. = FALSE
+    )
+  }
+
+  p <- ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$Variable, y = .data$Centered
+  )) +
+    ggplot2::geom_point(
+      ggplot2::aes(color = .data$SimulatedType),
+      size = 4, na.rm = TRUE
+    ) +
+    ggplot2::geom_segment(
+      ggplot2::aes(
+        x = .data$Variable, xend = .data$Variable,
+        y = .data$Centered, yend = 0
+      ),
+      color = "gray50", linetype = "dashed", na.rm = TRUE
+    ) +
+    ggplot2::geom_hline(
+      yintercept = 0, linetype = "dotted", color = "gray50"
+    ) +
+    ggplot2::facet_wrap(~ .data$Measure, scales = "free_x") +
+    ggplot2::scale_color_manual(
+      name   = "",
+      values = c(
+        "Simulated"            = "steelblue",
+        "Unstandardized Diff"  = "red"
+      )
+    ) +
+    ggplot2::labs(title = title, y = y_label, x = x_lab) +
+    theme_stats2data() +
+    ggplot2::theme(
+      axis.text.x      = ggplot2::element_text(angle = 45, hjust = 1),
+      legend.position   = "bottom",
+      strip.background  = ggplot2::element_rect(fill = "gray90", color = "gray50"),
+      strip.text        = ggplot2::element_text(face = "bold")
+    )
+
+  p
+}
+
+
+# ---- Internal helper: centered difference --------------------------------
+
+#' Compute (optionally standardised) differences
+#'
+#' @param sim Numeric vector of simulated values.
+#' @param target Numeric vector of target values.
+#' @param standardised Logical.
+#' @param eps Numeric; zero-threshold for standardisation.
+#'
+#' @return Numeric vector of differences.
+#'
+#' @noRd
+.compute_centered <- function(sim, target, standardised, eps) {
+  if (standardised) {
+    ifelse(abs(target) < eps, sim - target, (sim - target) / target)
+  } else {
+    sim - target
+  }
+}
+
+
+# ---- Internal helper: tag SimulatedType ----------------------------------
+
+#' Add SimulatedType column to a data frame
+#'
+#' @param df Data frame with a \code{Target} column.
+#' @param standardised Logical.
+#' @param eps Numeric.
+#'
+#' @return The data frame with a \code{SimulatedType} column appended.
+#'
+#' @noRd
+.tag_sim_type <- function(df, standardised, eps) {
+  df$SimulatedType <- ifelse(
+    standardised & abs(df$Target) < eps,
+    "Unstandardized Diff", "Simulated"
+  )
+  df
+}
+
+
+# ---- S3 methods ----------------------------------------------------------
+
+# -- stats2data_mlr --------------------------------------------------------
+
+#' Plot target-vs-simulated statistics for an MLR result
+#'
+#' @param x An object of class \code{stats2data_mlr}.
+#' @param standardised Logical; if \code{TRUE} (default), differences are
+#'   divided by target values (except when targets are near zero).
+#' @param eps Numeric; threshold below which a target is treated as zero
+#'   for standardisation. Default \code{1e-12}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
 #' @examples
-#'  \dontrun{
-#' res <- optim_aov(...)
-#' plot_summary(res, standardised = FALSE)
+#' \dontrun{
+#' res <- optim_mlr(...)
+#' plot(res)
+#' plot(res, standardised = FALSE)
 #' }
-#' @importFrom rlang .data
-#' @import ggplot2
-#' @import dplyr
+#'
 #' @export
-plot_summary <- function(nds3_obj, standardised = TRUE, eps = 1e-12) {
+plot.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
-  # input check
-  if (!inherits(nds3_obj, "nds3.object")) {
-    stop("Input must be a nds3.object.")
+  if (!is.logical(standardised) || length(standardised) != 1L) {
+    stop("`standardised` must be a single logical value.", call. = FALSE)
   }
-  if (!is.list(nds3_obj) || is.null(nds3_obj$inputs) || !is.list(nds3_obj$inputs)) {
-    stop("`nds3_obj` must be a list containing an 'inputs' list element.")
-  }
-  if (!is.logical(standardised) || length(standardised) != 1) {
-    stop("`standardised` must be a single logical value.")
-  }
-  if (!is.numeric(eps) || length(eps) != 1) {
-    stop("`eps` must be a single numeric value.")
-  }
-  if (!requireNamespace("ggplot2", quietly=TRUE)) {
-    stop("`ggplot2` is needed to plot summaries; please install it.")
+  if (!is.numeric(eps) || length(eps) != 1L) {
+    stop("`eps` must be a single numeric value.", call. = FALSE)
   }
 
-  # theme
-  apa_theme <- ggplot2::theme_minimal(base_size = 12, base_family = "Helvetica") +
-    ggplot2::theme(
-      panel.grid.major = ggplot2::element_line(color = "gray90"),
-      plot.title       = ggplot2::element_text(face = "bold", size = 14, hjust = 0),
-      axis.text        = ggplot2::element_text(color = "black")
-    )
-  y_label <- if (standardised) {
-    "((Simulated - Target) / Target)"
-  } else {
-    "Simulated - Target"
-  }
-  title_prefix <- if (standardised) {
-    "Standardised"
-  } else {
-    "Unstandardised"
-  }
+  inp   <- x$inputs
+  stats <- get_stats(x)
 
-  # helper
-  compute_centered <- function(sim, target) {
-    if (standardised) {
-      ifelse(abs(target) < eps, sim - target, (sim - target) / target)
+  target_reg <- inp$target_reg
+  target_cor <- inp$target_cor
+  target_se  <- inp$target_se
+
+  reg_dec <- max(count_decimals(target_reg))
+  cor_dec <- max(count_decimals(target_cor))
+
+  sim_reg_r <- round(stats$reg, reg_dec)
+  sim_cor_r <- round(stats$cor, cor_dec)
+
+  # regression coefficients
+  df_reg <- data.frame(
+    Measure   = "Regression Coefficient",
+    Variable  = names(target_reg),
+    Simulated = as.numeric(sim_reg_r),
+    Target    = as.numeric(target_reg),
+    Centered  = .compute_centered(sim_reg_r, target_reg, standardised, eps),
+    stringsAsFactors = FALSE
+  )
+  df_reg <- .tag_sim_type(df_reg, standardised, eps)
+
+  # correlations
+  var_names_cor <- names(target_cor)
+  if (is.null(var_names_cor)) {
+    var_names_cor <- paste0("Cor", seq_along(target_cor))
+  }
+  df_cor <- data.frame(
+    Measure   = "Correlation",
+    Variable  = var_names_cor,
+    Simulated = as.numeric(sim_cor_r),
+    Target    = as.numeric(target_cor),
+    Centered  = .compute_centered(sim_cor_r, target_cor, standardised, eps),
+    stringsAsFactors = FALSE
+  )
+  df_cor <- .tag_sim_type(df_cor, standardised, eps)
+
+  # standard errors (optional)
+  df_se <- NULL
+  if (!is.null(target_se)) {
+    se_dec   <- max(count_decimals(target_se))
+    sim_se_r <- round(stats$se, se_dec)
+    var_names_se <- if (!is.null(names(target_se))) {
+      names(target_se)
     } else {
-      sim - target
+      names(target_reg)[seq_along(target_se)]
     }
+    df_se <- data.frame(
+      Measure   = "Standard Error",
+      Variable  = var_names_se,
+      Simulated = as.numeric(sim_se_r),
+      Target    = as.numeric(target_se),
+      Centered  = .compute_centered(sim_se_r, target_se, standardised, eps),
+      stringsAsFactors = FALSE
+    )
+    df_se <- .tag_sim_type(df_se, standardised, eps)
   }
 
-  # data lm module
-  if (!is.null(nds3_obj$inputs$target_reg)) {
-    target_reg <- nds3_obj$inputs$target_reg
-    target_cor <- nds3_obj$inputs$target_cor
-    target_se  <- nds3_obj$inputs$target_se
-    reg_dec <- max(count_decimals(target_reg))
-    cor_dec <- max(count_decimals(target_cor))
-    stats    <- get_stats(nds3_obj)
-    sim_reg  <- stats$reg
-    sim_cor  <- stats$cor
-    sim_se   <- stats$se
-    sim_reg_r <- round(sim_reg, reg_dec)
-    sim_cor_r <- round(sim_cor, cor_dec)
-    df_reg <- data.frame(
-      Measure   = "Regression Coefficient",
-      Variable  = names(target_reg),
-      Simulated = sim_reg_r,
-      Target    = target_reg,
-      Centered  = compute_centered(sim_reg_r, target_reg),
-      stringsAsFactors = FALSE
-    )
-    df_reg$SimulatedType <- ifelse(
-      standardised & abs(df_reg$Target) < eps,
-      "Unstandardized Diff", "Simulated"
-    )
-    var_names_cor <- names(target_cor)
-    if (is.null(var_names_cor)) var_names_cor <- paste0("Cor", seq_along(target_cor))
-    df_cor <- data.frame(
-      Measure   = "Correlation",
-      Variable  = var_names_cor,
-      Simulated = sim_cor_r,
-      Target    = target_cor,
-      Centered  = compute_centered(sim_cor_r, target_cor),
-      stringsAsFactors = FALSE
-    )
-    df_cor$SimulatedType <- ifelse(
-      standardised & abs(df_cor$Target) < eps,
-      "Unstandardized Diff", "Simulated"
-    )
-    if (!is.null(target_se)) {
-      se_dec    <- max(count_decimals(target_se))
-      sim_se_r  <- round(sim_se, se_dec)
-      if (!is.null(names(target_se))) {
-        var_names_se <- names(target_se)
-      } else {
-        var_names_se <- names(target_reg)[seq_along(target_se)]
-      }
-            df_se <- data.frame(
-        Measure   = "Standard Error",
-        Variable  = var_names_se,
-        Simulated = sim_se_r,
-        Target    = target_se,
-        Centered  = compute_centered(sim_se_r, target_se),
-        stringsAsFactors = FALSE
-      )
-      df_se$SimulatedType <- ifelse(
-        standardised & abs(df_se$Target) < eps,
-        "Unstandardized Diff", "Simulated"
-      )
-    } else {
-      df_se <- NULL
-    }
-    df_all <- dplyr::bind_rows(df_reg, df_cor, df_se) %>%
-      dplyr::group_by(.data$Measure) %>%
-      dplyr::mutate(
-        Variable = factor(.data$Variable, levels = unique(.data$Variable))
-      ) %>%
-      dplyr::ungroup()
-    if (any(df_all$SimulatedType == "Unstandardized Diff", na.rm = TRUE)) {
-      warning(
-        "One or more target values were practically 0; ",
-        "the unstandardised difference was computed for these values."
-      )
-    }
+  df_all <- dplyr::bind_rows(df_reg, df_cor, df_se) %>%
+    dplyr::group_by(.data$Measure) %>%
+    dplyr::mutate(
+      Variable = factor(.data$Variable, levels = unique(.data$Variable))
+    ) %>%
+    dplyr::ungroup()
 
-    # plot
-    p <- ggplot2::ggplot(df_all, ggplot2::aes(x = .data$Variable, y = .data$Centered)) +
-      ggplot2::geom_point(ggplot2::aes(color = .data$SimulatedType), size = 4, na.rm = TRUE) +
-      ggplot2::geom_segment(ggplot2::aes(x = .data$Variable, xend = .data$Variable, y = .data$Centered, yend = 0),
-                   color = "gray50", linetype = "dashed", na.rm = TRUE) +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") +
-      ggplot2::facet_wrap(~ .data$Measure, scales = "free_x") +
-      ggplot2::scale_color_manual(name = "",
-                         values = c("Simulated" = "steelblue",
-                                    "Unstandardized Diff" = "red")) +
-      ggplot2::labs(title = paste(title_prefix, "Difference of Summary Statistics"),
-           y = y_label,
-           x = "Parameter") +
-      apa_theme +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-            legend.position = "bottom",
-            strip.background = ggplot2::element_rect(fill = "gray90", color = "gray50"),
-            strip.text = ggplot2::element_text(face = "bold"))
-    return(p)
+  p <- .plot_summary_engine(df_all, standardised, x_lab = "Parameter",
+                            title_module = "MLR Module")
+  print(p)
+  invisible(p)
+}
 
-    # aov module
-  } else if (!is.null(nds3_obj$inputs$target_f_list)) {
-    target_F <- nds3_obj$inputs$target_f_list$F
-    F_dec <- count_decimals(target_F)
-    stats <- get_stats(nds3_obj)
-    sim_F <- stats$F_value
-    sim_F_r <- round(sim_F, F_dec)
-    centered <- compute_centered(sim_F_r, target_F)
-    effect_names <- names(target_F)
-    if (is.null(effect_names)) effect_names <- paste0("Effect", seq_along(target_F))
-    df <- data.frame(
-      Measure   = "F Statistic",
-      Variable  = effect_names,
-      Simulated = sim_F_r,
-      Target    = target_F,
-      Centered  = centered,
-      stringsAsFactors = FALSE
-    )
-    df$SimulatedType <- ifelse(standardised & abs(df$Target) < eps,
-                               "Unstandardized Diff", "Simulated")
-    if(any(df$SimulatedType == "Unstandardized Diff")){
-      warning("One or more target values were practically 0; the unstandardised difference was computed for these values.")
-    }
 
-    # plot
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$Variable, y = .data$Centered)) +
-      ggplot2::geom_point(ggplot2::aes(color = .data$SimulatedType), size = 4, na.rm = TRUE) +
-      ggplot2::geom_segment(ggplot2::aes(x = .data$Variable, xend = .data$Variable, y = .data$Centered, yend = 0),
-                   color = "gray50", linetype = "dashed", na.rm = TRUE) +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") +
-      ggplot2::facet_wrap(~ .data$Measure, scales = "free_x") +
-      ggplot2::scale_color_manual(name = "",
-                         values = c("Simulated" = "steelblue",
-                                    "Unstandardized Diff" = "red")) +
-      ggplot2::labs(title = paste(title_prefix, "Difference of Summary Statistics"),
-           y = y_label,
-           x = "Effect") +
-      apa_theme +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-            legend.position = "bottom",
-            strip.background = ggplot2::element_rect(fill = "gray90", color = "gray50"),
-            strip.text = ggplot2::element_text(face = "bold"))
-    return(p)
+# -- stats2data_aov --------------------------------------------------------
 
-    # vec module
-  } else {
-    target_mean <- nds3_obj$inputs$target_mean
-    target_sd   <- nds3_obj$inputs$target_sd
-    mean_dec <- count_decimals(target_mean)
-    sd_dec   <- count_decimals(target_sd)
-    stats <- get_stats(nds3_obj)
-    sim_mean <- stats$mean
-    sim_sd   <- stats$sd
-    sim_mean_r <- round(sim_mean, mean_dec)
-    sim_sd_r   <- round(sim_sd, sd_dec)
-    centered_mean <- compute_centered(sim_mean_r, target_mean)
-    centered_sd   <- compute_centered(sim_sd_r, target_sd)
-    sim_data <- as.data.frame(nds3_obj$data)
-    vars <- colnames(sim_data)
-    if (is.null(vars)) vars <- names(target_mean)
-    df <- data.frame(
-      Variable  = rep(vars, 2),
-      Measure   = rep(c("Mean", "SD"), each = length(vars)),
-      Simulated = c(sim_mean_r, sim_sd_r),
-      Target    = c(target_mean, target_sd),
-      Centered  = c(centered_mean, centered_sd),
-      stringsAsFactors = FALSE
-    )
-    df$SimulatedType <- ifelse(standardised & abs(df$Target) < eps,
-                               "Unstandardized Diff", "Simulated")
-    df <- df %>% dplyr::group_by(.data$Measure) %>%
-      dplyr::mutate(Variable = factor(.data$Variable, levels = unique(.data$Variable))) %>%
-      dplyr::ungroup()
-    if(any(df$SimulatedType == "Unstandardized Diff")){
-      warning("One or more target values were practically 0; the unstandardised difference was computed for these values.")
-    }
+#' Plot target-vs-simulated statistics for an ANOVA result
+#'
+#' @param x An object of class \code{stats2data_aov}.
+#' @param standardised Logical; if \code{TRUE} (default), differences are
+#'   divided by target values (except when targets are near zero).
+#' @param eps Numeric; zero-threshold. Default \code{1e-12}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @examples
+#' \dontrun{
+#' res <- optim_aov(...)
+#' plot(res)
+#' }
+#'
+#' @export
+plot.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
-    # plot
-    p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$Variable, y = .data$Centered)) +
-      ggplot2::geom_point(ggplot2::aes(color = .data$SimulatedType), size = 4, na.rm = TRUE) +
-      ggplot2::geom_segment(ggplot2::aes(x = .data$Variable, xend = .data$Variable, y = .data$Centered, yend = 0),
-                   color = "gray50", linetype = "dashed", na.rm = TRUE) +
-      ggplot2::geom_hline(yintercept = 0, linetype = "dotted", color = "gray50") +
-      ggplot2::facet_wrap(~ .data$Measure, scales = "free_x") +
-      ggplot2::scale_color_manual(name = "",
-                         values = c("Simulated" = "steelblue",
-                                    "Unstandardized Diff" = "red")) +
-      ggplot2::labs(title = paste(title_prefix,"Difference of Summary Statistics"),
-           y = y_label,
-           x = "Variable") +
-      apa_theme +
-      ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1),
-            legend.position = "bottom",
-            strip.background = ggplot2::element_rect(fill = "gray90", color = "gray50"),
-            strip.text = ggplot2::element_text(face = "bold"))
-    return(p)
+  if (!is.logical(standardised) || length(standardised) != 1L) {
+    stop("`standardised` must be a single logical value.", call. = FALSE)
   }
+  if (!is.numeric(eps) || length(eps) != 1L) {
+    stop("`eps` must be a single numeric value.", call. = FALSE)
+  }
+
+  inp   <- x$inputs
+  stats <- get_stats(x)
+
+  target_F <- inp$target_f_list$F
+  F_dec    <- count_decimals(target_F)
+  sim_F_r  <- round(stats$F_value, F_dec)
+
+  effect_names <- inp$target_f_list$effect
+  if (is.null(effect_names)) {
+    effect_names <- paste0("Effect", seq_along(target_F))
+  }
+
+  df <- data.frame(
+    Measure   = "F Statistic",
+    Variable  = effect_names,
+    Simulated = as.numeric(sim_F_r),
+    Target    = as.numeric(target_F),
+    Centered  = .compute_centered(sim_F_r, target_F, standardised, eps),
+    stringsAsFactors = FALSE
+  )
+  df <- .tag_sim_type(df, standardised, eps)
+
+  p <- .plot_summary_engine(df, standardised, x_lab = "Effect",
+                            title_module = "ANOVA Module")
+  print(p)
+  invisible(p)
+}
+
+
+# -- stats2data_vec --------------------------------------------------------
+
+#' Plot target-vs-simulated statistics for a Descriptives result
+#'
+#' @param x An object of class \code{stats2data_vec}.
+#' @param standardised Logical; if \code{TRUE} (default), differences are
+#'   divided by target values (except when targets are near zero).
+#' @param eps Numeric; zero-threshold. Default \code{1e-12}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @examples
+#' \dontrun{
+#' res <- optim_vec(...)
+#' plot(res)
+#' }
+#'
+#' @export
+plot.stats2data_vec <- function(x, standardised = TRUE, eps = 1e-12, ...) {
+
+  if (!is.logical(standardised) || length(standardised) != 1L) {
+    stop("`standardised` must be a single logical value.", call. = FALSE)
+  }
+  if (!is.numeric(eps) || length(eps) != 1L) {
+    stop("`eps` must be a single numeric value.", call. = FALSE)
+  }
+
+  inp   <- x$inputs
+  stats <- get_stats(x)
+
+  target_mean <- inp$target_mean
+  target_sd   <- inp$target_sd
+  mean_dec    <- count_decimals(target_mean)
+  sd_dec      <- count_decimals(target_sd)
+
+  sim_mean_r <- round(stats$mean, mean_dec)
+  sim_sd_r   <- round(stats$sd,   sd_dec)
+
+  vars <- colnames(x$data)
+  if (is.null(vars)) vars <- names(target_mean)
+
+  df <- data.frame(
+    Variable  = rep(vars, 2L),
+    Measure   = rep(c("Mean", "SD"), each = length(vars)),
+    Simulated = c(as.numeric(sim_mean_r), as.numeric(sim_sd_r)),
+    Target    = c(as.numeric(target_mean), as.numeric(target_sd)),
+    Centered  = c(
+      .compute_centered(sim_mean_r, target_mean, standardised, eps),
+      .compute_centered(sim_sd_r,   target_sd,   standardised, eps)
+    ),
+    stringsAsFactors = FALSE
+  )
+  df <- .tag_sim_type(df, standardised, eps)
+
+  df <- df %>%
+    dplyr::group_by(.data$Measure) %>%
+    dplyr::mutate(
+      Variable = factor(.data$Variable, levels = unique(.data$Variable))
+    ) %>%
+    dplyr::ungroup()
+
+  p <- .plot_summary_engine(df, standardised, x_lab = "Variable",
+                            title_module = "Descriptives Module")
+  print(p)
+  invisible(p)
 }

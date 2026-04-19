@@ -13,16 +13,16 @@ candidate_reg_cpp_se <- function(candidate, y, positions) {
     .Call(`_nds3_candidate_reg_cpp_se`, candidate, y, positions)
 }
 
-objective_cpp <- function(x, target_mean, target_sd, eps, mean_dec, sd_dec) {
-    .Call(`_nds3_objective_cpp`, x, target_mean, target_sd, eps, mean_dec, sd_dec)
+objective_cpp <- function(x, target_sd) {
+    .Call(`_nds3_objective_cpp`, x, target_sd)
 }
 
-error_function_cpp <- function(candidate, outcome, target_cor, target_reg, weight, positions, cor_dec, reg_dec) {
-    .Call(`_nds3_error_function_cpp`, candidate, outcome, target_cor, target_reg, weight, positions, cor_dec, reg_dec)
+error_function_cpp <- function(candidate, outcome, target_cor, target_reg, weight, positions) {
+    .Call(`_nds3_error_function_cpp`, candidate, outcome, target_cor, target_reg, weight, positions)
 }
 
-error_function_cpp_se <- function(candidate, outcome, target_cor, target_reg_se, weight, positions, cor_dec, reg_dec) {
-    .Call(`_nds3_error_function_cpp_se`, candidate, outcome, target_cor, target_reg_se, weight, positions, cor_dec, reg_dec)
+error_function_cpp_se <- function(candidate, outcome, target_cor, target_reg_se, weight, positions) {
+    .Call(`_nds3_error_function_cpp_se`, candidate, outcome, target_cor, target_reg_se, weight, positions)
 }
 
 ols_from_design <- function(X, y) {

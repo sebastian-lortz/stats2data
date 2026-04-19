@@ -50,24 +50,20 @@ BEGIN_RCPP
 END_RCPP
 }
 // objective_cpp
-double objective_cpp(NumericVector x, double target_mean, double target_sd, double eps, int mean_dec, int sd_dec);
-RcppExport SEXP _nds3_objective_cpp(SEXP xSEXP, SEXP target_meanSEXP, SEXP target_sdSEXP, SEXP epsSEXP, SEXP mean_decSEXP, SEXP sd_decSEXP) {
+double objective_cpp(NumericVector x, double target_sd);
+RcppExport SEXP _nds3_objective_cpp(SEXP xSEXP, SEXP target_sdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< NumericVector >::type x(xSEXP);
-    Rcpp::traits::input_parameter< double >::type target_mean(target_meanSEXP);
     Rcpp::traits::input_parameter< double >::type target_sd(target_sdSEXP);
-    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-    Rcpp::traits::input_parameter< int >::type mean_dec(mean_decSEXP);
-    Rcpp::traits::input_parameter< int >::type sd_dec(sd_decSEXP);
-    rcpp_result_gen = Rcpp::wrap(objective_cpp(x, target_mean, target_sd, eps, mean_dec, sd_dec));
+    rcpp_result_gen = Rcpp::wrap(objective_cpp(x, target_sd));
     return rcpp_result_gen;
 END_RCPP
 }
 // error_function_cpp
-Rcpp::List error_function_cpp(const arma::mat& candidate, const arma::vec& outcome, const arma::vec& target_cor, const arma::vec& target_reg, const arma::vec& weight, const arma::uvec& positions, const double cor_dec, const double reg_dec);
-RcppExport SEXP _nds3_error_function_cpp(SEXP candidateSEXP, SEXP outcomeSEXP, SEXP target_corSEXP, SEXP target_regSEXP, SEXP weightSEXP, SEXP positionsSEXP, SEXP cor_decSEXP, SEXP reg_decSEXP) {
+Rcpp::List error_function_cpp(const arma::mat& candidate, const arma::vec& outcome, const arma::vec& target_cor, const arma::vec& target_reg, const arma::vec& weight, const arma::uvec& positions);
+RcppExport SEXP _nds3_error_function_cpp(SEXP candidateSEXP, SEXP outcomeSEXP, SEXP target_corSEXP, SEXP target_regSEXP, SEXP weightSEXP, SEXP positionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -77,15 +73,13 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec& >::type target_reg(target_regSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type weight(weightSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type positions(positionsSEXP);
-    Rcpp::traits::input_parameter< const double >::type cor_dec(cor_decSEXP);
-    Rcpp::traits::input_parameter< const double >::type reg_dec(reg_decSEXP);
-    rcpp_result_gen = Rcpp::wrap(error_function_cpp(candidate, outcome, target_cor, target_reg, weight, positions, cor_dec, reg_dec));
+    rcpp_result_gen = Rcpp::wrap(error_function_cpp(candidate, outcome, target_cor, target_reg, weight, positions));
     return rcpp_result_gen;
 END_RCPP
 }
 // error_function_cpp_se
-Rcpp::List error_function_cpp_se(const arma::mat& candidate, const arma::vec& outcome, const arma::vec& target_cor, const arma::mat& target_reg_se, const arma::vec& weight, const arma::uvec& positions, const double cor_dec, const double reg_dec);
-RcppExport SEXP _nds3_error_function_cpp_se(SEXP candidateSEXP, SEXP outcomeSEXP, SEXP target_corSEXP, SEXP target_reg_seSEXP, SEXP weightSEXP, SEXP positionsSEXP, SEXP cor_decSEXP, SEXP reg_decSEXP) {
+Rcpp::List error_function_cpp_se(const arma::mat& candidate, const arma::vec& outcome, const arma::vec& target_cor, const arma::mat& target_reg_se, const arma::vec& weight, const arma::uvec& positions);
+RcppExport SEXP _nds3_error_function_cpp_se(SEXP candidateSEXP, SEXP outcomeSEXP, SEXP target_corSEXP, SEXP target_reg_seSEXP, SEXP weightSEXP, SEXP positionsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -95,9 +89,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::mat& >::type target_reg_se(target_reg_seSEXP);
     Rcpp::traits::input_parameter< const arma::vec& >::type weight(weightSEXP);
     Rcpp::traits::input_parameter< const arma::uvec& >::type positions(positionsSEXP);
-    Rcpp::traits::input_parameter< const double >::type cor_dec(cor_decSEXP);
-    Rcpp::traits::input_parameter< const double >::type reg_dec(reg_decSEXP);
-    rcpp_result_gen = Rcpp::wrap(error_function_cpp_se(candidate, outcome, target_cor, target_reg_se, weight, positions, cor_dec, reg_dec));
+    rcpp_result_gen = Rcpp::wrap(error_function_cpp_se(candidate, outcome, target_cor, target_reg_se, weight, positions));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -118,9 +110,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_nds3_candidate_cor_cpp", (DL_FUNC) &_nds3_candidate_cor_cpp, 2},
     {"_nds3_candidate_reg_cpp", (DL_FUNC) &_nds3_candidate_reg_cpp, 3},
     {"_nds3_candidate_reg_cpp_se", (DL_FUNC) &_nds3_candidate_reg_cpp_se, 3},
-    {"_nds3_objective_cpp", (DL_FUNC) &_nds3_objective_cpp, 6},
-    {"_nds3_error_function_cpp", (DL_FUNC) &_nds3_error_function_cpp, 8},
-    {"_nds3_error_function_cpp_se", (DL_FUNC) &_nds3_error_function_cpp_se, 8},
+    {"_nds3_objective_cpp", (DL_FUNC) &_nds3_objective_cpp, 2},
+    {"_nds3_error_function_cpp", (DL_FUNC) &_nds3_error_function_cpp, 6},
+    {"_nds3_error_function_cpp_se", (DL_FUNC) &_nds3_error_function_cpp_se, 6},
     {"_nds3_ols_from_design", (DL_FUNC) &_nds3_ols_from_design, 2},
     {NULL, NULL, 0}
 };

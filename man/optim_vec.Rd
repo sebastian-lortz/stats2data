@@ -10,84 +10,65 @@ optim_vec(
   target_sd,
   range,
   integer,
-  tolerance = 1e-08,
+  tolerance = 0.01,
+  sprite_prec = c(2, 2),
   max_iter = 1e+05,
-  init_temp = 1,
+  init_temp = 0.001,
   cooling_rate = NULL,
-  int.probs = NULL,
-  progress_bar = TRUE,
-  maxit_pso = 2000,
   max_starts = 3,
-  checkGrim = TRUE,
-  prob_heuristic = 0.1,
-  parallel = FALSE,
-  min_decimals = 1,
   progress_mode = "console"
 )
 }
 \arguments{
 \item{N}{Integer. Number of values in each vector.}
 
-\item{target_mean}{Named numeric vector. Desired means for each variable (names identify columns).}
+\item{target_mean}{Named numeric vector. Desired means for each variable.}
 
 \item{target_sd}{Named numeric vector. Desired standard deviations for each variable.}
 
-\item{range}{Numeric vector of length 2 or numeric matrix. Allowed value range for all variables (vector),
-or per-variable bounds as a two-row matrix matching `target_mean`.}
+\item{range}{Numeric vector of length 2 or numeric matrix. Allowed value
+range for all variables (vector), or per-variable bounds as a two-row
+matrix matching \code{target_mean}.}
 
-\item{integer}{Logical or logical vector. If TRUE, optimize integer values; length 1 or same length as `target_mean`.}
+\item{integer}{Logical or logical vector. If TRUE, optimize integer values;
+length 1 or same length as \code{target_mean}.}
 
-\item{tolerance}{Numeric. Error tolerance for convergence; stops early if best error < `tolerance`. Default `1e-8`.}
+\item{tolerance}{Numeric. Convergence threshold. Default \code{1e-3}.}
 
-\item{max_iter}{Integer. Maximum iterations for simulated annealing per start. Default `1e5`.}
+\item{sprite_prec}{Integer vector of length 2. Decimal precision for mean
+and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
 
-\item{init_temp}{Numeric. Initial temperature for annealing. Default `1`.}
+\item{max_iter}{Integer. Iterations per restart. Default \code{1e4}.}
 
-\item{cooling_rate}{Numeric or NULL. Cooling rate per iteration (0–1); if NULL, computed as `(max_iter - 10) / max_iter`.}
+\item{init_temp}{Numeric. Initial SA temperature. Default \code{1}.}
 
-\item{int.probs}{List of numeric vectors, one per variable. Sampling probabilities for integer moves; NULL for uniform.}
+\item{cooling_rate}{Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.}
 
-\item{progress_bar}{Logical. Show text progress bar during optimization. Default `TRUE`.}
+\item{max_starts}{Integer. Number of restarts. Default \code{1}.}
 
-\item{maxit_pso}{Integer. Maximum PSO iterations for continuous variables. Default `2000`.}
-
-\item{max_starts}{Integer. Number of annealing restarts. Default `3`.}
-
-\item{checkGrim}{Logical. If TRUE and `integer = TRUE`, perform GRIM checks on `target_mean`. Default is FALSE.}
-
-\item{prob_heuristic}{Numeric. Probability of heuristic move vs. random swap in integer mode. Default `0.1`.}
-
-\item{parallel}{Logical. If TRUE, optimize each variable in parallel. Default `FALSE`.}
-
-\item{min_decimals}{Integer. Minimum number of decimal places for target values (including trailing zeros). Default `1`.}
-
-\item{progress_mode}{Character. Either "console" or "shiny" for progress handler. Default `console`.}
+\item{progress_mode}{Character: \code{"console"}, \code{"shiny"}, or
+\code{"off"}. Default \code{"console"}.}
 }
 \value{
-A `nds3.object` list containing:
-\describe{ A list with the following elements for each variable:
-    \item{best_error}{Numeric. Minimum objective error achieved.}
-    \item{data}{Data.frame or matrix of optimized vectors (columns named by `target_mean`).}
-    \item{track_error}{Numeric vector of best error at each iteration of annealing.}
-    \item{inputs}{List of all input parameters for reproducibility.}
-    \item{grim}{List of the GRIM results.}
-}
+A \code{nds3.object} list with components \code{best_error},
+  \code{data}, \code{inputs}, and \code{track_error}.
 }
 \description{
 Uses the nds3 algorithmic framework to simulate one or multiple
-vectors so that each matches specified target means and standard deviations under given input parameters.
+vectors so that each matches specified target means and standard deviations
+under given input parameters.
 }
 \examples{
- \dontrun{
-# Optimize a vector of length 100
+\dontrun{
 res <- optim_vec(
-  N            = 100,
-  target_mean  = 10,
-  target_sd    = 2,
-  range        = c(0, 20),
-  integer      = TRUE,
-  max_iter     = 50000,
-  max_starts   = 2
+  N           = 100,
+  target_mean = c(x = 10),
+  target_sd   = c(x = 2),
+  range       = c(0, 20),
+  integer     = TRUE,
+  sprite_prec = c(0, 0),
+  max_iter    = 50000,
+  max_starts  = 2
 )
 }
 }

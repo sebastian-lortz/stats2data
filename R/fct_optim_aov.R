@@ -1,65 +1,36 @@
 #' Optimize simulated data to match ANOVA F-values
 #'
-#' Uses the nds3 algorithmic framework to simulate data that
-#' produce target ANOVA F-statistics under a specified factorial design given input parameters.
+#' Uses simulated annealing to generate raw data that reproduce target
+#' ANOVA F-statistics and group means under a specified factorial design.
 #'
-#' @param N Integer. Total number of subjects (sum of `subgroup_sizes`).
-#' @param levels Integer vector. Number of factor levels per factor in the design.
-#' @param subgroup_sizes Numeric vector. Optional sizes of each between-subjects group for unbalanced designs; length must equal product of `levels` for between factors.
-#' @param target_group_means Numeric vector. Desired means for each group in the design.
-#' @param target_f_list List with components:
-#'   \describe{
-#'     \item{F}{Numeric vector of target F-statistics.}
-#'     \item{effect}{Character vector of effect names matching `F`.}
-#'     \item{contrast}{Optional character formula for contrasts.}
-#'     \item{contrast_method}{Optional character specifying contrast method.}
-#'   }
-#' @param formula Formula or character. Model formula used to compute F-values (e.g., `y ~ A + B + A*B`).
-#' @param factor_type Character vector. Type of each factor (`"between"` or `"within"`) matching length of `levels`.
-#' @param range Numeric vector of length 2. Lower and upper bounds for candidate means.
-#' @param integer Logical. If TRUE, candidate values are treated as integers, if FALSE treated as continuous values.
-#' @param typeSS Integer. Type of sums-of-squares for ANOVA (2 or 3). Default is 3.
-#' @param df_effects Numeric vector. Degrees of freedom of the model effects. Default is `NULL`.
-#' @param max_iter Integer. Maximum iterations per restart. Default is 1e3.
-#' @param max_starts Integer. Number of annealing restarts. Default is 1.
-#' @param init_temp Numeric. Initial temperature for annealing. Default is 1.
-#' @param cooling_rate Numeric. Cooling rate per iteration (between 0 and 1); if NULL, calculated automatically as `(init_temp-10)/init_temp`.
-#' @param max_step Numeric. Maximum move size as proportion of `range`. Default is 0.2.
-#' @param tolerance Numeric. Error tolerance for convergence; stops early if best error < `tolerance`. Default `1e-6`.
-#' @param checkGrim Logical. If TRUE and `integer = TRUE`, perform GRIM checks on `target_group_means`. Default is FALSE.
-#' @param min_decimals Integer. Minimum number of decimal places for target values (including trailing zeros). Default `1`.
-#' @param progress_bar Logical. Show text progress bar during optimization. Default is TRUE.
-#' @param progress_mode Character. Either "console" or "shiny" (or "off" internally set) for progress handler. Default `console`.
+#' @param S Integer. Total number of subjects.
+#' @param levels Integer vector. Number of levels per factor.
+#' @param target_group_means Numeric vector of length \code{prod(levels)}.
+#'   Target cell means in \code{expand.grid} order.
+#' @param target_f_list List with components \code{effect} (character) and
+#'   \code{F} (numeric) of equal length.
+#' @param integer Logical. Generate integer-valued data?
+#' @param range Numeric vector of length 2. Bounds for individual observations.
+#' @param formula Formula or character. ANOVA model formula.
+#' @param factor_type Character vector (\code{"between"}/\code{"within"})
+#'   matching length of \code{levels}.
+#' @param subgroup_sizes Optional numeric vector of between-group sizes
+#'   (must sum to \code{N}).
+#' @param tolerance Numeric. Convergence threshold. Default \code{1e-2}.
+#' @param max_iter Integer. Iterations per restart. Default \code{1e3}.
+#' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
+#' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
+#' @param max_starts Integer. Number of restarts. Default \code{1}.
+#' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
+#'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A `nds3.object` list containing:
-#' \describe{
-#'   \item{best_error}{Numeric. Minimum error (RMSE) achieved.}
-#'   \item{data}{Data frame of optimized outcome values (and grouping variables).}
-#'   \item{inputs}{List of all input arguments.}
-#'   \item{track_error}{Numeric vector of best error at each iteration.}
-#'   \item{grim}{List of the GRIM results.}
-#' }
+#' @return A \code{nds3.object} list with components \code{best_error},
+#'   \code{data}, \code{inputs}, \code{adjusted_targets}, and
+#'   \code{track_error}.
 #'
-#' @examples
-#'  \dontrun{
-#' # Balanced 2x2 design
-#' optim_aov(
-#'   N = 40,
-#'   levels = c(2, 2),
-#'   target_group_means = c(1, 2, 3, 4),
-#'   target_f_list = list(effect = c("A", "B"),
-#'                        F = c(5.6, 8.3), ),
-#'   formula = y ~ A + B + A*B,
-#'   factor_type = c("between", "between"),
-#'   range = c(0, 5),
-#'   integer = FALSE,
-#'   max_iter = 1000,
-#'   max_starts = 3
-#' )
-#'}
 #' @export
 optim_aov <- function(
-    N,
+    S,
     levels,
     target_group_means,
     target_f_list,
@@ -68,408 +39,211 @@ optim_aov <- function(
     formula,
     factor_type,
     subgroup_sizes = NULL,
-    df_effects = NULL,
-    tolerance = 1e-8,
-    typeSS = 3,
-    max_iter = 1e3,
-    init_temp = 1,
+    tolerance = 5e-3,
+    max_iter = 5e3,
+    init_temp = 1e-3,
     cooling_rate = NULL,
-    max_step = .2,
-    max_starts = 1,
-    checkGrim = FALSE,
-    min_decimals = 1,
-    progress_bar = TRUE,
+    max_starts = 3,
     progress_mode = "console"
 ) {
 
   # input checks
-  if (!is.numeric(N) || length(N) != 1 || N <= 0 || N != as.integer(N)) {
+  N = S
+  if (!is.numeric(range) || length(range) != 2 || range[1] >= range[2])
+    stop("`range` must be a numeric vector of length 2 with range[1] < range[2].")
+  if (!is.numeric(N) || length(N) != 1 || N <= 0 || N != as.integer(N))
     stop("`N` must be a single positive integer.")
-  }
-  if (
-    !is.numeric(levels) ||
-    length(levels) < 1 ||
-    any(levels != as.integer(levels))
-  ) {
-    stop("`levels` must be a numeric vector of integers (e.g. 1, 2, 3) with length > 0, specifying the number of levels per factor.")
-  }
-  if (!is.numeric(target_group_means) || length(target_group_means) < 1) {
-    stop("`target_group_means` must be a non-empty numeric vector of target means.")
-  }
-  if (any(target_group_means < range[1] | target_group_means > range[2])) {
-    stop("All `target_group_means` must be lie within the specified range.")
-  }
+  if (!is.numeric(levels) || length(levels) < 1 ||
+      any(levels != as.integer(levels)) || !all(levels >= 2))
+    stop("`levels` must be an integer vector with all values >= 2.")
+  if (!is.logical(integer) || length(integer) != 1)
+    stop("`integer` must be a single logical value.")
+  if (!is.numeric(target_group_means) ||
+      length(target_group_means) != prod(levels))
+    stop("`target_group_means` must be numeric with length prod(levels) = ", prod(levels), ".")
+  if (any(target_group_means < range[1] | target_group_means > range[2]))
+    stop("All `target_group_means` must lie within `range`.")
   if (!is.list(target_f_list) ||
-      !is.numeric(target_f_list$F) || length(target_f_list$F) < 1) {
-    stop("`target_f_list` must be a list with a numeric vector `F` of target F statistics.")
-  }
+      !is.numeric(target_f_list$F) || length(target_f_list$F) < 1)
+    stop("`target_f_list` must be a list with a numeric vector `F`.")
   if (!is.character(target_f_list$effect) ||
-      length(target_f_list$effect) != length(target_f_list$F)) {
-    stop("`target_f_list$effect` must be a character vector the same length as `target_f_list$F`.")
-  }
-  if (!is.character(formula) || length(formula) != 1) {
-    stop("`formula` must be a single character string giving the regression formula.")
-  } else {
+      length(target_f_list$effect) != length(target_f_list$F))
+    stop("`target_f_list$effect` must match length of `target_f_list$F`.")
+  if (is.character(formula) && length(formula) == 1) {
     formula <- stats::as.formula(formula)
+  } else if (!inherits(formula, "formula")) {
+    stop("`formula` must be a formula or single character string.")
+  }
+  # Always extract RHS only — outcome is named 'outcome' internally
+  if (length(formula) == 3L) {
+    formula <- stats::as.formula(paste("~", deparse(formula[[3]])))
   }
   if (!is.character(factor_type) ||
       length(factor_type) != length(levels) ||
-      !all(factor_type %in% c("between", "within"))) {
-    stop("`factor_type` must be a character vector ('between'/'within') matching length of `levels`.")
-  }
+      !all(factor_type %in% c("between", "within")))
+    stop("`factor_type` must be 'between'/'within' matching length of `levels`.")
   n_between <- prod(levels[factor_type == "between"])
-  if (!is.null(subgroup_sizes) &&
-      (!is.numeric(subgroup_sizes) ||
-       length(subgroup_sizes) != n_between)) {
-    stop("`subgroup_sizes`, if provided, must be a numeric vector matching the number of between-subject groups.")
-  }
   if (!is.null(subgroup_sizes)) {
-    if (N != sum(subgroup_sizes)) {
-    stop("`N` must equal the sum of `subgroup_sizes` and thus, the number of subjects (not observations).")
-    }
+    if (!is.numeric(subgroup_sizes) || length(subgroup_sizes) != n_between)
+      stop("`subgroup_sizes` must have length ", n_between, ".")
+    if (N != sum(subgroup_sizes))
+      stop("`N` must equal sum(subgroup_sizes).")
   }
-  if (!is.null(df_effects) &&
-      (!is.numeric(df_effects) ||
-       length(df_effects) != length(target_f_list$F))) {
-    stop("`df_effects`, if provided, must be a numeric vector the same length as `target_f_list$F`.")
-  }
-  if (!is.numeric(range) || length(range) != 2) {
-    stop("`range` must be a numeric vector of length 2 specifying allowed candidate range.")
-  }
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0) {
-    stop("`tolerance` must be a single non-negative numeric value.")
-  }
-  if (!is.numeric(typeSS) || length(typeSS) != 1 || !typeSS %in% c(2, 3)) {
-    stop("`typeSS` must be either 2 or 3.")
-  }
-  if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0) {
-    stop("`max_iter` must be a single positive integer (or numeric convertible to integer).")
-  }
-  if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
-    stop("`init_temp` must be a single positive numeric value.")
-  }
+  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0)
+    stop("`tolerance` must be a single non-negative number.")
+  if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
+    stop("`max_iter` must be a single positive number.")
+  if (!is.null(init_temp) && (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0))
+    stop("`init_temp` must be a single positive number or NULL.")
   if (!((is.numeric(cooling_rate) && length(cooling_rate) == 1 &&
-         cooling_rate > 0 && cooling_rate < 1) || is.null(cooling_rate))) {
-    stop("`cooling_rate` must be a single numeric between 0 and 1, or NULL.")
-  }
-  if (!is.numeric(max_step) || length(max_step) != 1 ||
-      max_step <= 0 || max_step >= 1) {
-    stop("`max_step` must be a single numeric between 0 and 1.")
-  }
-  if (!is.logical(progress_bar) || length(progress_bar) != 1) {
-    stop("`progress_bar` must be a single logical value.")
-  }
-  if (!is.logical(integer) || length(integer) != 1) {
-    stop("`integer` must be a single logical value.")
-  }
-  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
+         cooling_rate > 0 && cooling_rate < 1) || is.null(cooling_rate)))
+    stop("`cooling_rate` must be in (0,1) or NULL.")
+  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1)
     stop("`max_starts` must be a single positive integer.")
-  }
-  if (!is.logical(checkGrim) || length(checkGrim) != 1) {
-    stop("`checkGrim` must be a single logical value.")
-  }
-  if (!is.numeric(min_decimals) || length(min_decimals) != 1 ||
-      min_decimals < 0 || min_decimals != as.integer(min_decimals)) {
-    stop("`min_decimals` must be a single non-negative integer.")
-  }
-  if (!is.character(progress_mode) ||
-      length(progress_mode) != 1 ||
-      !progress_mode %in% c("console", "shiny", "off")) {
-    stop("`progress_mode` must be a single string, either \"console\" or \"shiny\" or \"off\".")
-  }
+  if (!is.character(progress_mode) || length(progress_mode) != 1 ||
+      !progress_mode %in% c("console", "shiny", "off"))
+    stop('`progress_mode` must be "console", "shiny", or "off".')
 
   # configure contrasts
-  if (typeSS == 3) {
-    options(contrasts = c(unordered = "contr.sum", ordered = "contr.poly"))
-  } else if (typeSS == 2) {
-    options(contrasts = c(unordered = "contr.treatment", ordered = "contr.poly"))
-  }
+  old_con <- options(contrasts = c(unordered = "contr.sum", ordered = "contr.poly"))
+  on.exit(options(old_con), add = TRUE)
 
-  # design matrix
-  if (all(factor_type == "between")) {
-    factor_mat <- factor_matrix(N, levels, subgroup_sizes)
-  } else {
-    temp_mat   <- mixed_factor_matrix(N, levels, factor_type, subgroup_sizes)
-    ID    <- temp_mat[, 1]
-    factor_mat <- temp_mat[, -1, drop = FALSE]
-  }
-  uniq_mat    <- unique(factor_mat)
+  # design structure
+  structure   <- build_aov_structure(N, levels, factor_type, subgroup_sizes)
+  factor_mat  <- structure$df[, -1, drop = FALSE]
+  ID          <- structure$df$ID
   group_ids   <- apply(factor_mat, 1, paste0, collapse = "")
   group_idx   <- split(seq_along(group_ids), group_ids)
+  group_sizes <- vapply(group_idx, length, integer(1))
   target_F    <- target_f_list$F
-  group_sizes <- as.vector(table(group_ids))
-  balanced <- FALSE
-  if (length(unique(group_sizes)) == 1) {
-    balanced = TRUE
-  }
+  formula_internal <- stats::as.formula(paste("outcome ~", deparse(formula[[2]])))
 
-  # GRIM
-  mean_dec <- count_decimals(target_group_means, min_decimals = min_decimals)
-  if (checkGrim && integer) {
-    for (i in seq_along(group_sizes)) {
-    grim <- check_grim(n = group_sizes[i], target_mean = target_group_means[i], decimals = mean_dec[i])
-    }
-  } else {
-    grim <- NULL
-  }
+  # consistent means and F
+  targets <- aov_targets(target_group_means, target_F, group_sizes,
+                         effect_names = target_f_list$effect, levels, factor_type,
+                         integer, tolerance,
+                         ID, factor_mat, group_idx, structure, formula_internal)
+  adjusted_group_means <- targets$adjusted_means
+  target_F     <- targets$adjusted_F
+  numerator_MS <- targets$numerator_MS
 
-  # F value extraction
-  if (all(factor_type == "between")) {
-    extract_F <- function(data, effect, contrast, contrast_method, type) {
-      fit    <- stats::lm(formula, data = data)
-      an_tab <- car::Anova(fit, type = type)
-      rn     <- trimws(rownames(an_tab))
-      main_F <- sapply(effect, function(e) an_tab[rn == e, "F value"] )
-      if (!is.null(contrast)) {
-        emm   <- emmeans::emmeans(fit, stats::as.formula(paste("~", contrast)))
-        ct    <- emmeans::contrast(emm, method = contrast_method)
-        c(main_F, summary(ct)$t.ratio^2)
-      } else {
-        main_F
-      }
-    }
-  } else {
-    extract_F <- function(data, effect, type) {
-      res   <- afex::aov_car(formula = formula, data = data, factorize = TRUE, type = type)
-      an_tab <- res$anova_table
-      rn     <- trimws(rownames(an_tab))
-      sapply(effect, function(e) an_tab[rn == e, "F"] )
-    }
+  # candidate initialization
+  init_fn <- if (integer) sprite_start_vector else sprite_start_vector_cont
+  current_candidate <- numeric(length(group_ids))
+  for (j in seq_along(group_idx)) {
+    current_candidate[group_idx[[j]]] <- init_fn(
+      adjusted_group_means[j], group_sizes[j], range,
+      tolerance = if (integer) 1 / (2 * group_sizes[j]) else 1e-12
+    )
   }
 
   # objective function
-  F_dec <- max(count_decimals(target_F, min_decimals = min_decimals))
-  if (!all(factor_type == "between")) {
+  if (!structure$has_within) {
+    # purely between
     objective <- function(x) {
-      dat    <- data.frame(ID = ID, factor_mat, outcome = x)
-      comp_F <- extract_F(dat,
-                          target_f_list$effect,
-                          #target_f_list$contrast,
-                          #target_f_list$contrast_method,
-                          typeSS)
-      sqrt(mean(((round(comp_F, F_dec) - target_F)/target_F)^2))
-    }
-  } else if (!is.null(target_f_list$contrast) || !balanced) {
-    objective <- function(x) {
-      dat    <- data.frame(factor_mat, outcome = x)
-      comp_F <- extract_F(dat,
-                          target_f_list$effect,
-                          target_f_list$contrast,
-                          target_f_list$contrast_method,
-                          typeSS)
-      sqrt(mean(((round(comp_F, F_dec) - target_F)/target_F)^2))
+      MSE_b <- compute_MSE_between(x, structure)
+      if (MSE_b <= 0) return(Inf)
+      comp_F <- numerator_MS / MSE_b
+      sqrt(mean((comp_F - target_F)^2))
     }
   } else {
-      MSE <- compute_sequential_MSE(
-        target_group_means,
-        group_sizes,
-        uniq_mat,
-        target_F,
-        df_effects
-      )
     objective <- function(x) {
-      SDs    <- sapply(group_idx, function(idx) stats::sd(x[idx]))
-      pooled <- sum((group_sizes - 1) * SDs^2) / sum(group_sizes - 1)
-      sqrt((pooled - MSE)^2)
+    fit <- afex::aov_car(formula = formula_internal, data =  cbind(structure$df,
+                                                   outcome = x))
+    sqrt(mean((fit$anova_table$F - target_F)^2))
     }
   }
 
-  # aov move
-  max_step_adapt <- max(1, (range[2]-range[1])*max_step)
-  if(integer) {
-    max_step_adapt <- floor(max_step_adapt)
-  }
-
-  aov_move <- function(candidate, integer) {
-    lower_bound <- range[1]
-    upper_bound <- range[2]
-
-    for (g in seq_along(group_idx)) {
-      i_idx <- group_idx[[g]]
-      i_cand <- candidate[i_idx]
-
-      dec_idx <- which(i_cand > lower_bound)
-      if (!length(dec_idx)) next
-      i_dec <- sample(dec_idx, 1)
-
-      # prevent null moves by excluding i_dec
-      inc_idx <- which(i_cand < upper_bound & seq_along(i_cand) != i_dec)
-      if (!length(inc_idx)) next
-
-      i_inc <- sample(inc_idx, 1)
-
-      max_dec <- i_cand[i_dec] - lower_bound
-      max_inc <- upper_bound - i_cand[i_inc]
-      max_delta <- min(max_dec, max_inc, max_step_adapt)
-      if (max_delta < 1) next
-
-      if (integer) {
-        max_delta <- floor(max_delta)
-        delta <- sample.int(max_delta, 1)
-      } else {
-        delta <- runif(1, min = 0, max = max_delta)
-      }
-
-      i_cand[i_dec] <- i_cand[i_dec] - delta
-      i_cand[i_inc] <- i_cand[i_inc] + delta
-      # cat(delta, "\n")
-      candidate[i_idx] <- i_cand
-    }
-
-    candidate
-  }
-
-  # init parameters
-  if (integer) {
-      elements   <- mapply(
-      sprite_start_vector,
-      target_group_means,
-      group_sizes,
-      MoreArgs = list(range),
-      SIMPLIFY = FALSE)
-  } else {
-    elements   <- mapply(
-      sprite_start_vector_cont,
-      target_group_means,
-      group_sizes,
-      MoreArgs = list(range),
-      SIMPLIFY = FALSE)
-  }
-      current_candidate <- numeric(length(group_ids))
-      for (j in seq_along(unique(group_ids))) {
-        idxs <- group_idx[[unique(group_ids)[j]]]
-        current_candidate[idxs] <- elements[[j]]
-      }
-
-  if (is.null(cooling_rate)) {
-    cooling_rate <- (max_iter - 10) / max_iter
-  }
-  temp     <- init_temp
+  # SA setup
+  if (is.null(cooling_rate)) cooling_rate <- (max_iter - 10) / max_iter
   best_candidate <- current_candidate
-  current_error <- best_error <- objective(current_candidate)
+  current_error  <- objective(current_candidate)
+  if (!is.finite(current_error)) current_error <- Inf
+  best_error     <- current_error
+  track_error    <- numeric(max_iter * max_starts)
+  global_iter    <- 0L
+  n_within_factors <- sum(factor_type == "within")
+  needs_within_interaction <- n_within_factors >= 2 && any(grepl(":", target_f_list$effect))
+  temp <- init_temp
 
-  # set progressr
-  if(progress_mode == "shiny") {
-    handler <- list(progressr::handler_shiny())
-  } else if (progress_mode == "console") {
-    handler <-list(progressr::handler_txtprogressbar())
-  }
+  # progress handler
+  handler <- switch(progress_mode,
+                    console = list(progressr::handler_txtprogressbar()),
+                    shiny   = list(progressr::handler_shiny()),
+                    off     = list(progressr::handler_void())
+  )
   pb_interval <- max(floor(max_iter / 100), 1)
 
-  # Optimization Process
-  if (progress_mode == "shiny" || progress_mode == "console") {
+  # optimization loop
   progressr::with_progress({
-    p <- progressr::progressor(steps = (max_iter*max_starts)/pb_interval)
-      for (s in seq_len(max_starts)) {
-        if (progress_bar) {
-          pb_interval <- floor(max_iter / 100)
-          pb <- utils::txtProgressBar(min = 0, max = max_iter, style = 3)
-          on.exit(close(pb), add = TRUE)
+    p <- progressr::progressor(steps = ceiling(max_iter * max_starts / pb_interval))
+    for (s in seq_len(max_starts)) {
+      for (i in seq_len(max_iter)) {
+        candidate <- current_candidate
+        # candidate modification
+        if (!structure$has_between) {
+          if (needs_within_interaction && runif(1) < 0.5) {
+            candidate <- move_within_interaction(candidate, integer, structure, range)
+          } else {
+            candidate <- move_within_paired(candidate, integer, structure, range)
+          }
+        } else if (structure$has_within) {
+          if (runif(1) < 0.5) {
+            candidate <- move_between(candidate, integer, structure, range)
+          } else {
+            candidate <- move_within_paired(candidate, integer, structure, range)
+          }
+        } else {
+          candidate <- move_between(candidate, integer, structure, range)
         }
-        track_error       <- numeric(max_iter)
-        for (i in seq_len(max_iter)) {
-          candidate <- current_candidate
-          candidate <- aov_move(candidate, integer = integer)
-          cand_error   <- objective(candidate)
-          prob  <- exp((current_error - cand_error) / temp)
-          if (cand_error < current_error || stats::runif(1) < prob) {
-            current_candidate    <- candidate
-            current_error <- cand_error
-            if (cand_error < best_error) {
-            best_error <- cand_error
+        cand_error <- objective(candidate)
+        if (!is.finite(cand_error)) next
+        prob <- exp((current_error - cand_error) / temp)
+        if (cand_error < current_error || stats::runif(1) < prob) {
+          current_candidate <- candidate
+          current_error     <- cand_error
+          if (cand_error < best_error) {
+            best_error     <- cand_error
             best_candidate <- candidate
-            }
           }
-          temp <- temp * cooling_rate
-          track_error[i]       <- best_error
-          if (progress_bar && (i %% pb_interval == 0)) {
-            utils::setTxtProgressBar(pb, i)
-            p()
-          }
-          if (best_error < tolerance) break
         }
-        if (progress_bar) {close(pb)}
-        current_candidate <- best_candidate
-        if (best_error < tolerance) break
-        cat("\nBest error in start", s, "is", best_error, "\n")
-        temp <- init_temp / (2 ^ s)
-        }
-      },
-  handlers = handler
-  )
-} else {
-  for (s in seq_len(max_starts)) {
-    if (progress_bar) {
-      pb_interval <- floor(max_iter / 100)
-      pb <- utils::txtProgressBar(min = 0, max = max_iter, style = 3)
-      on.exit(close(pb), add = TRUE)
-    }
-    track_error       <- numeric(max_iter)
-    for (i in seq_len(max_iter)) {
-      candidate <- current_candidate
-      candidate <- aov_move(candidate, integer = integer)
-      cand_error   <- objective(candidate)
-      prob  <- exp((current_error - cand_error) / temp)
-      if (cand_error < current_error || stats::runif(1) < prob) {
-        current_candidate    <- candidate
-        current_error <- cand_error
-        if (cand_error < best_error) {
-          best_error <- cand_error
-          best_candidate <- candidate
-        }
-      }
-      temp <- temp * cooling_rate
-      track_error[i]       <- best_error
-      if (progress_bar && (i %% pb_interval == 0)) {
-        utils::setTxtProgressBar(pb, i)
-      }
-      if (best_error < tolerance) break
-    }
-    if (progress_bar) {close(pb)}
-    current_candidate <- best_candidate
-    if (best_error < tolerance) break
-    cat("\nBest error in start", s, "is", best_error, "\n")
-    temp <- init_temp / (2 ^ s)
-  }
-}
 
-  # combine results
-  out_data <- if (!all(factor_type == "between")) {
-    data.frame(ID = ID, factor_mat, outcome = best_candidate)
-  } else {
-    data.frame(factor_mat, outcome = best_candidate)
-  }
+        temp <- temp * cooling_rate
+        global_iter <- global_iter + 1L
+        track_error[global_iter] <- best_error
+        if (global_iter %% pb_interval == 0) p()
+        if (is.finite(best_error) && best_error < tolerance) break
+        }
+      current_candidate <- best_candidate
+      if (is.finite(best_error) && best_error < tolerance) break
+      temp <- init_temp
+    }
+  }, handlers = handler)
+
+  track_error <- track_error[seq_len(global_iter)]
 
   # assemble output
-  res <- list(
-    best_error  = best_error,
-    data        = out_data,
-    inputs      = list(
-      N = N,
-      levels = levels,
+  out_data <- data.frame(ID = ID, factor_mat, outcome = best_candidate)
+
+  # return
+  new_s2d_aov(
+    best_error       = best_error,
+    data             = out_data,
+    inputs           = list(
+      N = N, levels = levels,
       target_group_means = target_group_means,
       target_f_list = target_f_list,
-      integer = integer,
-      range = range,
-      formula = formula,
-      factor_type = factor_type,
+      integer = integer, range = range,
+      formula = formula, factor_type = factor_type,
       subgroup_sizes = subgroup_sizes,
-      df_effects = df_effects,
-      tolerance = tolerance,
-      typeSS = typeSS,
-      max_iter = max_iter,
-      init_temp = init_temp,
-      cooling_rate = cooling_rate,
-      max_step = max_step,
-      max_starts = max_starts,
-      checkGrim = checkGrim,
-      min_decimals = min_decimals,
-      progress_bar = progress_bar,
-      progress_mode = progress_mode
+      tolerance = tolerance, max_iter = max_iter,
+      init_temp = init_temp, cooling_rate = cooling_rate,
+      max_starts = max_starts, progress_mode = progress_mode
     ),
-    track_error = track_error,
-    grim        = grim
+    adjusted_targets = list(
+      group_means = adjusted_group_means,
+      F_values    = target_F
+    ),
+    track_error      = track_error
   )
-  class(res) <- "nds3.object"
-  res
 }

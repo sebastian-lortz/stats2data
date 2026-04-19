@@ -36,183 +36,163 @@ mod_optim_aov_ui <- function(id) {
     ),
 
     div(style = "white-space: nowrap;",
+        div(
+          style = "display:inline-block; vertical-align:top; margin-right:10px;",
+          wellPanel(
+            h4("Reported Summary Statistics"),
+            numericInput(ns("N"),  name_with_info(
+              "Sample Size (Subjects)",
+              "Total number of subjects.")
+              , 443, min = 10, step = 1),
+            p(tags$b(name_with_info(
+              "Factors",
+              "Define each factor: its name, # levels, and whether between- or within-subjects."
+            ))),
             div(
-              style = "display:inline-block; vertical-align:top; margin-right:10px;",
-            wellPanel(
-              h4("Reported Summary Statistics"),
-              numericInput(ns("N"),  name_with_info(
-                "Sample Size",
-                "The length of the target vectors.")
-                , 443, min = 10, step = 1),
-                p(tags$b(name_with_info(
-                  "Factors",
-                  "Define each factor: its name, # levels, and whether between- or within-subjects."
-                ))),
-                div(
-                  style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
-                  rhandsontable::rHandsontableOutput(ns("factor_table"), height = "100px")
-                ),
-                fluidRow(
-                  column(6, actionButton(ns("add_factor"),    "Add factor",    class = "btn-sm btn-block")),
-                  column(6, actionButton(ns("remove_factor"), "Remove factor", class = "btn-sm btn-block"))
-                ),
-                p(tags$b(name_with_info(
-                  "Subgroup Means",
-                  "All combinations of factor levels; enter the mean and sample size for each."
-                ))),
-                div(
-                  style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
-                  rhandsontable::rHandsontableOutput(ns("subgroup_table"))
-                ),
-                fluidRow(
-                  column(6)
-                ),
-              p(tags$b(name_with_info(
-                "ANOVA Outcomes",
-                "The ANOVA's effect, df, F-values, and contrasts"
-              ))),
-              div(
-                style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
-                rHandsontableOutput(ns("anova_table"), height = "100px")
+              style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
+              rhandsontable::rHandsontableOutput(ns("factor_table"), height = "100px")
+            ),
+            fluidRow(
+              column(6, actionButton(ns("add_factor"),    "Add factor",    class = "btn-sm btn-block")),
+              column(6, actionButton(ns("remove_factor"), "Remove factor", class = "btn-sm btn-block"))
+            ),
+            p(tags$b(name_with_info(
+              "Subgroup Means",
+              "All combinations of factor levels; enter the mean and sample size for each."
+            ))),
+            div(
+              style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
+              rhandsontable::rHandsontableOutput(ns("subgroup_table"))
+            ),
+            fluidRow(
+              column(6)
+            ),
+            p(tags$b(name_with_info(
+              "ANOVA Outcomes",
+              "The ANOVA's effect and F-values"
+            ))),
+            div(
+              style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
+              rHandsontableOutput(ns("anova_table"), height = "100px")
+            ),
+            fluidRow(
+              column(6, actionButton(ns("add_effect"),    "Add row",    class = "btn-sm btn-block")),
+              column(6, actionButton(ns("remove_effect"), "Remove row", class = "btn-sm btn-block"))
+            ),
+            fluidRow(
+              column(
+                width = 6,
+                checkboxGroupInput(
+                  ns("main_effects"),
+                  label   = tags$span(style = "font-size:90%;", "Main Effects:"),
+                  choices = NULL
+                )
               ),
-              fluidRow(
-                column(6, actionButton(ns("add_effect"),    "Add row",    class = "btn-sm btn-block")),
-                column(6, actionButton(ns("remove_effect"), "Remove row", class = "btn-sm btn-block"))
-              ),
-              fluidRow(
-                    column(
-                        width = 6,
-                        checkboxGroupInput(
-                            ns("main_effects"),
-                            label   = tags$span(style = "font-size:90%;", "Main Effects:"),
-                           choices = NULL
-                          )
-                      ),
-                    column(
-                        width = 6,
-                        checkboxGroupInput(
-                            ns("inter_effects"),
-                            label   = tags$span(style = "font-size:90%;", "Interaction Effects:"),
-                            choices = NULL
-                          )
-                      )
-                  ),
-
-              div(
-                style = "margin-top: 10px; width:100%;",
-                shinyWidgets::numericRangeInput(
-                  ns("range"),
-                  label = name_with_info(
-                    "Outcome Range",
-                    "Lower and upper bounds for simulated outcome values."
-                  ),
-                  value = c(0, 60),
-                  min   = NA,
-                  max   = NA,
-                  separator = " to ",
-                  width = "200px"
-                ),
-                checkboxInput(
-                  ns("integer"),
-                  label = name_with_info(
-                    "Integer",
-                    "If checked, the ANOVA optimization will treat the outcome as integer-valued."
-                  ),
-                  value = TRUE
-                ),
-                selectInput(
-                  ns("typeSS"),
-                  label = name_with_info(
-                    "Type of Sum-of-Squares",
-                    "Choose Type II or Type III sums of squares."
-                  ),
-                  choices  = c("Type II" = 2, "Type III" = 3),
-                  selected = 3,
-                  width    = "100%"
+              column(
+                width = 6,
+                checkboxGroupInput(
+                  ns("inter_effects"),
+                  label   = tags$span(style = "font-size:90%;", "Interaction Effects:"),
+                  choices = NULL
                 )
               )
-            ))
-            ,
+            ),
+
+            div(
+              style = "margin-top: 10px; width:100%;",
+              shinyWidgets::numericRangeInput(
+                ns("range"),
+                label = name_with_info(
+                  "Outcome Range",
+                  "Lower and upper bounds for simulated outcome values."
+                ),
+                value = c(0, 60),
+                min   = NA,
+                max   = NA,
+                separator = " to ",
+                width = "200px"
+              ),
+              checkboxInput(
+                ns("integer"),
+                label = name_with_info(
+                  "Integer",
+                  "If checked, the ANOVA optimization will treat the outcome as integer-valued."
+                ),
+                value = TRUE
+              )
+            )
+          ))
+        ,
 
         div(
           style = "display:inline-block; vertical-align:top; margin-right:20px;",
-        wellPanel(
-              h4("Algorithm Hyperparameters"),
-              numericInput(
-                ns("tolerance"),
-                name_with_info(
-                  "Tolerance",
-                  "The threshold for the weighted objective function value below which the optimization will stop."),
-                value = 1e-12,
-                min   = 0,
-                step  = 1e-12,
-                width = "100%"
-              ),
-              numericInput(ns("max_iter"), name_with_info(
-                "Max Iterations",
-                "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e4,   min = 1,    step = 1000),
-              numericInput(ns("init_temp"), name_with_info(
-                "Initial Temperature",
-                "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
-                1, min = 0, max = 10,    step = 0.01),
-              numericInput(ns("cooling_rate"), name_with_info(
-                "Cooling Rate",
-                "The factor by which the temperature is multiplied after each iteration, governing how quickly the algorithm reduces its acceptance of worse solutions."),
-                (1e4-10)/1e4, min = 0, max = 1, step = 0.0001),
-              numericInput(ns("max_step"), name_with_info(
-                "Max Step Size",
-                "The proportion of the range governing the maximum magnitude of modification in an iteration, preventing early convergence."),
-                0.2, min = 0, max = 1, step = 0.01),
-              numericInput(ns("max_starts"), name_with_info(
-                "Max Starts",
-                "The maximum number of times the optimization algorithm will restart from the current best solution using reduced inital temperatures."),
-                1,     min = 1,    step = 1),
-              numericInput(ns("parallel_start"),
-                name_with_info(
-                  "Number of Datasets",
-                  "How many independent optimization runs to perform."),
-                value = 1, min = 1, step = 1),
-              checkboxInput(ns("return_best"), name_with_info(
-                  "Return Best Dataset",
-                  "If checked, only the dataset with the lowest objective value is returned."),
-                value = FALSE)
-            )
+          wellPanel(
+            h4("Algorithm Hyperparameters"),
+            numericInput(
+              ns("tolerance"),
+              name_with_info(
+                "Tolerance",
+                "The threshold for the objective function value below which the optimization will stop."),
+              value = 5e-3,
+              min   = 0,
+              step  = 1e-3,
+              width = "100%"
+            ),
+            numericInput(ns("max_iter"), name_with_info(
+              "Max Iterations",
+              "The maximum number of iterations the algorithm will run each time it restarts."), 5e3,   min = 1,    step = 1000),
+            numericInput(ns("init_temp"), name_with_info(
+              "Initial Temperature",
+              "The starting temperature for the simulated annealing."),
+              1e-3, min = 0, max = 10,    step = 0.001),
+            numericInput(ns("cooling_rate"), name_with_info(
+              "Cooling Rate",
+              "The factor by which the temperature is multiplied after each iteration."),
+              (5e3-10)/5e3, min = 0, max = 1, step = 0.0001),
+            numericInput(ns("max_starts"), name_with_info(
+              "Max Starts",
+              "The maximum number of times the optimization algorithm will restart from the current best solution."),
+              3,     min = 1,    step = 1),
+            numericInput(ns("n_datasets"),
+                         name_with_info(
+                           "Number of Datasets",
+                           "How many independent sequential optimization runs to perform."),
+                         value = 1, min = 1, step = 1)
+          )
         ),
 
         div(style = "display:inline-block; vertical-align:top; margin-left:20px; width: calc(100% - auto);",
-          h4("Optimization Output"),
-          div(style = "margin-bottom:10px;",
-              actionButton(ns("run"), name_with_info(
-                "Run Optimization",
-                "Executes nds3: Data-Simulation via iterative stochastic combinatorial optimization using reported summary estimates."), class = "btn-primary")
-          ),
-          div(
-            id    = ns("processing_msg"),
-            style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
-            "Processing, please wait ..."
-          ),
-          textOutput(ns("status_text")),
-          selectInput(ns("dataset_selector"), name_with_info("Select Dataset", "Choose the data set to inspect or download."),
-                      choices = NULL, selected = 1,   width    = "100px"),
-          h5(name_with_info("Objective Function Value","The minimum weighted value of the objective function attained by the optimization.")),
-          tableOutput(ns("best_error")),
-          fluidRow( style = "margin-bottom: 10px;",
-            column(12,
-                   actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                   actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
-                   actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
-                   actionButton(ns("plot_rmse"),       name_with_info("Plot RMSE","Plot RMSE across runs"), class = "btn-sm"),
-                   actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm"),
-                   actionButton(ns("get_rmse_parallel"),name_with_info("Get RMSE Parallel","Compute RMSE across all runs"), class = "btn-sm")
-            )
-          ),
-          fluidRow(
-            column(12,
-                   actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
-                   actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
-            )
-          ),
-          div(style = "overflow:auto; margin-top:10px;", uiOutput(ns("main_output")))
+            h4("Optimization Output"),
+            div(style = "margin-bottom:10px;",
+                actionButton(ns("run"), name_with_info(
+                  "Run Optimization",
+                  "Executes nds3: Data-Simulation via iterative stochastic combinatorial optimization using reported summary estimates."), class = "btn-primary")
+            ),
+            div(
+              id    = ns("processing_msg"),
+              style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
+              "Processing, please wait ..."
+            ),
+            textOutput(ns("status_text")),
+            selectInput(ns("dataset_selector"), name_with_info("Select Dataset", "Choose the data set to inspect or download."),
+                        choices = NULL, selected = 1,   width    = "100px"),
+            h5(name_with_info("Objective Function Value","The minimum value of the objective function attained by the optimization.")),
+            tableOutput(ns("best_error")),
+            fluidRow( style = "margin-bottom: 10px;",
+                      column(12,
+                             actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
+                             actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
+                             actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
+                             actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm")
+                      )
+            ),
+            fluidRow(
+              column(12,
+                     actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
+                     actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
+              )
+            ),
+            div(style = "overflow:auto; margin-top:10px;", uiOutput(ns("main_output")))
         )
     )
   )
@@ -241,7 +221,6 @@ mod_optim_aov_server <- function(id){
     )
     initial_aov <- data.frame(
       effect    = c("Factor1","Factor2","Factor1:Factor2"),
-      df_effect = c(1,1,1),
       F         = c(8.2,321.2,3.4),
       stringsAsFactors = FALSE
     )
@@ -250,35 +229,33 @@ mod_optim_aov_server <- function(id){
       factors   = initial_factors,
       subgroups = initial_subgroups,
       status    = "ready",
-      result = NULL,
-      dirty = TRUE
+      result    = NULL,
+      dirty     = TRUE
     )
 
     observeEvent({
       list(
-      input$N,
-      input$factor_table,
-      input$add_factor,
-      input$remove_factor,
-      input$subgroup_table,
-      input$anova_table,
-      input$main_effects,
-      input$inter_effects,
-      input$range,
-      input$integer,
-      input$typeSS,
-      input$tolerance,
-      input$max_iter,
-      input$init_temp,
-      input$cooling_rate,
-      input$max_starts,
-      input$parallel_start,
-      input$return_best)
+        input$N,
+        input$factor_table,
+        input$add_factor,
+        input$remove_factor,
+        input$subgroup_table,
+        input$anova_table,
+        input$main_effects,
+        input$inter_effects,
+        input$range,
+        input$integer,
+        input$tolerance,
+        input$max_iter,
+        input$init_temp,
+        input$cooling_rate,
+        input$max_starts,
+        input$n_datasets)
     }, {
       rv$dirty <- TRUE
       for (btn in c(
-        "plot_error","get_rmse","get_rmse_parallel",
-        "plot_summary","plot_rmse","plot_cooling",
+        "plot_error","get_rmse",
+        "plot_summary","plot_cooling",
         "display_data","download","dataset_selector"
       )) {
         shinyjs::disable(btn)
@@ -310,10 +287,10 @@ mod_optim_aov_server <- function(id){
     }
 
     observeEvent(rv$factors, {
-       ff <- rv$factors
+      ff <- rv$factors
       valid <- !is.na(ff$levels) &
         ff$levels >= 2     &
-         ff$levels == floor(ff$levels)
+        ff$levels == floor(ff$levels)
       if (all(valid)) {
         rv$subgroups <- build_subgroups(ff)
       }
@@ -350,7 +327,6 @@ mod_optim_aov_server <- function(id){
 
     initial_df_aov <- data.frame(
       effect          = c("Factor1", "Factor2", "Factor1:Factor2"),
-      df_effect       = c(1,    1,     1),
       F               = c(8.2, 321.2, 3.4),
       stringsAsFactors = FALSE
     )
@@ -374,7 +350,6 @@ mod_optim_aov_server <- function(id){
           strict       = TRUE,
           allowInvalid = FALSE
         ) %>%
-        hot_col("df_effect", type = "numeric", format = "0") %>%
         hot_col("F",         type = "numeric", format = "0.00")
     })
 
@@ -387,7 +362,6 @@ mod_optim_aov_server <- function(id){
       df <- rv_aov$params
       df[nrow(df)+1, ] <- list(
         effect          = "",
-        df_effect       = NA_real_,
         F               = NA_real_
       )
       rv_aov$params <- df
@@ -420,14 +394,6 @@ mod_optim_aov_server <- function(id){
       req(sel)
       rhs <- paste(sel, collapse = " + ")
       if (rhs == "") return(NULL)
-
-      within_facts <- rv$factors$name[ rv$factors$type == "within" ]
-      if (length(within_facts)) {
-        rhs <- paste0(rhs,
-                      " + Error(ID/",
-                      paste(within_facts, collapse = "/"),
-                      ")")
-      }
       as.character(paste("outcome ~", rhs))
     })
 
@@ -437,8 +403,8 @@ mod_optim_aov_server <- function(id){
       )
     })
 
-    for(btn in c("run", "plot_error","get_rmse","get_rmse_parallel",
-                 "plot_summary","plot_rmse","plot_cooling",
+    for(btn in c("run", "plot_error","get_rmse",
+                 "plot_summary","plot_cooling",
                  "display_data","download", "dataset_selector")) {
       shinyjs::disable(btn)
     }
@@ -452,7 +418,6 @@ mod_optim_aov_server <- function(id){
       ok2 <- !is.null(df_aov) &&
         nrow(df_aov) > 0 &&
         all(nzchar(df_aov$effect),
-            !is.na(df_aov$df_effect),
             !is.na(df_aov$F))
       if (ok1 && ok2) {
         shinyjs::enable("run")
@@ -464,82 +429,76 @@ mod_optim_aov_server <- function(id){
     observeEvent(input$run, {
       shinyjs::show("processing_msg")
       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
+
       levels_int         <- as.integer(rv$factors$levels)
       target_group_means <- rv$subgroups$Mean
-      subgroup_sizes     <- rv$subgroups$Size[rv$factors$type == "between"]
-      N                  <- input$N
-      if (length(subgroup_sizes) == 0) {
-        total_subgroups <- N
+      factor_type        <- rv$factors$type
+
+      # Build subgroup_sizes: only for between-subject factors
+      # The Size column gives per-cell sizes; for between factors we need
+      # unique subject counts per between-group combination
+      has_between <- any(factor_type == "between")
+      if (has_between) {
+        between_names <- rv$factors$name[factor_type == "between"]
+        sg <- rv$subgroups
+        # Get unique between-group combinations and their sizes
+        within_names <- rv$factors$name[factor_type == "within"]
+        if (length(within_names) > 0) {
+          # For mixed designs, sizes should be unique per between-group combo
+          # Take the first row per between-group combination
+          bg_cols <- sg[, between_names, drop = FALSE]
+          bg_key  <- apply(bg_cols, 1, paste0, collapse = "_")
+          first_of_each <- !duplicated(bg_key)
+          subgroup_sizes <- sg$Size[first_of_each]
+        } else {
+          subgroup_sizes <- sg$Size
+        }
       } else {
-        total_subgroups <- sum(subgroup_sizes)
+        subgroup_sizes <- NULL
       }
-      if (N != total_subgroups) {
-        showNotification(
-          sprintf("Total N (%d) must equal sum of subgroup sizes (%d).", N, total_subgroups),
-          type = "error"
-        )
-        return()
-      }
+
+      S <- input$N
 
       aov_df             <- hot_to_r(input$anova_table)
       target_f_list      <- list(
         effect          = aov_df$effect,
-        F               = aov_df$F,
-        contrast        = NULL,
-        contrast_method = NULL
+        F               = aov_df$F
       )
-      df_effects         <- aov_df$df_effect
       integer            <- input$integer
-      range              <- input$range
+      range_val          <- input$range
       formula            <- formula_reactive()
       tolerance          <- input$tolerance
-      factor_type        <- rv$factors$type
-      typeSS             <- as.integer(input$typeSS)
       max_iter           <- input$max_iter
       init_temp          <- input$init_temp
       cooling_rate       <- input$cooling_rate
-      max_step           <- input$max_step
       max_starts         <- input$max_starts
-      checkGrim          <- TRUE
-      parallel_start     <- input$parallel_start
-      return_best_solution <- input$return_best
-      fn_args <- list(
-        N                    = N,
-        levels               = levels_int,
-        subgroup_sizes       = subgroup_sizes,
-        target_group_means   = target_group_means,
-        target_f_list        = target_f_list,
-        df_effects           = df_effects,
-        integer              = integer,
-        range                = range,
-        formula              = formula,
-        tolerance            = tolerance,
-        factor_type          = factor_type,
-        typeSS               = typeSS,
-        max_iter             = max_iter,
-        init_temp            = init_temp,
-        cooling_rate         = cooling_rate,
-        max_step             = max_step,
-        max_starts           = max_starts,
-        checkGrim            = checkGrim,
-        parallel_start       = parallel_start,
-        return_best_solution = return_best_solution,
-        progress_mode        = "shiny"
+      n_datasets         <- input$n_datasets
+
+      # Input validation
+      input.check <- check_aov_inputs(
+        N                  = S,
+        levels             = levels_int,
+        target_group_means = target_group_means,
+        range              = range_val,
+        tolerance          = tolerance,
+        max_iter           = max_iter,
+        init_temp          = init_temp,
+        cooling_rate       = cooling_rate,
+        max_starts         = max_starts
       )
-      check.args <- fn_args[names(fn_args) %in% names(formals(check_aov_inputs))]
-      input.check <- do.call(check_aov_inputs, check.args)
       if (!input.check) {return()}
-      # cat(paste(unlist(fn_args), collapse = ", "), "\n")
+
+      # Disable all inputs during run
       lapply(c(  "factor_table", "add_factor", "remove_factor",
                  "subgroup_table",
                  "anova_table", "add_effect", "remove_effect",
                  "main_effects", "inter_effects",
-                 "range", "integer", "typeSS",
+                 "range", "integer",
                  "tolerance", "max_iter", "init_temp",
-                 "cooling_rate", "max_step", "max_starts",
-                 "parallel_start", "return_best",
-                 "run","plot_error","get_rmse","get_rmse_parallel",
-                 "plot_summary","plot_rmse","plot_cooling",
+                 "cooling_rate", "max_starts",
+                 "n_datasets",
+                 "run","plot_error","get_rmse",
+                 "plot_summary","plot_cooling",
                  "display_data","download","dataset_selector"), shinyjs::disable)
       for (tbl in c("factor_table","subgroup_table","anova_table")) {
         shinyjs::runjs(
@@ -548,15 +507,55 @@ mod_optim_aov_server <- function(id){
         )
       }
       rv$status <- "running"
+
       withProgress(message = "Running optimization...", value = 0, {
-      if (parallel_start > 1) {
-        rv$result <- do.call(parallel_aov, fn_args)
+        if (n_datasets > 1) {
+          # Sequential multi-dataset runs (no parallel)
+          results_list <- vector("list", n_datasets)
+          for (ds in seq_len(n_datasets)) {
+            incProgress(1 / n_datasets,
+                        detail = sprintf("Dataset %d / %d", ds, n_datasets))
+            results_list[[ds]] <- optim_aov(
+              S                  = S,
+              levels             = levels_int,
+              target_group_means = target_group_means,
+              target_f_list      = target_f_list,
+              integer            = integer,
+              range              = range_val,
+              formula            = formula,
+              factor_type        = factor_type,
+              subgroup_sizes     = subgroup_sizes,
+              tolerance          = tolerance,
+              max_iter           = max_iter,
+              init_temp          = init_temp,
+              cooling_rate       = cooling_rate,
+              max_starts         = max_starts,
+              progress_mode      = "off"
+            )
+          }
+          rv$result <- results_list
         } else {
-        seq_args <- fn_args[names(fn_args) %in% names(formals(optim_aov))]
-        rv$result <- do.call(optim_aov, seq_args)
+          rv$result <- optim_aov(
+            S                  = S,
+            levels             = levels_int,
+            target_group_means = target_group_means,
+            target_f_list      = target_f_list,
+            integer            = integer,
+            range              = range_val,
+            formula            = formula,
+            factor_type        = factor_type,
+            subgroup_sizes     = subgroup_sizes,
+            tolerance          = tolerance,
+            max_iter           = max_iter,
+            init_temp          = init_temp,
+            cooling_rate       = cooling_rate,
+            max_starts         = max_starts,
+            progress_mode      = "shiny"
+          )
         }
       })
-      is_parallel <- input$parallel_start > 1 && !input$return_best
+
+      is_multi <- n_datasets > 1
       rv$status <- "done"
       rv$dirty <- FALSE
       shinyjs::enable("run")
@@ -564,23 +563,19 @@ mod_optim_aov_server <- function(id){
                     "subgroup_table",
                     "anova_table", "add_effect", "remove_effect",
                     "main_effects", "inter_effects",
-                    "range", "integer", "typeSS",
+                    "range", "integer",
                     "tolerance", "max_iter", "init_temp",
-                    "cooling_rate", "max_step", "max_starts",
-                    "parallel_start", "return_best","plot_error",
+                    "cooling_rate", "max_starts",
+                    "n_datasets","plot_error",
                     "get_rmse","plot_summary","plot_cooling",
                     "display_data","download")) {
         shinyjs::enable(btn)
       }
-      if (is_parallel) {
-        shinyjs::enable("get_rmse_parallel")
-        shinyjs::enable("plot_rmse")
+      if (is_multi) {
         updateSelectInput(session, "dataset_selector",
-                          choices = seq_len(length(rv$result)), selected = 1)
+                          choices = seq_len(n_datasets), selected = 1)
         shinyjs::enable("dataset_selector")
       } else {
-        shinyjs::disable("get_rmse_parallel")
-        shinyjs::disable("plot_rmse")
         updateSelectInput(session, "dataset_selector", choices = 1, selected = 1)
         shinyjs::disable("dataset_selector")
       }
@@ -615,9 +610,7 @@ mod_optim_aov_server <- function(id){
     last_action <- reactiveVal(NULL)
     observeEvent(input$plot_error, last_action("plot_error"))
     observeEvent(input$get_rmse,       last_action("get_rmse"))
-    observeEvent(input$get_rmse_parallel,  last_action("get_rmse_parallel"))
     observeEvent(input$plot_summary,    last_action("plot_summary"))
-    observeEvent(input$plot_rmse,    last_action("plot_rmse"))
     observeEvent(input$plot_cooling,    last_action("plot_cooling"))
     observeEvent(input$display_data,    last_action("display_data"))
     observeEvent(input$download, {
@@ -637,9 +630,6 @@ mod_optim_aov_server <- function(id){
     output$get_rmse    <- renderPrint({
       if (rv$dirty) return(NULL)
       get_rmse(selected_dataset()) })
-    output$get_rmse_parallel <- renderPrint({
-      if (rv$dirty) return(NULL)
-      get_rmse_parallel(rv$result) })
     output$plot_summary <- renderPlot({
       if (rv$dirty) return(NULL)
       plot_summary(selected_dataset(),
@@ -647,9 +637,6 @@ mod_optim_aov_server <- function(id){
     output$plot_cooling<- renderPlot({
       if (rv$dirty) return(NULL)
       plot_cooling(selected_dataset()) })
-    output$plot_rmse   <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_rmse(rv$result) })
     output$display_data <- renderTable({
       if (rv$dirty) return(NULL)
       ds <- selected_dataset()
@@ -679,11 +666,7 @@ mod_optim_aov_server <- function(id){
                      ),
                      value = isolate(input$iter_select %||% 1),
                      min   = 1,
-                     max   = length(
-                       rv$result$track_error[[
-                         as.integer(input$run_select %||% 1)
-                       ]]
-                     ),
+                     max   = length(selected_dataset()$track_error),
                      step  = 100,
                      width = "100px"
                    )
@@ -691,7 +674,6 @@ mod_optim_aov_server <- function(id){
                )
              ),
              "get_rmse"           = verbatimTextOutput(ns("get_rmse")),
-             "get_rmse_parallel"  = verbatimTextOutput(ns("get_rmse_parallel")),
              "plot_summary"       = tagList(
                plotOutput(ns("plot_summary"), width = "600px", height = "400px"),
                fluidRow(
@@ -707,7 +689,6 @@ mod_optim_aov_server <- function(id){
                      width = "100%"
                    ),
                  ))),
-             "plot_rmse"          = plotOutput(ns("plot_rmse"),   width = "600px", height = "400px"),
              "plot_cooling"       = plotOutput(ns("plot_cooling"),   width = "600px", height = "400px"),
              "display_data"       = tableOutput(ns("display_data"))
       )
@@ -715,7 +696,8 @@ mod_optim_aov_server <- function(id){
 
     selected_dataset <- reactive({
       if (rv$dirty) return(NULL)
-      if (is.list(rv$result) && input$parallel_start > 1 && !input$return_best) {
+      if (is.list(rv$result) && !inherits(rv$result, "stats2data_aov") &&
+          input$n_datasets > 1) {
         rv$result[[as.integer(input$dataset_selector)]]
       } else rv$result
     })
@@ -726,7 +708,7 @@ mod_optim_aov_server <- function(id){
         req(!rv$dirty)
         ds <- selected_dataset()
         saveRDS(ds, file)
-        }
+      }
     )
     output$dl_data <- downloadHandler(
       filename = "optimized_data.csv",

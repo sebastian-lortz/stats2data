@@ -38,78 +38,68 @@ mod_optim_vec_ui <- function(id) {
       max-height: none !important;
       white-space: normal !important;
     }
-    .selectize-dropdown,
-    .selectize-dropdown-content {
-      overflow: visible !important;
-      max-height: none !important;
-      white-space: normal !important;
-      z-index: 9999 !important;
-    }
   "))
     ),
     div(style = "white-space: nowrap;",
         div(
           style = "display:inline-block; vertical-align:top; margin-right:10px;",
           wellPanel(
-              h4("Reported Summary Statistics"),
-              numericInput(ns("N"),  name_with_info(
-                "Sample Size",
-                "The length of the target vectors.")
-                , 864, min = 5, step = 1),
-              selectInput(
-                ns("mod"),
-                label = name_with_info(
-                  "Data Format",
-                  "The module you would like to optimize the data for."
-                ),
-                choices  = c("LM (long format)" = "lm"),
-                selected = "LM (long format)",
-                width    = "100%"
+            h4("Reported Summary Statistics"),
+            numericInput(ns("N"),  name_with_info(
+              "Sample Size",
+              "The length of the target vectors.")
+              , 864, min = 5, step = 1),
+            selectInput(
+              ns("mod"),
+              label = name_with_info(
+                "Data Format",
+                "The module you would like to optimize the data for."
               ),
-              p(name_with_info(
-                "Descriptive Statistics",
-                "The variables' name, mean, minimum, maximum, and if integer/continous")),
-              div(style = "width:100%; overflow-x:auto;",
-                  rHandsontableOutput(ns("param_table"), width = "100%")
-              ),
-              fluidRow(
-                column(6, actionButton(ns("add_row"),    "Add row",    class = "btn-sm btn-block")),
-                column(6, actionButton(ns("remove_row"), "Remove row", class = "btn-sm btn-block"))
-              )
+              choices  = c("LM (long format)" = "lm"),
+              selected = "LM (long format)",
+              width    = "100%"
+            ),
+            p(name_with_info(
+              "Descriptive Statistics",
+              "The variables' name, mean, SD, minimum, maximum, and if integer/continuous")),
+            div(style = "width:100%; overflow-x:auto;",
+                rHandsontableOutput(ns("param_table"), width = "100%")
+            ),
+            fluidRow(
+              column(6, actionButton(ns("add_row"),    "Add row",    class = "btn-sm btn-block")),
+              column(6, actionButton(ns("remove_row"), "Remove row", class = "btn-sm btn-block"))
             )
+          )
+        ),
+        div(
+          style = "display:inline-block; vertical-align:top; margin-right:20px;",
+          wellPanel(
+            h4("Algorithm Hyperparameters"),
+            numericInput(
+              ns("tolerance"),
+              name_with_info(
+                "Tolerance",
+                "The threshold for the objective function value below which the optimization will stop."),
+              value = 1e-2,
+              min   = 0,
+              step  = 1e-3,
+              width = "100%"
+            ),
+            numericInput(ns("max_iter"), name_with_info(
+              "Max Iterations",
+              "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e5,   min = 1,    step = 1000),
+            numericInput(ns("init_temp"), name_with_info(
+              "Initial Temperature",
+              "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
+              1e-3,  min = 0, max = 1,   step = 0.001),
+            numericInput(ns("cooling_rate"), name_with_info(
+              "Cooling Rate",
+              "The factor by which the temperature is multiplied after each iteration, governing how quickly the algorithm reduces its acceptance of worse solutions."),
+              (1e5-10)/1e5, min = 0, max = 1, step = 0.0001),
+            numericInput(ns("max_starts"), name_with_info(
+              "Max Starts",
+              "The maximum number of times the optimization algorithm will restart from the current best solution using reduced initial temperatures."),     3,     min = 1,    step = 1)
           ),
-            div(
-              style = "display:inline-block; vertical-align:top; margin-right:20px;",
-            wellPanel(
-              h4("Algorithm Hyperparameters"),
-              numericInput(
-                ns("tolerance"),
-                name_with_info(
-                  "Tolerance",
-                  "The threshold for the objective function value below which the optimization will stop."),
-                value = 1e-12,
-                min   = 0,
-                step  = 1e-12,
-                width = "100%"
-              ),
-              numericInput(ns("max_iter"), name_with_info(
-                "Max Iterations",
-                "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e5,   min = 1,    step = 1000),
-              numericInput(ns("init_temp"), name_with_info(
-                "Initial Temperature",
-                "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
-                1,  min = 0, max = 1,   step = 0.01),
-              numericInput(ns("cooling_rate"), name_with_info(
-                "Cooling Rate",
-                "The factor by which the temperature is multiplied after each iteration, governing how quickly the algorithm reduces its acceptance of worse solutions."),
-                (1e5-10)/1e5, min = 0, max = 1, step = 0.0001),
-              numericInput(ns("max_starts"), name_with_info(
-                "Max Starts",
-                "The maximum number of times the optimization algorithm will restart from the current best solution using reduced inital temperatures."),     3,     min = 1,    step = 1),
-              checkboxInput(ns("parallel"), name_with_info(
-                "Run in Parallel",
-                "Enable the algorithm to execute on a parallel backend for improved performance."), TRUE),
-               ),
         ),
         div(style = "display:inline-block; vertical-align:top; margin-left:20px;",
             h4("Optimization Output"),
@@ -132,24 +122,24 @@ mod_optim_vec_ui <- function(id) {
             textOutput(ns("status_text")),
 
             h5(name_with_info(
-                "Objective Function Value",
-                "The minimum value of the objective function attained by the optimization.")),
+              "Objective Function Value",
+              "The minimum value of the objective function attained by the optimization.")),
             tableOutput(ns("best_errors")),
             fluidRow( style = "margin-bottom: 10px;",
-              column(12,
-                     actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                     actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
-                     actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
-                     actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute RMSE"), class = "btn-sm"),
-                     actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
-                     actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
-              )
+                      column(12,
+                             actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
+                             actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
+                             actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
+                             actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute RMSE"), class = "btn-sm"),
+                             actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
+                             actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
+                      )
             ),
 
             div(style = "overflow:visible; margin-top:20px;", uiOutput(ns("main_output")))
         )
+    )
   )
-)
 }
 
 mod_optim_vec_server <- function(id, root_session) {
@@ -163,7 +153,7 @@ mod_optim_vec_server <- function(id, root_session) {
       last   = NULL,
       dirty  = TRUE,
       for_lm = NULL
-      )
+    )
 
     observeEvent(input$mod, {
       if (input$mod == "lm") {
@@ -194,17 +184,16 @@ mod_optim_vec_server <- function(id, root_session) {
 
     observeEvent({
       list(
-      input$N,
-      input$param_table,
-      input$add_row,
-      input$remove_row,
-      input$mod,
-      input$tolerance,
-      input$max_iter,
-      input$init_temp,
-      input$cooling_rate,
-      input$max_starts,
-      input$parallel)
+        input$N,
+        input$param_table,
+        input$add_row,
+        input$remove_row,
+        input$mod,
+        input$tolerance,
+        input$max_iter,
+        input$init_temp,
+        input$cooling_rate,
+        input$max_starts)
     }, {
       rv$dirty <- TRUE
       rv$last <- NULL
@@ -264,18 +253,18 @@ mod_optim_vec_server <- function(id, root_session) {
     })
 
     observeEvent(input$run, {
-      shinyjs::show("processing_msg")    # show the banner
-      on.exit(shinyjs::hide("processing_msg"), add = TRUE)  # ensure it hides even on error
+      shinyjs::show("processing_msg")
+      on.exit(shinyjs::hide("processing_msg"), add = TRUE)
       rv$status <- "running"
       df  <- rv$params
-      N = input$N
-      tolerance = input$tolerance
-      max_iter = input$max_iter
-      init_temp = input$init_temp
-      cooling_rate = input$cooling_rate
-      max_starts = input$max_starts
-      target_mean  = stats::setNames(df$Mean, df$Variable)
-      range        = rbind(df$Min, df$Max)
+      N            <- input$N
+      tolerance    <- input$tolerance
+      max_iter     <- input$max_iter
+      init_temp    <- input$init_temp
+      cooling_rate <- input$cooling_rate
+      max_starts   <- input$max_starts
+      target_mean  <- stats::setNames(df$Mean, df$Variable)
+      range        <- rbind(df$Min, df$Max)
       input.check <- check_vec_inputs(
         N = N,
         target_mean = target_mean,
@@ -296,33 +285,33 @@ mod_optim_vec_server <- function(id, root_session) {
       shinyjs::disable("run")
       lapply(c("N", "mod", "param_table", "add_row", "remove_row",
                "tolerance", "max_iter", "init_temp", "cooling_rate",
-               "max_starts", "parallel",
+               "max_starts",
                "plot_error","get_rmse","plot_summary","plot_cooling",
                "display_data","download", "proceed_lm"),
              shinyjs::disable
       )
       withProgress(message = "Running optimization...", value = 0, {
-      rv$result <- optim_vec(
-        N            = N,
-        target_mean  = target_mean,
-        target_sd    = stats::setNames(df$SD,   df$Variable),
-        range        = range,
-        tolerance    = tolerance,
-        integer      = df$Integer,
-        max_iter     = max_iter,
-        init_temp    = init_temp,
-        cooling_rate = cooling_rate,
-        max_starts   = max_starts,
-        parallel     = input$parallel,
-        progress_mode        = "shiny"
-      )
+        rv$result <- optim_vec(
+          N             = N,
+          target_mean   = target_mean,
+          target_sd     = stats::setNames(df$SD, df$Variable),
+          range         = range,
+          integer       = df$Integer,
+          tolerance     = tolerance,
+          sprite_prec   = c(2, 2),
+          max_iter      = max_iter,
+          init_temp     = init_temp,
+          cooling_rate  = cooling_rate,
+          max_starts    = max_starts,
+          progress_mode = "shiny"
+        )
       })
       rv$status <- "done"
       rv$dirty <- FALSE
       shinyjs::enable("run")
       lapply(c("N", "mod", "param_table", "add_row", "remove_row",
                "tolerance", "max_iter", "init_temp", "cooling_rate",
-               "max_starts", "parallel",
+               "max_starts",
                "plot_error","get_rmse","plot_summary","plot_cooling",
                "display_data","download", "proceed_lm"),
              shinyjs::enable
@@ -333,7 +322,7 @@ mod_optim_vec_server <- function(id, root_session) {
                   ns(tbl))
         )
       }
-  })
+    })
 
     output$status_text <- renderText({
       if (rv$dirty) return(NULL)
@@ -382,20 +371,20 @@ mod_optim_vec_server <- function(id, root_session) {
 
     observeEvent(rv$params$Variable, {
       if (!is.null(input$run_select)) {
-      vars <- rv$params$Variable
-      sel  <- input$run_select
-      if (is.null(sel) || !(sel %in% vars)) {
-        sel <- vars[1]
+        vars <- rv$params$Variable
+        sel  <- input$run_select
+        if (is.null(sel) || !(sel %in% vars)) {
+          sel <- vars[1]
+        }
+        updateSelectizeInput(
+          session,
+          "run_select",
+          choices  = vars,
+          selected = sel,
+          options  = list(dropdownParent = "body")
+        )
       }
-      updateSelectizeInput(
-        session,
-        "run_select",
-        choices  = vars,
-        selected = sel,
-        options  = list(dropdownParent = "body")
-      )
-    }
-      })
+    })
 
     output$main_output <- renderUI({
       if (rv$dirty) return(NULL)
@@ -470,8 +459,8 @@ mod_optim_vec_server <- function(id, root_session) {
       if (rv$dirty) return(NULL)
       req(input$run_select)
       plot_error(
-        nds3_obj = rv$result,
-        run           = which(rv$params$Variable == input$run_select),
+        rv$result,
+        run        = which(rv$params$Variable == input$run_select),
         first_iter = as.integer(input$iter_select)
       )
     })

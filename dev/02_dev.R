@@ -28,25 +28,14 @@ golem::add_module(name = "optim_lm", with_test = TRUE) # Name of the module
 ## Add helper functions ----
 ## Creates fct_* and utils_*
 golem::add_fct("check_grim", with_test = TRUE)
-golem::add_fct("weights_vec", with_test = TRUE)
-golem::add_fct("weights_est", with_test = TRUE)
 golem::add_fct("optim_vec", with_test = TRUE)
-golem::add_fct("optim_lm", with_test = TRUE)
+golem::add_fct("optim_mlr", with_test = TRUE)
 golem::add_fct("optim_aov", with_test = TRUE)
 golem::add_fct("hill_climb", with_test = TRUE)
-golem::add_fct("parallel_lm", with_test = TRUE)
-golem::add_fct("parallel_aov", with_test = TRUE)
-golem::add_fct("get_stats", with_test = TRUE)
-golem::add_fct("get_stats_parallel", with_test = TRUE)
-golem::add_fct("get_rmse", with_test = TRUE)
-golem::add_fct("get_rmse_parallel", with_test = TRUE)
-golem::add_fct("plot_rmse", with_test = TRUE)
-golem::add_fct("summary", with_test = TRUE)
-golem::add_fct("print", with_test = TRUE)
 golem::add_fct("plot_summary", with_test = TRUE)
 golem::add_fct("plot_cooling", with_test = TRUE)
 golem::add_fct("plot_error", with_test = TRUE)
-golem::add_fct("plot_error_ratio", with_test = TRUE)
+
 
 golem::add_utils("helpers", with_test = TRUE)
 golem::add_utils("helpers_export", with_test = TRUE)
@@ -136,3 +125,5 @@ rstudioapi::navigateToFile("dev/03_deploy.R")
 
 install.packages("renv")
 renv::install(c("Rcpp", "RcppArmadillo"))
+
+

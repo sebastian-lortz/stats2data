@@ -18,7 +18,7 @@ count_decimals <- function(vec, min_decimals = 0) {
   sapply(as.character(vec), function(x) {
     if (grepl("\\.", x)) {
       parts <- strsplit(x, "\\.", fixed = FALSE)[[1]]
-      nchar(parts[2])
+      max(nchar(parts[2]), min_decimals)
     } else {
       min_decimals
     }
@@ -65,89 +65,55 @@ get_design <- function(candidate, reg_equation, terms_obj) {
   ))
 }
 
-
-# check integer
-is_integer_vector <- function(vec, tol = .Machine$double.eps^0.5) {
-  all(abs(vec - round(vec)) < tol)
-}
-
-
-# heuristic move for integer data in descriptive module (based on SPRITE)
-heuristic_move <- function(candidate, target_sd, range) {
-  lower_bound <- range[1]
-  upper_bound <- range[2]
-
-  current_sd <- stats::sd(candidate)
-  increaseSD <- (current_sd < target_sd)
-
-  dec_idx <- which(candidate > lower_bound)
-  if (!length(dec_idx)) return(candidate)
-  i_dec <- sample(dec_idx, 1)
-
-  # prevent null moves by excluding i_dec
-  inc_idx <- which(candidate < upper_bound & seq_along(candidate) != i_dec)
-  if (!length(inc_idx)) return(candidate)
-
-  ## --- minimal bidirectional adjustment ---
-  if (increaseSD) {
-    inc_try <- inc_idx[candidate[inc_idx] >= candidate[i_dec]]
-    if (length(inc_try)) inc_idx <- inc_try
-  } else {
-    inc_try <- inc_idx[candidate[inc_idx] <= candidate[i_dec]]
-    if (length(inc_try)) inc_idx <- inc_try
-  }
-  ## --------------------------------------
-
-  if (!length(inc_idx)) return(candidate)
-  i_inc <- sample(inc_idx, 1)
-
-  max_dec <- candidate[i_dec] - lower_bound
-  max_inc <- upper_bound - candidate[i_inc]
-  max_sd_step <- max(1L, floor(target_sd))
-  max_delta <- floor(min(max_dec, max_inc, max_sd_step))
-  if (max_delta < 1) return(candidate)
-
-  delta <- sample.int(max_delta, 1)
-
-  candidate[i_dec] <- candidate[i_dec] - delta
-  candidate[i_inc] <- candidate[i_inc] + delta
-
-  candidate
-}
-
-
-# heuristic move for continous data in descriptive module (based on SPRITE)
+# heuristic move for continous data in descriptive module
 heuristic_move_cont <- function(candidate, target_sd, range) {
   lower_bound <- range[1]
   upper_bound <- range[2]
-
+  n <- length(candidate)
   current_sd <- stats::sd(candidate)
   increaseSD <- (current_sd < target_sd)
-  cand_max <- max(candidate)
+
+  current_min <- min(candidate)
+  current_max <- max(candidate)
 
   dec_idx <- which(candidate > lower_bound)
   if (length(dec_idx) == 0) return(candidate)
+  if (increaseSD) {
+    dec_try <- dec_idx[candidate[dec_idx] < current_max]
+  } else {
+    dec_try <- dec_idx[candidate[dec_idx] > current_min]
+  }
+  if (length(dec_try) > 0) dec_idx <- dec_try
   i_dec <- sample(dec_idx, 1)
 
   inc_idx <- which(candidate < upper_bound & seq_along(candidate) != i_dec)
 
   ## --- minimal bidirectional adjustment ---
   if (increaseSD) {
-    # when increasing SD: prefer incrementing something >= the decremented value (push apart)
-    inc_try <- inc_idx[candidate[inc_idx] >= candidate[i_dec]]
-    if (length(inc_try) > 0) inc_idx <- inc_try
+    # Increasing SD: prefer incrementing something larger (push apart)
+    inc_try <- inc_idx[candidate[inc_idx] > candidate[i_dec]]
   } else {
-    # when decreasing SD: keep your existing restriction (pull together)
-    inc_idx <- inc_idx[candidate[inc_idx] <= candidate[i_dec]]
+    # Decreasing SD: prefer incrementing something smaller (pull together)
+    inc_try <- inc_idx[candidate[inc_idx] < candidate[i_dec]]
   }
-  ## --------------------------------------
+  if (length(inc_try) > 0) inc_idx <- inc_try
 
   if (length(inc_idx) == 0) return(candidate)
   i_inc <- sample(inc_idx, 1)
 
   max_dec <- candidate[i_dec] - lower_bound
   max_inc <- upper_bound - candidate[i_inc]
-  max_delta <- min(max_dec, max_inc, target_sd)
+
+  if (increaseSD) {
+    # Scale cap by sqrt(n) - this is the key fix
+    sd_gap <- abs(target_sd - current_sd)
+    scaled_cap <- sd_gap * sqrt(n - 1)
+    max_delta <- min(max_dec, max_inc, scaled_cap)
+  } else {
+    thresh <- (candidate[i_dec] - candidate[i_inc]) / 2
+    max_delta <- min(max_dec, max_inc, thresh)
+  }
+
   if (max_delta <= 0) return(candidate)
 
   delta <- runif(1, min = 0, max = max_delta) # continuous
@@ -158,172 +124,8 @@ heuristic_move_cont <- function(candidate, target_sd, range) {
 }
 
 
-# generate factor structure for between-subject ANOVA
-factor_matrix <- function(sample_size, levels, subgroup_sizes = NULL) {
-  design <- expand.grid(lapply(levels, seq_len))
-  design <- design[do.call(order, design), , drop = FALSE]
-
-  total_combinations <- nrow(design)
-
-  if (!is.null(subgroup_sizes)) {
-    if (length(subgroup_sizes) != total_combinations) {
-      stop("Length of subgroup_sizes must equal the total number of combinations: ", total_combinations)
-    }
-    total_sample_size <- sum(subgroup_sizes)
-  } else {
-    base_size <- floor(sample_size / total_combinations)
-    remainder <- sample_size %% total_combinations
-    subgroup_sizes <- rep(base_size, total_combinations)
-    if (remainder > 0) {
-      cat("Please note: unequal group sizes.\n")
-      subgroup_sizes[1:remainder] <- subgroup_sizes[1:remainder] + 1
-    }
-    total_sample_size <- sample_size
-  }
-
-  design_list <- mapply(function(row, rep_n) {
-    matrix(unlist(rep(row, rep_n)), ncol = length(row), byrow = TRUE)
-  }, split(design, seq(nrow(design))), subgroup_sizes, SIMPLIFY = FALSE)
-
-  full_design <- do.call(rbind, design_list)
-  full_design <- as.matrix(full_design)
-  colnames(full_design) <- paste0("Factor", seq_len(ncol(full_design)))
-  rownames(full_design) <- NULL
-  full_design <- lapply(as.data.frame(full_design), as.factor)
-  return(as.data.frame(full_design))
-}
-
-
-# generate factor structure for mixed ANOVA
-mixed_factor_matrix <- function(sample_size, levels, factor_type, subgroup_sizes = NULL) {
-  if(length(levels) != length(factor_type)) {
-    stop("The length of 'levels' must equal the length of 'factor_type'.")
-  }
-
-  between_idx <- which(tolower(factor_type) == "between")
-  within_idx  <- which(tolower(factor_type) == "within")
-
-  if(length(between_idx) > 0) {
-    between_design <- expand.grid(lapply(levels[between_idx], seq_len))
-    between_design <- between_design[do.call(order, between_design), , drop = FALSE]
-    n_between <- nrow(between_design)
-    between.factor = TRUE
-  } else {
-    between_design <- data.frame(dummy = rep(1, sample_size))
-    n_between <- sample_size
-    between.factor = FALSE
-  }
-
-  if(length(within_idx) > 0) {
-    within_design <- expand.grid(lapply(levels[within_idx], seq_len))
-    within_design <- within_design[do.call(order, within_design), , drop = FALSE]
-    n_within <- nrow(within_design)
-  } else {
-    within_design <- data.frame()
-    n_within <- 1
-  }
-
-  if(between.factor) {
-    if(!is.null(subgroup_sizes)) {
-      if(length(subgroup_sizes) != n_between) {
-        stop("Length of subgroup_sizes must equal the number of between-group combinations: ", n_between)
-      }
-      subjects_per_group <- subgroup_sizes
-      total_assigned <- sum(subjects_per_group)
-      if(total_assigned != sample_size) {
-        warning("Total subjects assigned in subgroup_sizes (", total_assigned,
-                ") does not equal sample_size (", sample_size, ").")
-      }
-    } else {
-      base_size <- floor(sample_size / n_between)
-      remainder <- sample_size %% n_between
-      subjects_per_group <- rep(base_size, n_between)
-      if (remainder > 0) {
-        cat("Please note: unequal group sizes.\n")
-        subjects_per_group[1:remainder] <- subjects_per_group[1:remainder] + 1
-      }
-    }
-  } else {
-    subjects_per_group <- sample_size
-  }
-
-  if(between.factor) {
-    full_between <- between_design[rep(1:n_between, subjects_per_group), , drop = FALSE]
-  } else {
-    full_between <- between_design
-  }
-
-  if(ncol(within_design) > 0) {
-    subject_list <- lapply(seq_len(nrow(full_between)), function(i) {
-      withCallingHandlers({
-        temp <- cbind(unname(full_between[i, , drop = FALSE]), unname(within_design))
-        as.data.frame(temp, stringsAsFactors = FALSE)
-      }, warning = function(w) {
-        invokeRestart("muffleWarning")
-      })
-    })
-    final_df <- do.call(rbind, subject_list)
-    if(!between.factor) {
-      final_df <- final_df[,-1]
-    }
-  } else {
-    final_df <- full_between
-  }
-
-  n_subjects <- if(between.factor) nrow(full_between) else sample_size
-  if(ncol(within_design) > 0) {
-    final_df <- cbind(ID = rep(1:n_subjects, each = n_within), final_df)
-  } else {
-    final_df <- cbind(ID = 1:n_subjects, final_df)
-  }
-
-  rownames(final_df) <- NULL
-  n_factor_cols <- ncol(final_df) - 1
-  if(n_factor_cols > 0) {
-    colnames(final_df)[-1] <- paste0("Factor", seq_len(n_factor_cols))
-  }
-  final_df[-1] <- lapply(final_df[-1], function(x) as.factor(x))
-  base::attr(final_df, "factor_type") <- factor_type
-  base::attr(final_df, "sample_size") <- sample_size
-
-  return(final_df)
-}
-
-# calculate marginal means for ANOVA design
-calcMarginalMeans <- function(factor_mat, group_means, group_sizes) {
-  df <- as.data.frame(factor_mat, stringsAsFactors = FALSE)
-  df$group_mean <- group_means
-  df$group_size <- group_sizes
-  n_factors <- ncol(factor_mat)
-  marginal_means <- list()
-
-  for (i in seq_len(n_factors)) {
-    factor_name <- if (!is.null(colnames(df))) colnames(df)[i] else paste0("Factor", i)
-    levels_i <- unique(df[[i]])
-    marginal_means[[factor_name]] <- sapply(levels_i, function(lvl) {
-      idx <- which(df[[i]] == lvl)
-      sum(df$group_mean[idx] * df$group_size[idx]) / sum(df$group_size[idx])
-    })
-  }
-
-  return(marginal_means)
-}
-
-
-# generate an integer candidate vector for one group
-generate_candidate_group <- function(tMean, n, range) {
-  if (tMean < range[1] || tMean > range[2]) {
-    stop("Target mean is outside the allowable range.")
-  }
-  total_points <- round(tMean * n)
-  base <- total_points %/% n
-  remainder <- total_points %% n
-  vec <- c(rep(base + 1, remainder), rep(base, n - remainder))
-  return(vec)
-}
-
-# generate integer candidate vector (taken from Sprite)
-sprite_start_vector <- function(tMean, n, range, dp = 2) {
+# generate integer candidate vector (modified Sprite)
+sprite_start_vector <- function(tMean, n, range, tolerance) {
   scaleMin <- range[1]
   scaleMax <- range[2]
 
@@ -331,40 +133,39 @@ sprite_start_vector <- function(tMean, n, range, dp = 2) {
   if (tMean < scaleMin || tMean > scaleMax) stop("Target mean is outside the allowable range.")
   if (n < 2) stop("n must be >= 2.")
 
-  dust <- 1e-8
-
-  # --- SPRITE: GRIM-adjust mean to nearest feasible mean (then round to dp) ---
-  tMean <- round(round(tMean * n) / n, dp)
-
-  # random start around the mean, within bounds (reduces boundary pile-up)
+  # random start around the mean
   half_width <- min(tMean - scaleMin, scaleMax - tMean)
   vec <- as.integer(runif(n, min = tMean - half_width, max = tMean + half_width))
-  # --- SPRITE: adjust mean by +/-1 or +/-2 bumps until within rounding granularity ---
-  gran <- (0.1^dp) / 2 - dust
   max_loops <- max(10000, n * (scaleMax - scaleMin + 1))
+
 
   for (i in seq_len(max_loops)) {
     cMean <- mean(vec)
-    if (abs(cMean - tMean) < gran) break
+    if (abs(cMean - tMean) < tolerance) break
 
-    delta <- if (runif(1) < 0.2) 2 else 1 # change to 2 if fixed integer counts added
+    delta <- 1 # Maybe this could be improved
     increaseMean <- (cMean < tMean)
 
     if (increaseMean) {
       can <- which(vec <= (scaleMax - delta))
-      if (!length(can) && delta == 2) { delta <- 1; can <- which(vec <= (scaleMax - 1)) }
-      if (length(can)) vec[sample(can, 1)] <- vec[sample(can, 1)] + delta
-    } else {
+      if (length(can)) {
+        idx <- sample(can, 1)
+        vec[idx] <- vec[idx] + delta
+      }
+      } else {
       can <- which(vec >= (scaleMin + delta))
       if (!length(can) && delta == 2) { delta <- 1; can <- which(vec >= (scaleMin + 1)) }
-      if (length(can)) vec[sample(can, 1)] <- vec[sample(can, 1)] - delta
-    }
+      if (length(can)) {
+        idx <- sample(can, 1)
+        vec[idx] <- vec[idx] - delta
+      }
+      }
   }
 
   vec
 }
 
-sprite_start_vector_cont <- function(tMean, n, range, dp = 2) {
+sprite_start_vector_cont <- function(tMean, n, range, tolerance) {
   scaleMin <- range[1]
   scaleMax <- range[2]
 
@@ -372,35 +173,29 @@ sprite_start_vector_cont <- function(tMean, n, range, dp = 2) {
   if (tMean < scaleMin || tMean > scaleMax) stop("Target mean is outside the allowable range.")
   if (n < 2) stop("n must be >= 2.")
 
-  dust <- 1e-8
-
-  # random start around the mean (your design)
   half_width <- min(tMean - scaleMin, scaleMax - tMean)
   vec <- runif(n, min = tMean - half_width, max = tMean + half_width)
 
-  # mean granularity (mirrors SPRITE's gran definition)
-  gran <- (0.1^dp) / 2 - dust
-
-  # sensible max loops for continuous mean correction
   W <- scaleMax - scaleMin
-  step_floor <- max(N*gran, .Machine$double.eps)
-  max_loops <- as.integer(ceiling(W * n / step_floor))*100
+  step_floor <- max(n * tolerance, .Machine$double.eps)
+  max_loops  <- min(ceiling(W * n / step_floor) * 100, 1e7)
 
   iter <- 0L
   cMean <- mean(vec)
 
-  while (abs(cMean - tMean) > gran && iter < max_loops) {
+  while (abs(cMean - tMean) > tolerance && iter < max_loops) {
     iter <- iter + 1L
     cMean <- mean(vec)
-    if (abs(cMean - tMean) < gran) break
+    if (abs(cMean - tMean) < tolerance) break
 
-    if(runif(1) < .2) delta <- 2*abs(tMean - cMean) else delta <- abs(tMean - cMean)
+    #if (runif(1) < .2) delta <- 2 * abs(tMean - cMean) else
+    delta <- abs(tMean - cMean)
     increaseMean <- (cMean < tMean)
 
     if (increaseMean) {
       can <- which(vec <= (scaleMax - delta))
       if (!length(can)) {
-        delta = abs(tMean - cMean)
+        delta <- abs(tMean - cMean)
         can <- which(vec <= (scaleMax - delta))
       }
       if (length(can)) {
@@ -410,8 +205,8 @@ sprite_start_vector_cont <- function(tMean, n, range, dp = 2) {
     } else {
       can <- which(vec >= (scaleMin + delta))
       if (!length(can)) {
-        delta = abs(tMean - cMean)
-        can <- which(vec >= (scaleMax + delta))
+        delta <- abs(tMean - cMean)
+        can <- which(vec >= (scaleMin + delta))
       }
       if (length(can)) {
         idx <- sample(can, 1)
@@ -420,58 +215,444 @@ sprite_start_vector_cont <- function(tMean, n, range, dp = 2) {
     }
   }
 
-  # If we hit the cap, we return what we have (optionally warn)
-  # if (iter >= max_loops) warning("sprite_start_vector_cont hit max_loops; mean may be slightly off.")
-
   vec
 }
 
+# ANOVA between subject move
+move_between <- function(candidate, integer, structure, range) {
+  lower_bound <- range[1]
+  upper_bound <- range[2]
 
-# compute MSE for balanced ANOVA design
-compute_sequential_MSE <- function(means, sizes, uniq_factor_mat, F_values, df_effects) {
-  SS <- compute_sequential_SS(means = means, sizes = sizes, uniq_factor_mat = uniq_factor_mat)
-  SS_effects <- c(unlist(SS$sequential_SS), Interaction = SS$SS_interaction)
-  SS_effects <- SS_effects[SS_effects > 0]
-  MS_effects <- SS_effects / df_effects
-  if (length(F_values) == 1) {
-    MS_error <-  MS_effects / F_values
+  bg <- sample(structure$between_group_labels, 1)
+  subs <- structure$subjects_in_bgroup[[bg]]
+  if (length(subs) < 2) return(candidate)
+
+  pair <- sample(subs, 2)
+  idx1 <- structure$subject_indices[[pair[1]]]
+  idx2 <- structure$subject_indices[[pair[2]]]
+
+  # Random direction (I could improve this)
+  if (runif(1) < 0.5) {
+    dec_idx <- idx1; inc_idx <- idx2
   } else {
-    MS_error <- mean(MS_effects / F_values, na.rm = TRUE)
+    dec_idx <- idx2; inc_idx <- idx1
   }
-  return(MS_error)
+
+  max_delta <- min(
+    min(candidate[dec_idx] - lower_bound),
+    min(upper_bound - candidate[inc_idx])
+  )
+
+  if (integer) {
+    max_delta <- floor(max_delta)
+    if (max_delta < 1L) return(candidate)
+    delta <- sample.int(max_delta, 1)
+  } else {
+    if (max_delta <= 0) return(candidate)
+    delta <- runif(1, 0, max_delta)
+  }
+
+  candidate[dec_idx] <- candidate[dec_idx] - delta
+  candidate[inc_idx] <- candidate[inc_idx] + delta
+
+  candidate
+}
+
+# ANOVA within paired
+move_within_paired <- function(candidate, integer, structure, range) {
+  b <- structure$n_within_levels
+  if (b < 2) return(candidate)
+
+  lower <- range[1]; upper <- range[2]
+  bg   <- sample(structure$between_group_labels, 1)
+  subs <- structure$subjects_in_bgroup[[bg]]
+  if (length(subs) < 2) return(candidate)
+
+  for (attempt in 1:50) {
+    pair <- sample(subs, 2)
+    idx1 <- structure$subject_indices[[pair[1]]]
+    idx2 <- structure$subject_indices[[pair[2]]]
+    cond <- sample.int(b, 2)
+    c1 <- cond[1]; c2 <- cond[2]
+
+    # random direction (I could improve this later)
+    s1 <- if (runif(1) < 0.5) -1 else 1
+
+    if (s1 == -1) {
+      max_delta <- min(
+        candidate[idx1[c1]] - lower,
+        upper - candidate[idx1[c2]],
+        upper - candidate[idx2[c1]],
+        candidate[idx2[c2]] - lower
+      )
+    } else {
+      max_delta <- min(
+        upper - candidate[idx1[c1]],
+        candidate[idx1[c2]] - lower,
+        candidate[idx2[c1]] - lower,
+        upper - candidate[idx2[c2]]
+      )
+    }
+
+    if (integer) max_delta <- floor(max_delta)
+    if (max_delta >= 1L || (!integer && max_delta > 1e-8)) break
+  }
+
+  if (integer && max_delta < 1L) return(candidate)
+  if (!integer && max_delta <= 1e-8) return(candidate)
+
+  if (integer) {
+    delta <- sample.int(max_delta, 1)
+  } else {
+    delta <- runif(1, 0, max_delta)
+  }
+
+  candidate[idx1[c1]] <- candidate[idx1[c1]] + s1 * delta
+  candidate[idx1[c2]] <- candidate[idx1[c2]] - s1 * delta
+  candidate[idx2[c1]] <- candidate[idx2[c1]] - s1 * delta
+  candidate[idx2[c2]] <- candidate[idx2[c2]] + s1 * delta
+
+  candidate
+}
+
+# ANOVA within interaction move
+move_within_interaction <- function(candidate, integer, structure, range) {
+  within_levels <- structure$within_levels
+  if (length(within_levels) < 2) return(candidate)
+  if (any(within_levels < 2)) return(candidate)
+
+  lower <- range[1]; upper <- range[2]
+
+  wg_grid <- expand.grid(lapply(within_levels, seq_len))
+  wg_grid <- wg_grid[do.call(order, wg_grid), , drop = FALSE]
+
+  bg   <- sample(structure$between_group_labels, 1)
+  subs <- structure$subjects_in_bgroup[[bg]]
+  if (length(subs) < 2) return(candidate)
+
+  for (attempt in 1:50) {
+    l1 <- sort(sample.int(within_levels[1], 2))
+    l2 <- sort(sample.int(within_levels[2], 2))
+
+    pos <- c(
+      which(wg_grid[,1] == l1[1] & wg_grid[,2] == l2[1]),
+      which(wg_grid[,1] == l1[1] & wg_grid[,2] == l2[2]),
+      which(wg_grid[,1] == l1[2] & wg_grid[,2] == l2[1]),
+      which(wg_grid[,1] == l1[2] & wg_grid[,2] == l2[2])
+    )
+
+    pair <- sample(subs, 2)
+    idx1 <- structure$subject_indices[[pair[1]]]
+    idx2 <- structure$subject_indices[[pair[2]]]
+
+    s1 <- if (runif(1) < 0.5) 1 else -1
+
+    i1_plus  <- idx1[c(pos[1], pos[4])]
+    i1_minus <- idx1[c(pos[2], pos[3])]
+    i2_plus  <- idx2[c(pos[2], pos[3])]
+    i2_minus <- idx2[c(pos[1], pos[4])]
+
+    if (s1 == 1) {
+      max_delta <- min(
+        min(upper - candidate[i1_plus]),
+        min(candidate[i1_minus] - lower),
+        min(upper - candidate[i2_plus]),
+        min(candidate[i2_minus] - lower)
+      )
+    } else {
+      max_delta <- min(
+        min(candidate[i1_plus] - lower),
+        min(upper - candidate[i1_minus]),
+        min(candidate[i2_plus] - lower),
+        min(upper - candidate[i2_minus])
+      )
+    }
+
+    if (integer) max_delta <- floor(max_delta)
+    #cat("Attempt", attempt, "max_delta =", max_delta, "\n")
+    if (max_delta >= 1L || (!integer && max_delta > 1e-8)) break
+  }
+
+  if (integer && max_delta < 1L) return(candidate)
+  if (!integer && max_delta <= 1e-8) return(candidate)
+
+  delta <- if (integer) sample.int(max_delta, 1) else runif(1, 0, max_delta)
+
+  candidate[i1_plus]  <- candidate[i1_plus]  + s1 * delta
+  candidate[i1_minus] <- candidate[i1_minus] - s1 * delta
+  candidate[i2_plus]  <- candidate[i2_plus]  + s1 * delta
+  candidate[i2_minus] <- candidate[i2_minus] - s1 * delta
+
+  candidate
 }
 
 
-# compute sum of squares for balanced ANOVA design
-compute_sequential_SS <- function(means, sizes, uniq_factor_mat) {
-  df <- data.frame(Y = means, uniq_factor_mat, weights = sizes)
-  mod0 <- stats::lm(Y ~ 1, data = df, weights = df$weights)
-  SS_total <- sum(df$weights * (df$Y - stats::coef(mod0))^2)
+# build ANOVA structure
+build_aov_structure <- function(N, levels, factor_type, subgroup_sizes = NULL) {
 
-  sequential_SS <- list()
-  prev_model <- mod0
-  predictors <- character(0)
+  n_factors <- length(levels)
+  if (length(factor_type) != n_factors)
+    stop("'levels' and 'factor_type' must have the same length.")
 
-  for (factor_name in colnames(uniq_factor_mat)) {
-    predictors <- c(predictors, factor_name)
-    formula_str <- paste("Y ~", paste(predictors, collapse = " + "))
-    mod <- stats::lm(stats::as.formula(formula_str), data = df, weights = df$weights)
+  between_idx <- which(factor_type == "between")
+  within_idx  <- which(factor_type == "within")
+  has_between <- length(between_idx) > 0L
+  has_within  <- length(within_idx)  > 0L
 
-    SS_effect <- sum(df$weights * (stats::predict(mod) - stats::predict(prev_model))^2)
-    sequential_SS[[factor_name]] <- SS_effect
-    prev_model <- mod
+  n_within  <- if (has_within)  prod(levels[within_idx])  else 1L
+  n_between <- if (has_between) prod(levels[between_idx]) else 1L
+
+  # subjects per between group
+  if (has_between) {
+    if (!is.null(subgroup_sizes)) {
+      if (length(subgroup_sizes) != n_between)
+        stop("subgroup_sizes length must equal ", n_between, " (between-group combinations).")
+      spg <- subgroup_sizes
+    } else {
+      base <- N %/% n_between
+      rem  <- N %%  n_between
+      spg  <- rep(base, n_between)
+      if (rem > 0L) spg[seq_len(rem)] <- spg[seq_len(rem)] + 1L
+    }
+    N_subjects <- sum(spg)
+  } else {
+    spg <- N
+    N_subjects <- N
   }
-  full_formula <- stats::as.formula(paste("Y ~", paste(colnames(uniq_factor_mat), collapse = " * ")))
-  mod_full <- stats::lm(full_formula, data = df, weights = df$weights)
-  SS_interaction <- sum(df$weights * (stats::predict(mod_full) - stats::predict(prev_model))^2)
 
-  return(list(
-    SS_total_between = SS_total,
-    sequential_SS = sequential_SS,
-    SS_interaction = SS_interaction
-  ))
+  # between group design rows
+  if (has_between) {
+    bg_grid <- expand.grid(lapply(levels[between_idx], seq_len))
+    bg_grid <- bg_grid[do.call(order, bg_grid), , drop = FALSE]
+    bg_expanded <- bg_grid[rep(seq_len(n_between), spg), , drop = FALSE]
+  }
+
+  # within condition grid
+  if (has_within) {
+    wg_grid <- expand.grid(lapply(levels[within_idx], seq_len))
+    wg_grid <- wg_grid[do.call(order, wg_grid), , drop = FALSE]
+  }
+
+  # assemble factor matrix
+  n_obs <- N_subjects * n_within
+  fmat  <- matrix(NA_integer_, nrow = n_obs, ncol = n_factors)
+
+  if (has_between) {
+    for (j in seq_along(between_idx))
+      fmat[, between_idx[j]] <- rep(bg_expanded[[j]], each = n_within)
+  }
+  if (has_within) {
+    for (j in seq_along(within_idx))
+      fmat[, within_idx[j]] <- rep(wg_grid[[j]], times = N_subjects)
+  }
+
+  ID <- rep(seq_len(N_subjects), each = n_within)
+
+  # precompute move indices
+  subject_indices <- split(seq_len(n_obs), ID)
+
+  if (has_between) {
+    bg_label <- apply(fmat[, between_idx, drop = FALSE], 1, paste, collapse = "_")
+    bg_per_subject <- bg_label[seq(1, n_obs, by = n_within)]  # first obs per subject
+    names(bg_per_subject) <- seq_len(N_subjects)
+  } else {
+    bg_per_subject <- setNames(rep("1", N_subjects), seq_len(N_subjects))
+  }
+
+  bg_labels        <- unique(bg_per_subject)
+  subjects_in_bg   <- split(names(bg_per_subject), bg_per_subject)
+
+  # data frame
+  df <- data.frame(ID = ID, fmat)
+  colnames(df)[-1] <- paste0("Factor", seq_len(n_factors))
+  df[-1] <- lapply(df[-1], as.factor)
+
+  list(
+    df                 = df,
+    N_subjects         = N_subjects,
+    n_within_levels    = n_within,
+    n_between_groups   = n_between,
+    has_between        = has_between,
+    has_within         = has_within,
+    within_levels      = if (has_within) levels[within_idx] else integer(0),
+    subject_indices    = subject_indices,
+    bg_per_subject     = bg_per_subject,
+    between_group_labels = bg_labels,
+    subjects_in_bgroup = subjects_in_bg,
+    n_per_bgroup       = sapply(subjects_in_bg, length)
+  )
 }
 
+# compute Mean Squares for ANOVA
+compute_numerator_MS <- function(x, ID, factor_mat, structure, formula,
+                                 effect_names) {
+  if (structure$has_within) {
+    dat <- data.frame(ID = ID, factor_mat, outcome = x)
+    suppressMessages({
+      fit <- afex::aov_car(
+        formula = formula, data = dat,
+        factorize = TRUE, type = 3
+      )
+    })
+    tab <- fit$anova_table
+    rn  <- trimws(rownames(tab))
+    sapply(effect_names, function(e) {
+      row <- which(rn == e)
+      if (length(row) == 0) stop("Effect '", e, "' not found in ANOVA table.")
+      tab[row, "F"] * tab[row, "MSE"]
+    })
+  } else {
+    dat <- data.frame(factor_mat, outcome = x)
+    fit <- stats::lm(formula, data = dat)
+    tab <- car::Anova(fit, type = 3)
+    rn  <- trimws(rownames(tab))
+    sapply(effect_names, function(e) {
+      row <- which(rn == e)
+      if (length(row) == 0) stop("Effect '", e, "' not found in ANOVA table.")
+      tab[row, "Sum Sq"] / tab[row, "Df"]
+    })
+  }
+}
+
+
+
+
+
+# compute MSE between
+compute_MSE_between <- function(x, structure) {
+  si     <- structure$subject_indices
+  sib    <- structure$subjects_in_bgroup
+  N_subj <- structure$N_subjects
+  n_bg   <- structure$n_between_groups
+  b      <- structure$n_within_levels
+
+  subj_means <- sapply(si, function(idx) mean(x[idx]))
+
+  ss <- 0
+  for (bg in structure$between_group_labels) {
+    subs <- sib[[bg]]
+    sm   <- subj_means[subs]
+    ss   <- ss + sum((sm - mean(sm))^2)
+  }
+
+  b * ss / (N_subj - n_bg)
+}
+
+# derive consistent aov targets
+
+aov_targets <- function(target_group_means, target_F, group_sizes,
+                        effect_names, levels, factor_type,
+                        integer, tolerance,
+                        ID, factor_mat, group_idx, structure, formula) {
+
+  n_obs <- length(ID)
+
+  # MS from cell means
+  ms_from_means <- function(mu) {
+    x <- numeric(n_obs)
+    for (j in seq_along(group_idx)) {
+      idx   <- group_idx[[j]]
+      n_j   <- length(idx)
+      noise <- (seq_len(n_j) - (n_j + 1) / 2)* 1e-4
+      if (j %% 2 == 0) noise <- rev(noise)
+      x[idx] <- mu[j] + noise
+    }
+    ms <- compute_numerator_MS(x, ID, factor_mat, structure, formula, effect_names)
+    ms[is.nan(ms)] <- 0
+    ms
+  }
+
+  # error strata
+  within_names <- paste0("Factor", which(factor_type == "within"))
+  uses_within  <- sapply(effect_names, function(e)
+    any(unlist(strsplit(e, ":")) %in% within_names))
+
+  strata <- list()
+  if (any(!uses_within))  strata$between <- which(!uses_within)
+  if (any(uses_within)) {
+    within_composition <- sapply(effect_names[uses_within], function(e) {
+      parts <- unlist(strsplit(e, ":"))
+      paste(sort(parts[parts %in% within_names]), collapse = ":")
+    })
+    for (key in unique(within_composition)) {
+      strata[[key]] <- which(uses_within)[within_composition == key]
+    }
+  }
+
+  # how well can the optimizer hit target_F given these means?
+  score_mu <- function(mu) {
+    ms <- ms_from_means(mu)
+
+    # for effects sharing an error term, the best the optimizer can do
+    # is find MSE* that minimises sum((ms/MSE - F)^2) within each stratum
+    f_dev <- 0
+    for (s in strata) {
+      if (length(s) < 2L) next
+      # optimal MSE
+      MSE_star <- sum(ms[s]^2) / sum(ms[s] * target_F[s])
+      implied_F <- ms[s] / MSE_star
+      f_dev <- f_dev + sum((implied_F - target_F[s])^2)
+    }
+
+    # combined: mean displacement + best-case F residual
+    mean_dev <- sum((mu - target_group_means)^2)
+    mean_dev + f_dev
+  }
+
+  if (integer) {
+    # enumerate achievable means
+    cands <- lapply(seq_along(target_group_means), function(k) {
+      n_k <- group_sizes[k]; mu_k <- target_group_means[k]
+      lo  <- ceiling((mu_k - tolerance) * n_k)
+      hi  <- floor((mu_k + tolerance) * n_k)
+      if (lo > hi) {
+        warning("Cell ", k, ": no integer mean within tolerance.")
+        return(round(mu_k * n_k) / n_k)
+      }
+      (lo:hi) / n_k
+    })
+    grid <- expand.grid(cands)
+    if (nrow(grid) > 200) {
+      grid <- grid[round(seq(1, nrow(grid), length.out = 200)),]
+    }
+    best_score <- Inf
+    best_means <- target_group_means
+    for (r in seq_len(nrow(grid))) {
+      mu <- as.numeric(grid[r, ])
+      sc <- score_mu(mu)
+      if (sc < best_score) {
+        best_score <- sc
+        best_means <- mu
+      }
+    }
+    adjusted_means <- best_means
+    numerator_MS   <- ms_from_means(best_means)
+
+  } else {
+    # continuous: optimise within tolerance
+    lower <- target_group_means - tolerance
+    upper <- target_group_means + tolerance
+    opt <- optim(
+      par    = target_group_means,
+      fn     = score_mu,
+      method = "L-BFGS-B",
+      lower  = lower,
+      upper  = upper
+    )
+    adjusted_means <- opt$par
+    numerator_MS   <- ms_from_means(opt$par)
+  }
+
+  names(numerator_MS) <- effect_names
+
+  list(
+    adjusted_means     = adjusted_means,
+    adjusted_F         = target_F,
+    numerator_MS       = numerator_MS,
+    between_effect_idx = if (any(!uses_within)) which(!uses_within) else integer(0),
+    within_effect_idx  = if (any(uses_within))  which(uses_within)  else integer(0)
+  )
+}
 
 
 # re order the target cor according to input order

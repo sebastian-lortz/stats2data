@@ -1,66 +1,152 @@
-#' Plot cooling schedule of a nds3.object
+# --------------------------------------------------------------------------
+# stats2data: plot_cooling S3 generic and methods
+# --------------------------------------------------------------------------
+
+
+#' Build a cooling-schedule ggplot from SA parameters
 #'
-#' Visualizes the squared annealing temperature across iterations for a given
-#' `nds3.object`, allowing inspection of the cooling schedule used in optimization.
+#' Shared plotting logic used by all \code{plot_cooling.*} methods.
+#' Not exported.
 #'
-#' @param nds3_obj A `nds3.object` returned by one of the `optim_*` functions, containing
-#'   `inputs$max_iter`, `inputs$init_temp`, and `inputs$cooling_rate`.
+#' @param max_iter Integer; total iterations.
+#' @param init_temp Numeric; initial temperature.
+#' @param cooling_rate Numeric; multiplicative decay per iteration.
+#' @param title Character; plot title.
 #'
-#' @return A `ggplot2` object.
+#' @return A \code{\link[ggplot2]{ggplot}} object.
 #'
-#' @examples
-#'  \dontrun{
-#' result <- optim_aov(args = ..., ...)
-#' plot_cooling(result)
-#' }
-#' @importFrom rlang .data
-#' @import ggplot2
-#' @export
-plot_cooling <- function(nds3_obj) {
-  if (!inherits(nds3_obj, "nds3.object")) {
-    stop("Input must be a nds3.object.")
+#' @noRd
+.plot_cooling_engine <- function(max_iter, init_temp, cooling_rate,
+                                 title = "Cooling Schedule") {
+
+  # --- guards -------------------------------------------------------------
+  if (!is.numeric(max_iter) || length(max_iter) != 1L || max_iter < 1L) {
+    stop("`max_iter` must be a single positive integer.", call. = FALSE)
   }
-  inputs <- nds3_obj$inputs
-  if (is.null(inputs$max_iter) || is.null(inputs$init_temp) || is.null(inputs$cooling_rate)) {
-    stop("Missing 'max_iter', 'init_temp', or 'cooling_rate' in inputs.")
+  if (!is.numeric(init_temp) || length(init_temp) != 1L || init_temp <= 0) {
+    stop("`init_temp` must be a single positive number.", call. = FALSE)
   }
-  if (!requireNamespace("ggplot2", quietly=TRUE)) {
-    stop("`ggplot2` is needed to plot summaries; please install it.")
+  if (!is.numeric(cooling_rate) || length(cooling_rate) != 1L ||
+      cooling_rate <= 0 || cooling_rate >= 1) {
+    stop("`cooling_rate` must be a single number in (0, 1).", call. = FALSE)
   }
 
-  # data
-  max_iter     <- inputs$max_iter
-  init_temp    <- inputs$init_temp
-  cooling_rate <- inputs$cooling_rate
-  iterations    <- seq_len(max_iter)
-  temperatures  <- init_temp * cooling_rate^iterations
-  squared_temps <- temperatures^2
+  # --- data ---------------------------------------------------------------
+  iterations   <- seq_len(max_iter)
+  temperatures <- init_temp * cooling_rate^iterations
+
   df <- data.frame(
     Iteration   = iterations,
-    Temperature = squared_temps
+    Temperature = temperatures
   )
 
-  # theme
-  apa_theme <- ggplot2::theme_minimal(base_size = 12, base_family = "Helvetica") +
-    ggplot2::theme(
-      panel.grid.major = ggplot2::element_line(color = "gray90"),
-      panel.grid.minor = ggplot2::element_blank(),
-      plot.title       = ggplot2::element_text(face = "bold", size = 14, hjust = 0),
-      axis.title       = ggplot2::element_text(),
-      axis.text        = ggplot2::element_text(),
-    )
-
-  # plot
-  p <- ggplot2::ggplot(df, ggplot2::aes(x = .data$Iteration, y = .data$Temperature)) +
+  # --- plot ---------------------------------------------------------------
+  p <- ggplot2::ggplot(df, ggplot2::aes(
+    x = .data$Iteration, y = .data$Temperature
+  )) +
     ggplot2::geom_line(color = "steelblue", linewidth = 1) +
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
-    ggplot2::labs(
-      title = "Cooling Schedule",
-      x     = "Iteration",
-      y     = "Temperature"
-    ) +
-    apa_theme +
+    ggplot2::labs(title = title, x = "Iteration", y = "Temperature") +
+    theme_stats2data() +
     ggplot2::coord_cartesian(clip = "off")
 
+  p
+}
+
+
+# ---- S3 methods ----------------------------------------------------------
+
+#' @describeIn plot_cooling Method for ANOVA results (\code{stats2data_aov}).
+#'
+#' @param x An object of class \code{stats2data_aov}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @export
+plot_cooling.stats2data_aov <- function(x, ...) {
+  inp <- x$inputs
+  .validate_cooling_inputs(inp)
+
+  p <- .plot_cooling_engine(
+    max_iter     = inp$max_iter,
+    init_temp    = inp$init_temp,
+    cooling_rate = inp$cooling_rate,
+    title        = "Cooling Schedule \u2014 ANOVA Module"
+  )
   print(p)
+  invisible(p)
+}
+
+
+#' @describeIn plot_cooling Method for MLR results (\code{stats2data_mlr}).
+#'
+#' @param x An object of class \code{stats2data_mlr}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @export
+plot_cooling.stats2data_mlr <- function(x, ...) {
+  inp <- x$inputs
+  .validate_cooling_inputs(inp)
+
+  p <- .plot_cooling_engine(
+    max_iter     = inp$max_iter,
+    init_temp    = inp$init_temp,
+    cooling_rate = inp$cooling_rate,
+    title        = "Cooling Schedule \u2014 MLR Module"
+  )
+  print(p)
+  invisible(p)
+}
+
+
+#' @describeIn plot_cooling Method for Descriptives results
+#'   (\code{stats2data_vec}).
+#'
+#' @param x An object of class \code{stats2data_vec}.
+#' @param ... Currently unused.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @export
+plot_cooling.stats2data_vec <- function(x, ...) {
+  inp <- x$inputs
+  .validate_cooling_inputs(inp)
+
+  p <- .plot_cooling_engine(
+    max_iter     = inp$max_iter,
+    init_temp    = inp$init_temp,
+    cooling_rate = inp$cooling_rate,
+    title        = "Cooling Schedule \u2014 Descriptives Module"
+  )
+  print(p)
+  invisible(p)
+}
+
+
+# ---- Internal validation helper -----------------------------------------
+
+#' Validate that inputs contain SA schedule parameters
+#'
+#' @param inputs List; the \code{$inputs} element of a stats2data result.
+#'
+#' @return NULL (invisibly); stops with an informative error if validation
+#'   fails.
+#'
+#' @noRd
+.validate_cooling_inputs <- function(inputs) {
+  missing <- character(0)
+  if (is.null(inputs$max_iter))     missing <- c(missing, "max_iter")
+  if (is.null(inputs$init_temp))    missing <- c(missing, "init_temp")
+  if (is.null(inputs$cooling_rate)) missing <- c(missing, "cooling_rate")
+  if (length(missing) > 0L) {
+    stop(
+      "Missing required SA parameters in `inputs`: ",
+      paste(missing, collapse = ", "), ".",
+      call. = FALSE
+    )
+  }
+  invisible(NULL)
 }

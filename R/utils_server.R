@@ -33,7 +33,7 @@ check_vec_inputs <- function(
     init_temp,
     cooling_rate,
     max_starts
-    ) {
+) {
   if (!is.numeric(N) || length(N) != 1 || N < 10  || N != as.integer(N)) {
     showNotification(
       sprintf("N (%s) must be a single positive integer > 10.", N),
@@ -103,9 +103,6 @@ check_vec_inputs <- function(
 }
 
 
-
-
-
 # input checks aov
 #' Validate inputs for optim_aov (in Shiny)
 #'
@@ -119,9 +116,7 @@ check_aov_inputs <- function(
     max_iter,
     init_temp,
     cooling_rate,
-    max_starts,
-    max_step,
-    parallel_start
+    max_starts
 ) {
   if (!is.numeric(N) || length(N) != 1 || N < 10  || N != as.integer(N)) {
     showNotification(
@@ -189,28 +184,13 @@ check_aov_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(max_step) || length(max_step) != 1 || max_step <= 0 || max_step >= 1) {
-    showNotification(
-      sprintf("max_step (%s) must be a single numeric between 0 and 1.", max_step),
-      type = "error"
-    )
-    return(FALSE)
-  }
-  if (!is.numeric(parallel_start) || length(parallel_start) != 1 ||
-      parallel_start < 1 || parallel_start != as.integer(parallel_start)) {
-    showNotification(
-      sprintf("Number of data sets (%s) must be a single positive integer indicating the number of parallel or sequential runs.", parallel_start),
-      type = "error"
-    )
-    return(FALSE)
-  }
   # all checks passed
   TRUE
 }
 
 
 # input checks lm
-#' Validate inputs for optim_lm (in Shiny)
+#' Validate inputs for optim_mlr (in Shiny)
 #'
 #' @noRd
 check_lm_inputs <- function(
@@ -219,8 +199,7 @@ check_lm_inputs <- function(
     init_temp,
     cooling_rate,
     hill_climbs,
-    max_starts,
-    parallel_start
+    max_starts
 ) {
   if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0) {
     showNotification(
@@ -270,14 +249,6 @@ check_lm_inputs <- function(
   if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
     showNotification(
       sprintf("max_starts (%s) must be a single positive integer.", max_starts),
-      type = "error"
-    )
-    return(FALSE)
-  }
-  if (!is.numeric(parallel_start) || length(parallel_start) != 1 ||
-      parallel_start < 1 || parallel_start != as.integer(parallel_start)) {
-    showNotification(
-      sprintf("Number of data sets (%s) must be a single positive integer indicating the number of parallel or sequential runs.", parallel_start),
       type = "error"
     )
     return(FALSE)

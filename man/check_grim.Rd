@@ -2,32 +2,38 @@
 % Please edit documentation in R/fct_check_grim.R
 \name{check_grim}
 \alias{check_grim}
-\title{Check plausibility of a reported mean with the GRIM test (Brown & Heathers 2007)}
+\title{Check plausibility of a reported mean with the GRIM test}
 \usage{
-check_grim(n, target_mean, decimals, tol.r = .Machine$double.eps^0.5)
+check_grim(n, target_mean, decimals, tol = .Machine$double.eps^0.5)
 }
 \arguments{
-\item{n}{Integer. Sample size; a positive whole number.}
+\item{n}{Integer. Sample size; must be a single positive whole number.}
 
 \item{target_mean}{Numeric. Reported mean to be tested for plausibility.}
 
 \item{decimals}{Integer. Number of decimal places in the reported mean.}
 
-\item{tol.r}{Numeric. Tolerance for rounding errors; a non-negative value. Default is the square root of machine double precision epsilon.}
+\item{tol}{Numeric. Tolerance for rounding errors; a single non-negative
+value. Default is \code{.Machine$double.eps^0.5}.}
 }
 \value{
 A list with components:
 \describe{
-  \item{test}{Logical. TRUE if the reported mean is plausible.}
-  \item{grim_mean}{Numeric. The adjusted mean that is numerically plausible (rounded to `decimals`).}
+  \item{test}{Logical. \code{TRUE} if the reported mean is plausible.}
+  \item{grim_mean}{Numeric. If the test fails, the nearest plausible mean
+    (rounded to \code{decimals}); otherwise the original
+    \code{target_mean}.}
 }
 }
 \description{
-Performs the GRIM (Granularity-Related Inconsistency of Means) test to assess
-whether a reported mean is numerically possible given the sample size.
+Performs the GRIM (Granularity-Related Inconsistency of Means) test
+(Brown & Heathers, 2017) to assess whether a reported mean is numerically
+possible given the sample size and number of decimal places.
 }
 \examples{
 \dontrun{
-check_grim(10, 3.7, 1)
+check_grim(n = 10, target_mean = 3.7, decimals = 1)
+check_grim(n = 10, target_mean = 3.74, decimals = 2)
 }
+
 }
