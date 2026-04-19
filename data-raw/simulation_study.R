@@ -1,8 +1,7 @@
 ### Simulation Study from the manuscript
 
+#### Configs ####
 options(repos = c(CRAN = "https://ftp.belnet.be/mirror/CRAN/"))
-
-# configs
 HPC <- FALSE
 
 root_dir <- if (HPC) {
@@ -24,12 +23,20 @@ invisible(lapply(
 ))
 
 # libs
+library(nds3)
 library(ggplot2)
 library(patchwork)
 library(sn)
 library(dplyr)
 library(future)
 library(future.apply)
+library(afex)
+library(progressr)
+
+required_pkgs <- c("ggplot2", "patchwork", "sn", "dplyr",
+                   "future", "future.apply", "afex", "progressr")
+missing <- required_pkgs[!sapply(required_pkgs, requireNamespace, quietly = TRUE)]
+if (length(missing) > 0) stop("Missing packages: ", paste(missing, collapse = ", "))
 
 # backend
 if (HPC) {
@@ -37,6 +44,8 @@ if (HPC) {
 } else {
   plan(multisession, workers = 4L)
 }
+
+
 #### Descriptives Module ####
 # Data generating function
 
@@ -1091,17 +1100,19 @@ plot_aov_example <- function(aov_mc, replication = 1, condition = "cond1",
 #### Run Simulation ####
 
 # VEC
-vec_mc_res <- sim_optim_vec_mc(N = 500, tol = 0.005, dec = 2, R = 500, seed = seed, keep_full = 1)
+vec_mc_res <- sim_optim_vec_mc(N = 500, tol = 0.005, dec = 2, R = 10000, seed = seed, keep_full = 1)
 saveRDS(vec_mc_res, file.path(save_dir, "vec_mc_res"))
-
+cat("VEC module done!\n\n")
 
 # MLR
-lm_mc_res <- sim_optim_mlr_mc(N = 500, n.cond = 50, tol = 0.005, dec = 2, R = 500, seed = seed, keep_full = 1)
+lm_mc_res <- sim_optim_mlr_mc(N = 500, n.cond = 100, tol = 0.005, dec = 2, R = 100, seed = seed, keep_full = 1)
 saveRDS(lm_mc_res, file.path(save_dir, "lm_mc_res"))
+cat("MLR module done!\n\n")
 
 # AOV
-aov_mc_res <- sim_optim_aov_mc(S = 250, n.cond = 50, tol = 0.005, dec = 2, R = 500, seed = seed, keep_full = 1)
+aov_mc_res <- sim_optim_aov_mc(S = 250, n.cond = 100, tol = 0.005, dec = 2, R = 100, seed = seed, keep_full = 1)
 saveRDS(aov_mc_res, file.path(save_dir, "aov_mc_res"))
+cat("AOV module done!\n\n")
 
 #mean_check <- check_aov_means(aov_mc)
 #mean_check[mean_check$pass, ]
