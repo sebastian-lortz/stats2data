@@ -1,6 +1,6 @@
 #' @noRd
 optim_vec_single <- function(N, t_mean, t_sd, rng, is_int,
-                             sprite_prec, tolerance,
+                             sprite_prec, thresh,
                              max_iter, init_temp, cooling_rate,
                              max_starts) {
   # input checks
@@ -9,33 +9,77 @@ optim_vec_single <- function(N, t_mean, t_sd, rng, is_int,
   if (rng[1] == rng[2] && (t_mean != rng[1] || t_sd != 0))
     stop("Zero-width range requires `target_mean == range[1]` and `target_sd == 0`.")
   if (rng[1] == rng[2])
-    return(list(data = rep(rng[1], N), best_error = 0, track_error = 0))
+    return(list(data = rep(rng[1], N), best_error = 0, track_error = 0,
+                error_msg = NULL))
   if (t_mean < rng[1] || t_mean > rng[2])
     stop("`target_mean` must lie within `range`.")
 
-  # integer data: use rsprite2
-  if (is_int) {
-    pars <- rsprite2::set_parameters(
-      mean = t_mean, sd = t_sd, n_obs = N,
-      min_val = rng[1], max_val = rng[2],
-      m_prec = sprite_prec[1], sd_prec = sprite_prec[2],
-      dont_test = TRUE
-    )
-    x_sprite <- rsprite2::find_possible_distribution(pars)
-    return(list(
-      data        = x_sprite$values,
-      best_error  = if (x_sprite$outcome == "success") 0 else Inf,
-      track_error = if (x_sprite$outcome == "success") 0 else Inf
-    ))
-  }
-
-  # continuous data: simulated annealing
+  # objective function
   objective <- function(x) {
     objective_cpp(x, target_sd = t_sd)
   }
 
+  # integer data: use rsprite2
+  if (is_int) {
+    if (abs(rng[2]-rng[1]) == 1) {
+      d1 = round(t_mean*N)
+      dummy = c(rep(1,d1), rep(0,N-d1))
+      return(list(
+        data        = dummy,
+        best_error  = 0,
+        track_error = 0,
+        error_msg   = NULL
+      ))
+    }
+
+    pars <- tryCatch(
+      rsprite2::set_parameters(
+        mean = t_mean, sd = t_sd, n_obs = N,
+        min_val = rng[1], max_val = rng[2],
+        m_prec = sprite_prec[1], sd_prec = sprite_prec[2],
+        dont_test = TRUE
+      ),
+      error = function(e) {
+        return(list(.error = TRUE, .message = conditionMessage(e)))
+      }
+    )
+    if (is.list(pars) && isTRUE(pars$.error)) {
+      return(list(
+        data        = rep(NA_real_, N),
+        best_error  = Inf,
+        track_error = Inf,
+        error_msg   = pars$.message
+      ))
+    }
+
+    x_sprite <- tryCatch(
+      rsprite2::find_possible_distribution(pars),
+      error = function(e) {
+        return(list(.error = TRUE, .message = conditionMessage(e)))
+      }
+    )
+    if (is.list(x_sprite) && isTRUE(x_sprite$.error)) {
+      return(list(
+        data        = rep(NA_real_, N),
+        best_error  = Inf,
+        track_error = Inf,
+        error_msg   = x_sprite$.message
+      ))
+    }
+
+    return(list(
+      data        = x_sprite$values,
+      best_error  = if (x_sprite$outcome == "success") objective(x_sprite$values) else Inf,
+      track_error = if (x_sprite$outcome == "success") 0 else Inf,
+      error_msg   = if (x_sprite$outcome == "success") NULL else
+        paste0("SPRITE could not find a valid distribution (outcome: ",
+               x_sprite$outcome, ").")
+    ))
+  }
+
+  # continuous data: simulated annealing
   current_candidate <- sprite_start_vector_cont(
-    tMean = t_mean, n = N, range = rng, tolerance = tolerance
+    tMean = t_mean, n = N, range = rng, thresh = thresh
   )
   current_error  <- objective(current_candidate)
   if (!is.finite(current_error)) current_error <- Inf
@@ -65,10 +109,10 @@ optim_vec_single <- function(N, t_mean, t_sd, rng, is_int,
       temp        <- temp * cooling_rate
       global_iter <- global_iter + 1L
       track_error[global_iter] <- best_error
-      if (is.finite(best_error) && best_error < tolerance) break
+      if (is.finite(best_error) && best_error < thresh) break
     }
     current_candidate <- best_candidate
-    if (is.finite(best_error) && best_error < tolerance) break
+    if (is.finite(best_error) && best_error < thresh) break
     temp <- init_temp
   }
 
@@ -77,6 +121,7 @@ optim_vec_single <- function(N, t_mean, t_sd, rng, is_int,
   list(
     data        = best_candidate,
     best_error  = best_error,
-    track_error = track_error
+    track_error = track_error,
+    error_msg   = NULL
   )
 }

@@ -13,7 +13,7 @@ check_grim(n, target_mean, decimals, tol = .Machine$double.eps^0.5)
 
 \item{decimals}{Integer. Number of decimal places in the reported mean.}
 
-\item{tol}{Numeric. Tolerance for rounding errors; a single non-negative
+\item{tol}{Numeric. thresh for rounding errors; a single non-negative
 value. Default is \code{.Machine$double.eps^0.5}.}
 }
 \value{

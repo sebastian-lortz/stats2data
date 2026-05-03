@@ -4,12 +4,12 @@
 \alias{plot_histogram}
 \title{Plot Histograms for Each Variable}
 \usage{
-plot_histogram(df, tol = 0.00000001, SD = TRUE)
+plot_histogram(df, tol = 1e-08, SD = TRUE)
 }
 \arguments{
 \item{df}{A \code{data.frame} or matrix whose columns are the variables to plot.}
 
-\item{tol}{Numeric; tolerance for deciding whether a variable is integer-valued.
+\item{tol}{Numeric; thresh for deciding whether a variable is integer-valued.
 Values within \code{tol} of an integer are plotted as counts (bars).}
 
 \item{SD}{Logical; if \code{TRUE}, annotate each plot with mean and standard deviation;

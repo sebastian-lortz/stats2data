@@ -2,30 +2,30 @@
 # Generator token: 10BE3573-1514-4C36-9D1C-5A225CD40393
 
 candidate_cor_cpp <- function(candidate, outcome) {
-    .Call(`_nds3_candidate_cor_cpp`, candidate, outcome)
+    .Call(`_stats2data_candidate_cor_cpp`, candidate, outcome)
 }
 
 candidate_reg_cpp <- function(candidate, y, positions) {
-    .Call(`_nds3_candidate_reg_cpp`, candidate, y, positions)
+    .Call(`_stats2data_candidate_reg_cpp`, candidate, y, positions)
 }
 
 candidate_reg_cpp_se <- function(candidate, y, positions) {
-    .Call(`_nds3_candidate_reg_cpp_se`, candidate, y, positions)
+    .Call(`_stats2data_candidate_reg_cpp_se`, candidate, y, positions)
 }
 
 objective_cpp <- function(x, target_sd) {
-    .Call(`_nds3_objective_cpp`, x, target_sd)
+    .Call(`_stats2data_objective_cpp`, x, target_sd)
 }
 
 error_function_cpp <- function(candidate, outcome, target_cor, target_reg, weight, positions) {
-    .Call(`_nds3_error_function_cpp`, candidate, outcome, target_cor, target_reg, weight, positions)
+    .Call(`_stats2data_error_function_cpp`, candidate, outcome, target_cor, target_reg, weight, positions)
 }
 
 error_function_cpp_se <- function(candidate, outcome, target_cor, target_reg_se, weight, positions) {
-    .Call(`_nds3_error_function_cpp_se`, candidate, outcome, target_cor, target_reg_se, weight, positions)
+    .Call(`_stats2data_error_function_cpp_se`, candidate, outcome, target_cor, target_reg_se, weight, positions)
 }
 
 ols_from_design <- function(X, y) {
-    .Call(`_nds3_ols_from_design`, X, y)
+    .Call(`_stats2data_ols_from_design`, X, y)
 }
 

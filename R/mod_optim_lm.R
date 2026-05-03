@@ -6,6 +6,7 @@
 #'
 #'
 #' @import shiny
+#' @importFrom shinyjs useShinyjs disable enable
 #' @importFrom rhandsontable rHandsontableOutput renderRHandsontable hot_to_r hot_col hot_table hot_cell
 #' @noRd
 mod_optim_lm_ui <- function(id) {
@@ -29,33 +30,37 @@ mod_optim_lm_ui <- function(id) {
     .rhandsontable .ht_master .htDropdownMenu table {
       width: auto !important;
     }
+    .selectize-dropdown,
+    .selectize-dropdown-content {
+      overflow: visible !important;
+      z-index: 9999 !important;
+      max-height: none !important;
+      white-space: normal !important;
+    }
   "))
     ),
 
     div(style = "white-space: nowrap;",
+        # ── Left Panel: Reported Summary Statistics ──────────────────────
         div(
           style = "display:inline-block; vertical-align:top; margin-right:10px;",
           wellPanel(
             h4("Reported Summary Statistics"),
+            numericInput(ns("N"), name_with_info(
+              "Sample Size",
+              "The total number of observations (rows) in the target dataset.")
+              , 864, min = 5, step = 1),
             tags$hr(),
             p(tags$b(name_with_info(
-              "Descriptives",
-              "The data simulated by the descriptives module, matching means and standard deviations."
+              "Descriptive Statistics",
+              "The variables' name, mean, SD, minimum, maximum, and if integer/continuous."
             ))),
-            actionButton(ns("match_descr"),
-                         "Start Descriptives Module",
-                         class = "btn-sm btn-info"),
-            tags$div(
-              style = "
-                margin-top: 6px;
-                font-size: 0.8em;
-                color: #444;
-                line-height: 1.1;
-              ",
-              tags$style(HTML("
-                .shrink-p p { margin: 2px 0; }
-              ")),
-              div(class = "shrink-p", uiOutput(ns("var_names")))
+            div(style = "width:100%; overflow-x:auto;",
+                rHandsontableOutput(ns("param_table"), width = "100%")
+            ),
+            fluidRow(
+              column(6, actionButton(ns("add_row"),    "Add row",    class = "btn-sm btn-block")),
+              column(6, actionButton(ns("remove_row"), "Remove row", class = "btn-sm btn-block"))
             ),
             tags$hr(),
             p(tags$b(name_with_info(
@@ -108,14 +113,15 @@ mod_optim_lm_ui <- function(id) {
             ))
         ),
 
+        # ── Middle Panel: Hyperparameters ────────────────────────────────
         div(
           style = "display:inline-block; vertical-align:top; margin-right:20px;",
           wellPanel(
             h4("Algorithm Hyperparameters"),
             numericInput(
-              ns("tolerance"),
+              ns("thresh"),
               name_with_info(
-                "Tolerance",
+                "thresh",
                 "The threshold for the weighted objective function value below which the optimization will stop."),
               value = 1e-3,
               min   = 0,
@@ -127,7 +133,7 @@ mod_optim_lm_ui <- function(id) {
               "The maximum number of iterations the algorithm will run each time it restarts."), 1e5,   min = 1,    step = 1000),
             numericInput(ns("init_temp"), name_with_info(
               "Initial Temperature",
-              "The starting temperature for the simulated annealing. Leave at default for automatic calibration."),
+              "The starting temperature for the simulated annealing. Leave empty for automatic calibration."),
               NA, min = 0, max = 100,    step = 0.01),
             numericInput(ns("cooling_rate"), name_with_info(
               "Cooling Rate",
@@ -155,12 +161,13 @@ mod_optim_lm_ui <- function(id) {
           )
         ),
 
+        # ── Right Panel: Optimization Output ─────────────────────────────
         div(style = "display:inline-block; vertical-align:top; margin-left:20px; width: calc(100% - auto);",
             h4("Optimization Output"),
             div(style = "margin-bottom:10px;",
                 actionButton(ns("run"), name_with_info(
                   "Run Optimization",
-                  "Executes nds3: Data-Simulation via iterative stochastic combinatorial optimization using reported summary estimates."), class = "btn-primary")
+                  "Executes stats2data: Nonparametric Data-Simulation via iterative optimization using reported summary estimates."), class = "btn-primary")
             ),
             div(
               id    = ns("processing_msg"),
@@ -197,23 +204,38 @@ mod_optim_lm_ui <- function(id) {
 #' optim_lm Server Functions
 #'
 #' @noRd
-mod_optim_lm_server <- function(id, root_session){
+mod_optim_lm_server <- function(id){
   moduleServer(id, function(input, output, session){
     ns <- session$ns
 
     rv <- reactiveValues(
       dirty       = TRUE,
       result      = NULL,
-      status      = "ready"
+      status      = "ready",
+      params      = data.frame(
+        Variable = paste0("V", 1:5),
+        Mean     = c(10.53, 0.27, 2.49, -0.64, 0.03),
+        SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
+        Min      = c( 0,     0,  -24,  -3,    -3),
+        Max      = c(36,     1,   24,   3,     3),
+        Integer  = rep(TRUE, 5),
+        stringsAsFactors = FALSE
+      )
     )
 
+    # ── Dirty flag: any input change invalidates results ──────────────
     observeEvent({
       list(
+        input$N,
+        input$param_table,
+        input$add_row,
+        input$remove_row,
         input$corr_table,
         input$lm_outcome,
         input$lm_predictors,
         input$lm_interactions,
-        input$tolerance,
+        input$coef_table,
+        input$thresh,
         input$max_iter,
         input$init_temp,
         input$cooling_rate,
@@ -232,108 +254,72 @@ mod_optim_lm_server <- function(id, root_session){
       }
     })
 
-    simulated_data <- reactive({
-      root_session$userData$lm_data()
+    # ── Descriptive statistics table ─────────────────────────────────
+    output$param_table <- renderRHandsontable({
+      tbl <- rhandsontable(rv$params, rowHeaders = NULL)
+      hot_col(tbl, "Integer", type = "checkbox")
+    })
+    observeEvent(input$param_table, {
+      rv$params <- hot_to_r(input$param_table)
     })
 
-    output$var_names <- renderUI({
-      df <- simulated_data()
-      if (is.data.frame(df) && ncol(df) > 0) {
-        tagList(
-          tags$p("Data available!"),
-          tags$p("Variables: ", paste(colnames(df), collapse = ", "))
-        )
-      } else {
-        tagList(
-          tags$p("No simulated data found."),
-          tags$p("Run the Descriptives module with LM-format data."),
-        )
-      }
+    observeEvent(input$add_row, {
+      n <- nrow(rv$params) + 1
+      rv$params <- rbind(rv$params, data.frame(
+        Variable = paste0("V", n),
+        Mean     = 4,
+        SD       = 1,
+        Min      = 0,
+        Max      = 9,
+        Integer  = TRUE,
+        stringsAsFactors = FALSE
+      ))
+    })
+    observeEvent(input$remove_row, {
+      if (nrow(rv$params) > 2)
+        rv$params <- rv$params[-nrow(rv$params), ]
     })
 
+    # ── Variable choices for model specification ─────────────────────
     observe({
-      df <- simulated_data()
-      if (!is.data.frame(df) || ncol(df) == 0) {
-        return(NULL)
-      }
-      updateSelectInput(
-        session,
-        "lm_outcome",
-        choices  = colnames(df),
-        selected = colnames(df)[length(colnames(df))]
-      )
-      preds <- setdiff(colnames(df), colnames(df)[1])
-      updateCheckboxGroupInput(
-        session,
-        "lm_predictors",
-        choices  = preds,
-        selected = preds
-      )
-      updateCheckboxGroupInput(
-        session,
-        "lm_interactions",
-        choices  = character(0),
-        selected = character(0)
-      )
+      vars <- rv$params$Variable
+      req(length(vars) >= 2)
+
+      # Update outcome
+      cur_out <- input$lm_outcome
+      sel_out <- if (!is.null(cur_out) && cur_out %in% vars) cur_out else vars[length(vars)]
+      updateSelectInput(session, "lm_outcome", choices = vars, selected = sel_out)
     })
 
     observeEvent(input$lm_outcome, {
-      df <- simulated_data()
-      if (!is.data.frame(df)) return(NULL)
-      out_var  <- input$lm_outcome
-      all_vars <- colnames(df)
-      new_preds <- setdiff(all_vars, out_var)
-      updateCheckboxGroupInput(
-        session,
-        "lm_predictors",
-        choices  = new_preds,
-        selected = new_preds
-      )
-      updateCheckboxGroupInput(
-        session,
-        "lm_interactions",
-        choices  = character(0),
-        selected = character(0)
-      )
+      vars <- rv$params$Variable
+      out_var <- input$lm_outcome
+      new_preds <- setdiff(vars, out_var)
+      cur_preds <- input$lm_predictors
+      sel_preds <- if (!is.null(cur_preds)) intersect(cur_preds, new_preds) else new_preds
+      if (length(sel_preds) == 0) sel_preds <- new_preds
+      updateCheckboxGroupInput(session, "lm_predictors", choices = new_preds, selected = sel_preds)
+      updateCheckboxGroupInput(session, "lm_interactions", choices = character(0), selected = character(0))
     })
 
     observeEvent(input$lm_predictors, {
       sel_preds <- input$lm_predictors
       if (length(sel_preds) < 2) {
-        updateCheckboxGroupInput(
-          session,
-          "lm_interactions",
-          choices  = character(0),
-          selected = character(0)
-        )
+        updateCheckboxGroupInput(session, "lm_interactions", choices = character(0), selected = character(0))
         return()
       }
-      inters <- utils::combn(
-        sel_preds,
-        2,
-        FUN = function(x) paste(x, collapse = ":"),
-        simplify = TRUE
-      )
-      if (length(sel_preds) == 4) {
-        default <- intersect(c("V1:V3", "V2:V3"), inters)
-      } else {
-        default <- NULL
-      }
-      updateCheckboxGroupInput(
-        session,
-        "lm_interactions",
-        choices  = inters,
-        selected = default
-      )
+      inters <- utils::combn(sel_preds, 2, FUN = function(x) paste(x, collapse = ":"), simplify = TRUE)
+      cur_inters <- input$lm_interactions
+      sel_inters <- if (!is.null(cur_inters)) intersect(cur_inters, inters) else NULL
+      updateCheckboxGroupInput(session, "lm_interactions", choices = inters, selected = sel_inters)
     }, ignoreNULL = FALSE)
 
+    # ── Formula reactive ─────────────────────────────────────────────
     lm_formula_reactive <- reactive({
       out_var <- input$lm_outcome
       preds   <- input$lm_predictors
       inters  <- input$lm_interactions
-      if (is.null(out_var) || length(preds) == 0) {
-        return(NULL)
-      }
+      if (is.null(out_var) || length(preds) == 0) return(NULL)
       rhs_terms <- preds
       if (!is.null(inters) && length(inters) > 0) {
         rhs_terms <- c(rhs_terms, inters)
@@ -351,15 +337,15 @@ mod_optim_lm_server <- function(id, root_session){
       }
     })
 
+    # ── Correlation matrix ───────────────────────────────────────────
     corr_df_reactive <- reactive({
-      df <- simulated_data()
-      if (!is.data.frame(df)) return(NULL)
-      vars <- colnames(df)
+      vars <- rv$params$Variable
+      req(length(vars) >= 2)
       mat <- matrix(NA_real_, nrow = length(vars), ncol = length(vars))
       rownames(mat) <- vars
       colnames(mat) <- vars
       if (length(vars) == 5) {
-        mat[upper.tri(mat)] <-  c(0.011, -0.177, 0.091, 0.035, 0.114, 0.246, -0.110, 0.119, 0.357, 0.263)
+        mat[upper.tri(mat)] <- c(0.011, -0.177, 0.091, 0.035, 0.114, 0.246, -0.110, 0.119, 0.357, 0.263)
       }
       as.data.frame(mat, check.names = FALSE, stringsAsFactors = FALSE)
     })
@@ -374,18 +360,14 @@ mod_optim_lm_server <- function(id, root_session){
       for (i in seq_len(n)) {
         for (j in seq_len(n)) {
           if (i >= j) {
-            tbl <- hot_cell(
-              tbl,
-              row      = i,
-              col      = j,
-              readOnly = TRUE
-            )
+            tbl <- hot_cell(tbl, row = i, col = j, readOnly = TRUE)
           }
         }
       }
       tbl
     })
 
+    # ── Coefficient table ────────────────────────────────────────────
     coef_df_reactive <- reactive({
       frm <- lm_formula_reactive()
       if (is.null(frm)) return(NULL)
@@ -412,20 +394,14 @@ mod_optim_lm_server <- function(id, root_session){
         hot_col(col = colnames(df), format = "0.000")
     })
 
-    observeEvent(input$match_descr, {
-      updateNavbarPage(
-        root_session,
-        inputId  = "main",
-        selected = "Descriptives"
-      )
-    })
-
+    # ── Cooling rate auto-update ─────────────────────────────────────
     observeEvent(input$max_iter, {
       updateNumericInput(session, "cooling_rate",
                          value = max(0, min(1, (input$max_iter - 10)/input$max_iter))
       )
     })
 
+    # ── Weight table ─────────────────────────────────────────────────
     weight_df <- reactiveVal(data.frame(
       Correlation = 1,
       Regression   = 1,
@@ -440,6 +416,7 @@ mod_optim_lm_server <- function(id, root_session){
       tbl
     })
 
+    # ── Initial disabled state ───────────────────────────────────────
     for (btn in c(
       "run", "plot_error", "plot_error_ratio", "get_rmse",
       "plot_summary", "plot_cooling",
@@ -448,30 +425,43 @@ mod_optim_lm_server <- function(id, root_session){
       shinyjs::disable(btn)
     }
 
+    # ── Enable run only when inputs are sufficient ───────────────────
     observe({
+      df <- rv$params
+      descriptives_ok <- all(
+        nzchar(df$Variable),
+        !is.na(df$Mean), !is.na(df$SD),
+        !is.na(df$Min),  !is.na(df$Max)
+      )
       preds_ok <- length(input$lm_predictors) > 0
-      tbl <- hot_to_r(input$coef_table)
-      coef_present <- !is.null(tbl) &&
-        any(!is.na(as.numeric(tbl["Est.", ])))
-      if (preds_ok && coef_present) {
+      tbl <- tryCatch(hot_to_r(input$coef_table), error = function(e) NULL)
+      coef_present <- !is.null(tbl) && any(!is.na(as.numeric(tbl["Est.", ])))
+
+      if (descriptives_ok && preds_ok && coef_present) {
         shinyjs::enable("run")
       } else {
         shinyjs::disable("run")
       }
     })
 
+    # ── Run optimization ─────────────────────────────────────────────
     observeEvent(input$run, {
       shinyjs::show("processing_msg")
       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
 
-      sim_data <- simulated_data()
-      req(is.data.frame(sim_data), ncol(sim_data) > 0)
+      df <- rv$params
+      N            <- input$N
+      target_mean  <- stats::setNames(df$Mean, df$Variable)
+      target_sd    <- stats::setNames(df$SD,   df$Variable)
+      range_mat    <- rbind(df$Min, df$Max)
+      is_int       <- df$Integer
 
-      # Extract inputs from UI
-      df_corr <- hot_to_r(input$corr_table)
-      mat_corr <- as.matrix(df_corr)
+      # correlations from table
+      df_corr    <- hot_to_r(input$corr_table)
+      mat_corr   <- as.matrix(df_corr)
       target_cor <- mat_corr[upper.tri(mat_corr, diag = FALSE)]
 
+      # coefficients from table
       coef_df    <- hot_to_r(input$coef_table)
       estimates  <- as.numeric(coef_df["Est.", ])
       target_reg <- estimates
@@ -480,29 +470,15 @@ mod_optim_lm_server <- function(id, root_session){
       ses       <- as.numeric(coef_df["SE", ])
       target_se <- ses
       names(target_se) <- colnames(coef_df)
-      # If all SE are NA, set to NULL
       if (all(is.na(target_se))) target_se <- NULL
 
       reg_equation <- paste(deparse(lm_formula_reactive()), collapse = "")
-
-      # Derive N, target_mean, target_sd, range, integer from sim_data
-      N           <- nrow(sim_data)
-      vars        <- colnames(sim_data)
-      target_mean <- vapply(sim_data, mean, numeric(1))
-      target_sd   <- vapply(sim_data, stats::sd, numeric(1))
-      # Infer integer status
-      is_int      <- vapply(sim_data, function(x) all(abs(x - round(x)) < 1e-8), logical(1))
-      # Infer range from data (use data min/max)
-      range_mat   <- rbind(
-        vapply(sim_data, min, numeric(1)),
-        vapply(sim_data, max, numeric(1))
-      )
 
       max_iter     <- input$max_iter
       init_temp    <- input$init_temp
       if (is.na(init_temp)) init_temp <- NULL
       cooling_rate <- input$cooling_rate
-      tolerance    <- input$tolerance
+      thresh    <- input$thresh
       max_starts   <- input$max_starts
       hill_climbs  <- input$hill_climbs
       n_datasets   <- input$n_datasets
@@ -510,29 +486,30 @@ mod_optim_lm_server <- function(id, root_session){
       wdf    <- hot_to_r(input$weight_table)
       weight <- c(wdf$Correlation, wdf$Regression)
 
-      # Input checks
+      # Input validation
       input.check <- check_lm_inputs(
-        tolerance    = tolerance,
+        thresh    = thresh,
         max_iter     = max_iter,
-        init_temp    = if (is.null(init_temp)) 1 else init_temp,
+        init_temp    = init_temp,
         cooling_rate = cooling_rate,
         hill_climbs  = hill_climbs,
         max_starts   = max_starts
       )
       if (!input.check) {return()}
 
-      # Disable all inputs
-      for (tbl in c("corr_table","coef_table","weight_table")) {
+      # Disable all inputs during run
+      for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
         shinyjs::runjs(
           sprintf('$("#%s .ht_master").css({"pointer-events":"none","opacity":0.5});',
-                  ns(tbl))
+                  ns(tbl_id))
         )
       }
       for (btn in c(
-        "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
-        "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
+        "N", "add_row", "remove_row",
+        "lm_outcome", "lm_predictors", "lm_interactions",
+        "thresh", "max_iter", "init_temp", "cooling_rate",
         "hill_climbs", "max_starts", "n_datasets",
-        "weight_table", "run", "plot_error",
+        "run", "plot_error",
         "plot_error_ratio", "get_rmse",
         "plot_summary", "plot_cooling",
         "display_data", "download", "dataset_selector"
@@ -541,13 +518,37 @@ mod_optim_lm_server <- function(id, root_session){
       }
       rv$status <- "running"
 
-      withProgress(message = "Running optimization...", value = 0, {
-        if (n_datasets > 1) {
-          results_list <- vector("list", n_datasets)
-          for (ds in seq_len(n_datasets)) {
-            incProgress(1 / n_datasets,
-                        detail = sprintf("Dataset %d / %d", ds, n_datasets))
-            results_list[[ds]] <- optim_mlr(
+      tryCatch({
+        withProgress(message = "Running optimization...", value = 0, {
+          if (n_datasets > 1) {
+            results_list <- vector("list", n_datasets)
+            for (ds in seq_len(n_datasets)) {
+              incProgress(1 / n_datasets,
+                          detail = sprintf("Dataset %d / %d", ds, n_datasets))
+              results_list[[ds]] <- optim_mlr(
+                N            = N,
+                target_mean  = target_mean,
+                target_sd    = target_sd,
+                range        = range_mat,
+                integer      = is_int,
+                target_cor   = target_cor,
+                target_reg   = target_reg,
+                reg_equation = reg_equation,
+                sprite_prec  = c(2, 2),
+                target_se    = target_se,
+                weight       = weight,
+                thresh    = thresh,
+                max_iter     = max_iter,
+                init_temp    = init_temp,
+                cooling_rate = cooling_rate,
+                max_starts   = max_starts,
+                hill_climbs  = hill_climbs,
+                progress_mode = "off"
+              )
+            }
+            rv$result <- results_list
+          } else {
+            rv$result <- optim_mlr(
               N            = N,
               target_mean  = target_mean,
               target_sd    = target_sd,
@@ -559,49 +560,51 @@ mod_optim_lm_server <- function(id, root_session){
               sprite_prec  = c(2, 2),
               target_se    = target_se,
               weight       = weight,
-              tolerance    = tolerance,
+              thresh    = thresh,
               max_iter     = max_iter,
               init_temp    = init_temp,
               cooling_rate = cooling_rate,
               max_starts   = max_starts,
               hill_climbs  = hill_climbs,
-              progress_mode = "off"
+              progress_mode = "shiny"
             )
           }
-          rv$result <- results_list
-        } else {
-          rv$result <- optim_mlr(
-            N            = N,
-            target_mean  = target_mean,
-            target_sd    = target_sd,
-            range        = range_mat,
-            integer      = is_int,
-            target_cor   = target_cor,
-            target_reg   = target_reg,
-            reg_equation = reg_equation,
-            sprite_prec  = c(2, 2),
-            target_se    = target_se,
-            weight       = weight,
-            tolerance    = tolerance,
-            max_iter     = max_iter,
-            init_temp    = init_temp,
-            cooling_rate = cooling_rate,
-            max_starts   = max_starts,
-            hill_climbs  = hill_climbs,
-            progress_mode = "shiny"
-          )
-        }
+        })
+      }, error = function(e) {
+        showNotification(
+          paste("Optimization failed:", conditionMessage(e)),
+          type = "error", duration = 10
+        )
       })
+      if (is.null(rv$result)) {
+        # Re-enable inputs on failure
+        shinyjs::enable("run")
+        for (btn in c(
+          "N", "add_row", "remove_row",
+          "lm_outcome", "lm_predictors", "lm_interactions",
+          "thresh", "max_iter", "init_temp", "cooling_rate",
+          "hill_climbs", "max_starts", "n_datasets"
+        )) {
+          shinyjs::enable(btn)
+        }
+        for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
+          shinyjs::runjs(
+            sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
+                    ns(tbl_id)))
+        }
+        return()
+      }
 
       is_multi <- n_datasets > 1
       rv$status <- "done"
       rv$dirty  <- FALSE
       shinyjs::enable("run")
       for (btn in c(
-        "match_descr", "corr_table", "lm_outcome", "lm_predictors", "lm_interactions",
-        "coef_table_ht", "tolerance", "max_iter", "init_temp", "cooling_rate",
+        "N", "add_row", "remove_row",
+        "lm_outcome", "lm_predictors", "lm_interactions",
+        "thresh", "max_iter", "init_temp", "cooling_rate",
         "hill_climbs", "max_starts", "n_datasets",
-        "weight_table", "run", "plot_error",
+        "run", "plot_error",
         "plot_error_ratio", "get_rmse",
         "plot_summary", "plot_cooling",
         "display_data", "download"
@@ -616,14 +619,15 @@ mod_optim_lm_server <- function(id, root_session){
         updateSelectInput(session, "dataset_selector", choices = 1, selected = 1)
         shinyjs::disable("dataset_selector")
       }
-      for (tbl in c("corr_table","coef_table","weight_table")) {
+      for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
         shinyjs::runjs(
           sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                  ns(tbl))
+                  ns(tbl_id))
         )
       }
     })
 
+    # ── Dataset selector ─────────────────────────────────────────────
     selected_dataset <- reactive({
       if (rv$dirty) return(NULL)
       if (is.list(rv$result) && !inherits(rv$result, "stats2data_mlr") &&
@@ -642,7 +646,7 @@ mod_optim_lm_server <- function(id, root_session){
       ds <- selected_dataset()
       req(ds)
       bes <- ds$best_error
-      is_conv <- (bes == 0) | (bes <= input$tolerance)
+      is_conv <- (bes == 0) | (bes <= input$thresh)
       disp    <- ifelse(is_conv, "converged", format(bes))
       data.frame(
         Objective = disp,
@@ -652,6 +656,7 @@ mod_optim_lm_server <- function(id, root_session){
     }, rownames = FALSE,
     colnames = FALSE)
 
+    # ── Action buttons ───────────────────────────────────────────────
     last_action <- reactiveVal(NULL)
     observeEvent(input$plot_error,         last_action("plot_error"))
     observeEvent(input$plot_error_ratio,   last_action("plot_error_ratio"))
@@ -663,12 +668,13 @@ mod_optim_lm_server <- function(id, root_session){
     observeEvent(input$download, {
       showModal(modalDialog(
         title = "Download",
-        downloadButton(ns("dl_object"), "Full nds3.object"),
+        downloadButton(ns("dl_object"), "Full stats2data.object"),
         downloadButton(ns("dl_data"),   "Data as CSV"),
         easyClose = TRUE
       ))
     })
 
+    # ── Render outputs ───────────────────────────────────────────────
     output$plot_error <- renderPlot({
       if (rv$dirty) return(NULL)
       plot_error(selected_dataset(),
@@ -745,8 +751,9 @@ mod_optim_lm_server <- function(id, root_session){
       )
     })
 
+    # ── Download handlers ────────────────────────────────────────────
     output$dl_object <- downloadHandler(
-      filename = "nds3_object.rds",
+      filename = "stats2data_object.rds",
       content = function(file) {
         req(!rv$dirty)
         ds <- selected_dataset()

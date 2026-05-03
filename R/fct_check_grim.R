@@ -7,7 +7,7 @@
 #' @param n Integer. Sample size; must be a single positive whole number.
 #' @param target_mean Numeric. Reported mean to be tested for plausibility.
 #' @param decimals Integer. Number of decimal places in the reported mean.
-#' @param tol Numeric. Tolerance for rounding errors; a single non-negative
+#' @param tol Numeric. thresh for rounding errors; a single non-negative
 #'   value. Default is \code{.Machine$double.eps^0.5}.
 #'
 #' @return A list with components:

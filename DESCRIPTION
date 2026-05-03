@@ -1,32 +1,30 @@
-Package: nds3
-Title: Non-Parametric Data Simulation from Summary Statistics
+Package: stats2data
+Title: Data Simulation from Summary Statistics
 Version: 0.0.1.000
 Date: 2025-06-27
 Authors@R:
     person(c("Sebastian", "A.", "J."), "Lortz", , "s.a.j.lortz@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0007-0281-7996"))
-Description: We introduce the NDS3 framework: Nonparametric Data
-    Simulation from Summary Statistics.
+Description: We introduce stats2data: A Nonparametric Approach to Data Simulation from Summary Statistics. The primary scope of this algorithmic framework is to simulate complete raw datasets using only summary statistics, giving researchers a way to generate plausible sample data when original data are unavailable.
 License: MIT + file LICENSE
-URL: https://github.com/sebastian-lortz/nds3,
-    https://sebastian-lortz.github.io/nds3/
-BugReports: https://github.com/sebastian-lortz/nds3/issues
+URL: https://github.com/sebastian-lortz/stats2data,
+    https://sebastian-lortz.github.io/stats2data/
+BugReports: https://github.com/sebastian-lortz/stats2data/issues
 Imports: 
     afex,
     car,
     config,
     dplyr,
-    emmeans,
     future,
     future.apply,
     ggplot2,
     golem,
     htmltools,
     progressr,
-    pso,
     Rcpp,
     rhandsontable,
     rlang,
+    rsprite2,
     shiny,
     shinyjs,
     shinyWidgets,
@@ -46,7 +44,7 @@ LinkingTo:
 VignetteBuilder: 
     knitr
 Remotes:
-    github::sebastian-lortz/nds3
+    github::sebastian-lortz/stats2data
 Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US

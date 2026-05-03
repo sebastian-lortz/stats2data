@@ -1,4 +1,4 @@
-url: https://sebastian-lortz.github.io/nds3/
+url: https://sebastian-lortz.github.io/stats2data/
 template:
   bootstrap: 5
 
@@ -13,6 +13,6 @@ navbar:
       - articles
 
 articles:
-  - title: "nds3_application"
+  - title: "stats2data_application"
     contents:
-      - "nds3_application"
+      - "stats2data_application"

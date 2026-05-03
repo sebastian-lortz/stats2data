@@ -371,6 +371,7 @@ plot_error.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
       show_final  = show_final,
       title       = "Error Ratio Cor/Reg \u2014 MLR Module"
     )
+    print(p)
     return(invisible(p))
   }
 

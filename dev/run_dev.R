@@ -12,6 +12,6 @@ golem::detach_all_attached()
 golem::document_and_reload()
 devtools::install(dependencies = FALSE)
 # rm(list=ls())
-# rm -rf /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/00LOCK-nds3
+# rm -rf /Library/Frameworks/R.framework/Versions/4.4-arm64/Resources/library/00LOCK-stats2data
 # Run the application
 run_app()

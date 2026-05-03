@@ -129,9 +129,9 @@ mod_optim_aov_ui <- function(id) {
           wellPanel(
             h4("Algorithm Hyperparameters"),
             numericInput(
-              ns("tolerance"),
+              ns("thresh"),
               name_with_info(
-                "Tolerance",
+                "thresh",
                 "The threshold for the objective function value below which the optimization will stop."),
               value = 5e-3,
               min   = 0,
@@ -166,7 +166,7 @@ mod_optim_aov_ui <- function(id) {
             div(style = "margin-bottom:10px;",
                 actionButton(ns("run"), name_with_info(
                   "Run Optimization",
-                  "Executes nds3: Data-Simulation via iterative stochastic combinatorial optimization using reported summary estimates."), class = "btn-primary")
+                  "Executes stats2data: Nonparametric Data-Simulation via iterative optimization using reported summary estimates."), class = "btn-primary")
             ),
             div(
               id    = ns("processing_msg"),
@@ -245,7 +245,7 @@ mod_optim_aov_server <- function(id){
         input$inter_effects,
         input$range,
         input$integer,
-        input$tolerance,
+        input$thresh,
         input$max_iter,
         input$init_temp,
         input$cooling_rate,
@@ -389,11 +389,37 @@ mod_optim_aov_server <- function(id){
       )
     })
 
+    # Map user-facing factor names → canonical Factor1, Factor2, …
+    canonical_name_map <- reactive({
+      setNames(
+        paste0("Factor", seq_len(nrow(rv$factors))),
+        rv$factors$name
+      )
+    })
+
+    remap_effects <- function(effects, name_map) {
+      vapply(effects, function(e) {
+        parts <- strsplit(e, ":")[[1]]
+        paste(name_map[parts], collapse = ":")
+      }, character(1), USE.NAMES = FALSE)
+    }
+
+    # build formula
     formula_reactive <- reactive({
       sel <- c(input$main_effects, input$inter_effects)
       req(sel)
-      rhs <- paste(sel, collapse = " + ")
+      nm  <- canonical_name_map()
+      sel_canonical <- remap_effects(sel, nm)
+      rhs <- paste(sel_canonical, collapse = " + ")
       if (rhs == "") return(NULL)
+
+      # Append Error() term for within-subjects factors
+      within_canonical <- nm[rv$factors$type == "within"]
+      if (length(within_canonical) > 0) {
+        error_term <- paste0("Error(ID/", paste(within_canonical, collapse = "*"), ")")
+        rhs <- paste(rhs, "+", error_term)
+      }
+
       as.character(paste("outcome ~", rhs))
     })
 
@@ -460,14 +486,15 @@ mod_optim_aov_server <- function(id){
       S <- input$N
 
       aov_df             <- hot_to_r(input$anova_table)
+      nm                 <- canonical_name_map()
       target_f_list      <- list(
-        effect          = aov_df$effect,
+        effect          = remap_effects(aov_df$effect, nm),
         F               = aov_df$F
       )
       integer            <- input$integer
       range_val          <- input$range
       formula            <- formula_reactive()
-      tolerance          <- input$tolerance
+      thresh          <- input$thresh
       max_iter           <- input$max_iter
       init_temp          <- input$init_temp
       cooling_rate       <- input$cooling_rate
@@ -480,7 +507,7 @@ mod_optim_aov_server <- function(id){
         levels             = levels_int,
         target_group_means = target_group_means,
         range              = range_val,
-        tolerance          = tolerance,
+        thresh          = thresh,
         max_iter           = max_iter,
         init_temp          = init_temp,
         cooling_rate       = cooling_rate,
@@ -494,7 +521,7 @@ mod_optim_aov_server <- function(id){
                  "anova_table", "add_effect", "remove_effect",
                  "main_effects", "inter_effects",
                  "range", "integer",
-                 "tolerance", "max_iter", "init_temp",
+                 "thresh", "max_iter", "init_temp",
                  "cooling_rate", "max_starts",
                  "n_datasets",
                  "run","plot_error","get_rmse",
@@ -525,7 +552,7 @@ mod_optim_aov_server <- function(id){
               formula            = formula,
               factor_type        = factor_type,
               subgroup_sizes     = subgroup_sizes,
-              tolerance          = tolerance,
+              thresh          = thresh,
               max_iter           = max_iter,
               init_temp          = init_temp,
               cooling_rate       = cooling_rate,
@@ -545,7 +572,7 @@ mod_optim_aov_server <- function(id){
             formula            = formula,
             factor_type        = factor_type,
             subgroup_sizes     = subgroup_sizes,
-            tolerance          = tolerance,
+            thresh          = thresh,
             max_iter           = max_iter,
             init_temp          = init_temp,
             cooling_rate       = cooling_rate,
@@ -564,7 +591,7 @@ mod_optim_aov_server <- function(id){
                     "anova_table", "add_effect", "remove_effect",
                     "main_effects", "inter_effects",
                     "range", "integer",
-                    "tolerance", "max_iter", "init_temp",
+                    "thresh", "max_iter", "init_temp",
                     "cooling_rate", "max_starts",
                     "n_datasets","plot_error",
                     "get_rmse","plot_summary","plot_cooling",
@@ -597,7 +624,7 @@ mod_optim_aov_server <- function(id){
       ds <- selected_dataset()
       req(ds)
       bes <- ds$best_error
-      is_conv <- (bes == 0) | (bes <= input$tolerance)
+      is_conv <- (bes == 0) | (bes <= input$thresh)
       disp <- ifelse(is_conv, "converged", format(bes))
       data.frame(
         ANOVA = disp,
@@ -703,7 +730,7 @@ mod_optim_aov_server <- function(id){
     })
 
     output$dl_object <- downloadHandler(
-      filename = "nds3_object.rds",
+      filename = "stats2data_object.rds",
       content  = function(file) {
         req(!rv$dirty)
         ds <- selected_dataset()

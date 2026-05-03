@@ -14,8 +14,8 @@ optim_aov(
   formula,
   factor_type,
   subgroup_sizes = NULL,
-  tolerance = 0.005,
-  max_iter = 5000,
+  thresh = 0.005,
+  max_iter = 10000,
   init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,
@@ -45,7 +45,7 @@ matching length of \code{levels}.}
 \item{subgroup_sizes}{Optional numeric vector of between-group sizes
 (must sum to \code{N}).}
 
-\item{tolerance}{Numeric. Convergence threshold. Default \code{1e-2}.}
+\item{thresh}{Numeric. Convergence threshold. Default \code{1e-2}.}
 
 \item{max_iter}{Integer. Iterations per restart. Default \code{1e3}.}
 
@@ -59,7 +59,7 @@ matching length of \code{levels}.}
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{nds3.object} list with components \code{best_error},
+A \code{stats2data.object} list with components \code{best_error},
   \code{data}, \code{inputs}, \code{adjusted_targets}, and
   \code{track_error}.
 }

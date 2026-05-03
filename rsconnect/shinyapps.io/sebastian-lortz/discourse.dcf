@@ -1,10 +1,10 @@
-name: nds3
-title: nds3
+name: stats2data
+title: stats2data
 username: sebastian-lortz
 account: sebastian-lortz
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 14976952
 bundleId: 10538078
-url: https://sebastian-lortz.shinyapps.io/nds3/
+url: https://sebastian-lortz.shinyapps.io/stats2data/
 version: 1

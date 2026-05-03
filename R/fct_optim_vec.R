@@ -1,6 +1,6 @@
 #' Optimize a vector or matrix to match target means and SDs
 #'
-#' Uses the nds3 algorithmic framework to simulate one or multiple
+#' Uses the stats2data approach to simulate one or multiple
 #' vectors so that each matches specified target means and standard deviations
 #' under given input parameters.
 #'
@@ -12,7 +12,7 @@
 #'   matrix matching \code{target_mean}.
 #' @param integer Logical or logical vector. If TRUE, optimize integer values;
 #'   length 1 or same length as \code{target_mean}.
-#' @param tolerance Numeric. Convergence threshold. Default \code{1e-3}.
+#' @param thresh Numeric. Convergence threshold. Default \code{1e-3}.
 #' @param sprite_prec Integer vector of length 2. Decimal precision for mean
 #'   and SD when using SPRITE for integer data. Default \code{c(2, 2)}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e4}.
@@ -22,18 +22,18 @@
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{nds3.object} list with components \code{best_error},
-#'   \code{data}, \code{inputs}, and \code{track_error}.
+#' @return A \code{stats2data.object} list with components \code{best_error},
+#'   \code{data}, \code{inputs}, \code{track_error}, and \code{error_msgs}.
 #'
 #' @examples
 #' \dontrun{
-#' res <- optim_vec(
+#' res <- stats2data::optim_vec(
 #'   N           = 100,
-#'   target_mean = c(x = 10),
-#'   target_sd   = c(x = 2),
+#'   target_mean = c(x = 10.23),
+#'   target_sd   = c(x = 2.11),
 #'   range       = c(0, 20),
 #'   integer     = TRUE,
-#'   sprite_prec = c(0, 0),
+#'   sprite_prec = c(2, 2),
 #'   max_iter    = 50000,
 #'   max_starts  = 2
 #' )
@@ -44,9 +44,9 @@ optim_vec <- function(N,
                       target_sd,
                       range,
                       integer,
-                      tolerance = 1e-2,
+                      thresh = 1e-2,
                       sprite_prec = c(2, 2),
-                      max_iter = 1e5,
+                      max_iter = 5e5,
                       init_temp = 1e-3,
                       cooling_rate = NULL,
                       max_starts = 3,
@@ -64,8 +64,8 @@ optim_vec <- function(N,
         (length(range) == 2 ||
          (is.matrix(range) && ncol(range) == length(target_mean)))))
     stop("`range` must be a numeric vector of length 2 or a matrix with columns matching length of `target_mean`.")
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0)
-    stop("`tolerance` must be a single non-negative number.")
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
+    stop("`thresh` must be a single non-negative number.")
   if (!is.logical(integer) || length(integer) < 1 ||
       (length(integer) != 1 && length(integer) != length(target_mean)))
     stop("`integer` must be a logical vector (length 1 or length(target_mean)).")
@@ -90,51 +90,57 @@ optim_vec <- function(N,
       !progress_mode %in% c("console", "shiny", "off"))
     stop('`progress_mode` must be "console", "shiny", or "off".')
 
-    if (is.null(cooling_rate)) cooling_rate <- (max_iter - 10) / max_iter
-    if (is.null(init_temp)) init_temp <- 1e-3
-    n_var <- length(target_mean)
-    if (length(integer) < n_var) integer <- rep(integer[1], n_var)
-    if (!is.matrix(range)) range <- matrix(rep(range, n_var), nrow = 2, ncol = n_var)
-
-    solution_matrix <- matrix(NA, nrow = N, ncol = n_var)
-    best_error_vec  <- vector("list", n_var)
-    track_error_all <- vector("list", n_var)
-
-    handler <- switch(progress_mode,
-                      console = list(progressr::handler_txtprogressbar()),
-                      shiny   = list(progressr::handler_shiny()),
-                      off     = list(progressr::handler_void())
-    )
-
-    progressr::with_progress({
-      p <- progressr::progressor(steps = n_var)
-      for (v in seq_len(n_var)) {
-        res <- optim_vec_single(
-          N = N, t_mean = target_mean[v], t_sd = target_sd[v],
-          rng = range[, v], is_int = integer[v],
-          sprite_prec = sprite_prec, tolerance = tolerance,
-          max_iter = max_iter, init_temp = init_temp,
-          cooling_rate = cooling_rate, max_starts = max_starts
-        )
-        solution_matrix[, v] <- res$data
-        best_error_vec[[v]]  <- res$best_error
-        track_error_all[[v]] <- res$track_error
-        p()
-      }
-    }, handlers = handler)
-
-    colnames(solution_matrix) <- names(target_mean)
-    solution_matrix <- as.data.frame(solution_matrix)
-
-    new_s2d_vec(
-      best_error  = best_error_vec,
-      data        = solution_matrix,
-      inputs      = list(N = N, target_mean = target_mean, target_sd = target_sd,
-                         range = range, integer = integer, tolerance = tolerance,
-                         sprite_prec = sprite_prec, max_iter = max_iter,
-                         init_temp = init_temp, cooling_rate = cooling_rate,
-                         max_starts = max_starts, progress_mode = progress_mode),
-      track_error = track_error_all
-    )
-
+  if (is.null(cooling_rate)) cooling_rate <- (max_iter - 10) / max_iter
+  if (is.null(init_temp)) init_temp <- 1e-3
+  n_var <- length(target_mean)
+  if (length(integer) == 1) integer <- rep(integer[1], n_var)
+  if (length(integer) < n_var && length(integer) > 1) {
+    stop("`integer` must have length 1 or the same length as `target_mean`.")
   }
+  if (!is.matrix(range)) range <- matrix(rep(range, n_var), nrow = 2, ncol = n_var)
+
+  solution_matrix <- matrix(NA, nrow = N, ncol = n_var)
+  best_error_vec  <- vector("list", n_var)
+  track_error_all <- vector("list", n_var)
+  error_msgs      <- vector("list", n_var)
+
+  handler <- switch(progress_mode,
+                    console = list(progressr::handler_txtprogressbar()),
+                    shiny   = list(progressr::handler_shiny()),
+                    off     = list(progressr::handler_void())
+  )
+
+  progressr::with_progress({
+    p <- progressr::progressor(steps = n_var)
+    for (v in seq_len(n_var)) {
+      res <- optim_vec_single(
+        N = N, t_mean = target_mean[v], t_sd = target_sd[v],
+        rng = range[, v], is_int = integer[v],
+        sprite_prec = sprite_prec, thresh = thresh,
+        max_iter = max_iter, init_temp = init_temp,
+        cooling_rate = cooling_rate, max_starts = max_starts
+      )
+      solution_matrix[, v] <- res$data
+      best_error_vec[[v]]  <- res$best_error
+      track_error_all[[v]] <- res$track_error
+      error_msgs[[v]]      <- res$error_msg
+      p()
+    }
+  }, handlers = handler)
+
+  colnames(solution_matrix) <- names(target_mean)
+  solution_matrix <- as.data.frame(solution_matrix)
+
+  result <- new_s2d_vec(
+    best_error  = best_error_vec,
+    data        = solution_matrix,
+    inputs      = list(N = N, target_mean = target_mean, target_sd = target_sd,
+                       range = range, integer = integer, thresh = thresh,
+                       sprite_prec = sprite_prec, max_iter = max_iter,
+                       init_temp = init_temp, cooling_rate = cooling_rate,
+                       max_starts = max_starts, progress_mode = progress_mode),
+    track_error = track_error_all
+  )
+  result$error_msgs <- error_msgs
+  result
+}

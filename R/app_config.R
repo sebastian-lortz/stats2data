@@ -9,7 +9,7 @@
 #'
 #' @noRd
 app_sys <- function(...) {
-  system.file(..., package = "nds3")
+  system.file(..., package = "stats2data")
 }
 options(progressr.enable = TRUE)
 

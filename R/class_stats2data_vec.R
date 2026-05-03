@@ -92,7 +92,7 @@ get_rmse.stats2data_vec <- function(result, ...) {
 
   list(
     rmse_mean = sqrt(mean((s$mean - tm)^2)),
-    rmse_sd   = sqrt(mean((s$sd - tsd)^2))
+    rmse_sd   = sqrt(mean((s$sd - tsd)^2, na.rm = TRUE))
   )
 }
 

@@ -10,9 +10,9 @@ optim_vec(
   target_sd,
   range,
   integer,
-  tolerance = 0.01,
+  thresh = 0.01,
   sprite_prec = c(2, 2),
-  max_iter = 100000,
+  max_iter = 5e+05,
   init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,
@@ -33,7 +33,7 @@ matrix matching \code{target_mean}.}
 \item{integer}{Logical or logical vector. If TRUE, optimize integer values;
 length 1 or same length as \code{target_mean}.}
 
-\item{tolerance}{Numeric. Convergence threshold. Default \code{1e-3}.}
+\item{thresh}{Numeric. Convergence threshold. Default \code{1e-3}.}
 
 \item{sprite_prec}{Integer vector of length 2. Decimal precision for mean
 and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
@@ -50,23 +50,23 @@ and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{nds3.object} list with components \code{best_error},
-  \code{data}, \code{inputs}, and \code{track_error}.
+A \code{stats2data.object} list with components \code{best_error},
+  \code{data}, \code{inputs}, \code{track_error}, and \code{error_msgs}.
 }
 \description{
-Uses the nds3 algorithmic framework to simulate one or multiple
+Uses the stats2data approach to simulate one or multiple
 vectors so that each matches specified target means and standard deviations
 under given input parameters.
 }
 \examples{
 \dontrun{
-res <- optim_vec(
+res <- stats2data::optim_vec(
   N           = 100,
-  target_mean = c(x = 10),
-  target_sd   = c(x = 2),
+  target_mean = c(x = 10.23),
+  target_sd   = c(x = 2.11),
   range       = c(0, 20),
   integer     = TRUE,
-  sprite_prec = c(0, 0),
+  sprite_prec = c(2, 2),
   max_iter    = 50000,
   max_starts  = 2
 )

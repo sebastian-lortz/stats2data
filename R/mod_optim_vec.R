@@ -49,16 +49,6 @@ mod_optim_vec_ui <- function(id) {
               "Sample Size",
               "The length of the target vectors.")
               , 864, min = 5, step = 1),
-            selectInput(
-              ns("mod"),
-              label = name_with_info(
-                "Data Format",
-                "The module you would like to optimize the data for."
-              ),
-              choices  = c("LM (long format)" = "lm"),
-              selected = "LM (long format)",
-              width    = "100%"
-            ),
             p(name_with_info(
               "Descriptive Statistics",
               "The variables' name, mean, SD, minimum, maximum, and if integer/continuous")),
@@ -76,9 +66,9 @@ mod_optim_vec_ui <- function(id) {
           wellPanel(
             h4("Algorithm Hyperparameters"),
             numericInput(
-              ns("tolerance"),
+              ns("thresh"),
               name_with_info(
-                "Tolerance",
+                "thresh",
                 "The threshold for the objective function value below which the optimization will stop."),
               value = 1e-2,
               min   = 0,
@@ -108,9 +98,6 @@ mod_optim_vec_ui <- function(id) {
                 width = 12,
                 div(style = "display:inline-block;",
                     actionButton(ns("run"),       "Run Optimization", class = "btn-primary")
-                ),
-                div(style = "display:inline-block; margin-left:10px;",
-                    actionButton(ns("proceed_lm"),  "Proceed with LM",   class = "btn-sm btn-info", style = "margin-left:10px;")
                 )
               )
             ),
@@ -142,45 +129,25 @@ mod_optim_vec_ui <- function(id) {
   )
 }
 
-mod_optim_vec_server <- function(id, root_session) {
+mod_optim_vec_server <- function(id) {
   moduleServer(id, function(input, output, session) {
     ns <- session$ns
 
     rv <- reactiveValues(
-      params = NULL,
+      params = data.frame(
+        Variable = paste0("V", 1:5),
+        Mean     = c(10.53, 0.27, 2.49, -0.64, 0.03),
+        SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
+        Min      = c( 0,     0,  -24,  -3,    -3),
+        Max      = c(36,     1,   24,   3,     3),
+        Integer  = rep(TRUE, 5),
+        stringsAsFactors = FALSE
+      ),
       result = NULL,
       status = "ready",
       last   = NULL,
-      dirty  = TRUE,
-      for_lm = NULL
+      dirty  = TRUE
     )
-
-    observeEvent(input$mod, {
-      if (input$mod == "lm") {
-        rv$params <- data.frame(
-          Variable = paste0("V", 1:5),
-          Mean     = c(10.53, 0.27, 2.49, -0.64, 0.03),
-          SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
-          Min      = c( 0,     0,  -24,  -3,    -3),
-          Max      = c(36,     1,   24,   3,     3),
-          Integer  = rep(TRUE, 5),
-          stringsAsFactors = FALSE
-        )
-      } else {
-        rv$params <- data.frame(
-          Variable = c("V1","V2","V3_0","V3_1","V3_2","V3_3",
-                       "V4_0","V4_1","V4_2","V4_3"),
-          Mean     = c(28.75,0.46,0.00,0.50,0.70,0.80,
-                       240.57,261.07,270.02,274.57),
-          SD       = c(11.98,0.50,0.00,0.00,0.00,0.00,
-                       40.36, 33.26, 26.85, 26.33),
-          Min      = c(14, 0, 0, 0.5, 0.7, 0.8, 95, 148, 184, 178),
-          Max      = c(62, 1, 0, 0.5, 0.7, 0.8,298, 309, 304, 307),
-          Integer  = c(rep(TRUE,2), rep(FALSE,4), rep(TRUE,4)),
-          stringsAsFactors = FALSE
-        )
-      }
-    }, ignoreNULL = FALSE)
 
     observeEvent({
       list(
@@ -188,8 +155,7 @@ mod_optim_vec_server <- function(id, root_session) {
         input$param_table,
         input$add_row,
         input$remove_row,
-        input$mod,
-        input$tolerance,
+        input$thresh,
         input$max_iter,
         input$init_temp,
         input$cooling_rate,
@@ -200,7 +166,7 @@ mod_optim_vec_server <- function(id, root_session) {
       for (btn in c(
         "plot_error","get_rmse",
         "plot_summary","plot_cooling",
-        "display_data","download", "proceed_lm"
+        "display_data","download"
       )) {
         shinyjs::disable(btn)
       }
@@ -238,7 +204,7 @@ mod_optim_vec_server <- function(id, root_session) {
     })
 
     shinyjs::disable("run")
-    lapply(c("plot_error","get_rmse","plot_summary","plot_cooling","display_data","download","proceed_lm"),
+    lapply(c("plot_error","get_rmse","plot_summary","plot_cooling","display_data","download"),
            shinyjs::disable
     )
 
@@ -258,7 +224,7 @@ mod_optim_vec_server <- function(id, root_session) {
       rv$status <- "running"
       df  <- rv$params
       N            <- input$N
-      tolerance    <- input$tolerance
+      thresh    <- input$thresh
       max_iter     <- input$max_iter
       init_temp    <- input$init_temp
       cooling_rate <- input$cooling_rate
@@ -269,7 +235,7 @@ mod_optim_vec_server <- function(id, root_session) {
         N = N,
         target_mean = target_mean,
         range = range,
-        tolerance = tolerance,
+        thresh = thresh,
         max_iter = max_iter,
         init_temp = init_temp,
         cooling_rate = cooling_rate,
@@ -283,37 +249,72 @@ mod_optim_vec_server <- function(id, root_session) {
         )
       }
       shinyjs::disable("run")
-      lapply(c("N", "mod", "param_table", "add_row", "remove_row",
-               "tolerance", "max_iter", "init_temp", "cooling_rate",
+      lapply(c("N", "param_table", "add_row", "remove_row",
+               "thresh", "max_iter", "init_temp", "cooling_rate",
                "max_starts",
                "plot_error","get_rmse","plot_summary","plot_cooling",
-               "display_data","download", "proceed_lm"),
+               "display_data","download"),
              shinyjs::disable
       )
-      withProgress(message = "Running optimization...", value = 0, {
-        rv$result <- optim_vec(
-          N             = N,
-          target_mean   = target_mean,
-          target_sd     = stats::setNames(df$SD, df$Variable),
-          range         = range,
-          integer       = df$Integer,
-          tolerance     = tolerance,
-          sprite_prec   = c(2, 2),
-          max_iter      = max_iter,
-          init_temp     = init_temp,
-          cooling_rate  = cooling_rate,
-          max_starts    = max_starts,
-          progress_mode = "shiny"
+      tryCatch({
+        withProgress(message = "Running optimization...", value = 0, {
+          rv$result <- optim_vec(
+            N             = N,
+            target_mean   = target_mean,
+            target_sd     = stats::setNames(df$SD, df$Variable),
+            range         = range,
+            integer       = df$Integer,
+            thresh     = thresh,
+            sprite_prec   = c(2, 2),
+            max_iter      = max_iter,
+            init_temp     = init_temp,
+            cooling_rate  = cooling_rate,
+            max_starts    = max_starts,
+            progress_mode = "shiny"
+          )
+        })
+      }, error = function(e) {
+        showNotification(
+          paste("Optimization failed:", conditionMessage(e)),
+          type = "error", duration = 10
         )
+        return()
       })
+      if (is.null(rv$result)) {
+        shinyjs::enable("run")
+        lapply(c("N", "param_table", "add_row", "remove_row",
+                 "thresh", "max_iter", "init_temp", "cooling_rate",
+                 "max_starts"),
+               shinyjs::enable)
+        for (tbl in c("param_table")) {
+          shinyjs::runjs(
+            sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
+                    ns(tbl)))
+        }
+        return()
+      }
+      # Show per-variable warnings for SPRITE/feasibility failures
+      if (!is.null(rv$result$error_msgs)) {
+        for (v in seq_along(rv$result$error_msgs)) {
+          msg <- rv$result$error_msgs[[v]]
+          if (!is.null(msg)) {
+            var_name <- rv$params$Variable[v]
+            showNotification(
+              paste0("Variable '", var_name, "': ", msg,
+                     " Consider adjusting the SD, range, or switching to continuous."),
+              type = "warning", duration = 15
+            )
+          }
+        }
+      }
       rv$status <- "done"
       rv$dirty <- FALSE
       shinyjs::enable("run")
-      lapply(c("N", "mod", "param_table", "add_row", "remove_row",
-               "tolerance", "max_iter", "init_temp", "cooling_rate",
+      lapply(c("N", "param_table", "add_row", "remove_row",
+               "thresh", "max_iter", "init_temp", "cooling_rate",
                "max_starts",
                "plot_error","get_rmse","plot_summary","plot_cooling",
-               "display_data","download", "proceed_lm"),
+               "display_data","download"),
              shinyjs::enable
       )
       for (tbl in c("param_table")) {
@@ -338,7 +339,7 @@ mod_optim_vec_server <- function(id, root_session) {
         return(df)
       }
       bes  <- unlist(rv$result$best_error)
-      disp <- ifelse(bes < input$tolerance, "converged", format(bes))
+      disp <- ifelse(bes < input$thresh, "converged", format(bes))
       df <- as.data.frame(as.list(disp), stringsAsFactors = FALSE)
       colnames(df) <- rv$params$Variable[seq_along(disp)]
       df
@@ -356,17 +357,6 @@ mod_optim_vec_server <- function(id, root_session) {
         downloadButton(ns("dl_data"),   "Data CSV"),
         easyClose = TRUE
       ))
-    })
-
-    observeEvent(input$proceed_lm, {
-      req(!rv$dirty, rv$result)
-      rv$for_lm <- rv$result$data
-      root_session$userData$lm_data(rv$result$data)
-      updateNavbarPage(
-        root_session,
-        inputId  = "main",
-        selected = "Linear Regression"
-      )
     })
 
     observeEvent(rv$params$Variable, {
@@ -479,7 +469,7 @@ mod_optim_vec_server <- function(id, root_session) {
       utils::head(as.data.frame(rv$result$data), min(nrow(rv$result$data),15))
     }, rownames = TRUE)
     output$dl_object <- downloadHandler(
-      filename = "nds3_object.rds",
+      filename = "stats2data_object.rds",
       content  = function(file) {
         req(!rv$dirty)
         saveRDS(rv$result, file)

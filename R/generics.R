@@ -125,3 +125,29 @@ plot_error <- function(x, ...) UseMethod("plot_error")
 #'
 #' @export
 plot_cooling <- function(x, ...) UseMethod("plot_cooling")
+
+
+#' Plot summary of target-vs-simulated statistics
+#'
+#' Creates a lollipop chart comparing simulated and target summary statistics.
+#' Dispatches to class-specific methods for \code{stats2data_aov},
+#' \code{stats2data_mlr}, and \code{stats2data_vec}.
+#'
+#' @param x A stats2data result object (\code{stats2data_aov},
+#'   \code{stats2data_mlr}, or \code{stats2data_vec}).
+#' @param ... Arguments passed to methods (typically \code{standardised} and
+#'   \code{eps}).
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @seealso \code{\link{plot_error}}, \code{\link{plot_cooling}}
+#'
+#' @examples
+#' \dontrun{
+#' res <- optim_vec(...)
+#' plot_summary(res)
+#' plot_summary(res, standardised = FALSE)
+#' }
+#'
+#' @export
+plot_summary <- function(x, ...) UseMethod("plot_summary")

@@ -30,7 +30,7 @@
 #'   Default \code{NULL}.
 #' @param weight Numeric vector of length 2. Weights for correlation vs.
 #'   regression error in the objective function. Default \code{c(1, 1)}.
-#' @param tolerance Numeric. Convergence threshold. Default \code{1e-6}.
+#' @param thresh Numeric. Convergence threshold. Default \code{1e-6}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e5}.
 #' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto).
@@ -41,11 +41,11 @@
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{nds3.object} list with components:
+#' @return A \code{stats2data.object} list with components:
 #' \describe{
 #'   \item{best_error}{Numeric. Minimum objective error achieved.}
 #'   \item{data}{Data frame of optimized predictor and outcome values.}
-#'   \item{optim_vec}{The \code{nds3.object} returned by the internal
+#'   \item{optim_vec}{The \code{stats2data.object} returned by the internal
 #'     \code{optim_vec} call (marginal optimization results).}
 #'   \item{inputs}{List of all input parameters for reproducibility.}
 #'   \item{track_error}{Numeric vector of best error at each iteration.}
@@ -80,8 +80,8 @@ optim_mlr <- function(
     reg_equation,
     sprite_prec  = c(2, 2),
     target_se    = NULL,
-    weight       = c(1, 1),
-    tolerance    = 1e-3,
+    weight       = .5,
+    thresh    = 5e-3,
     max_iter     = 1e5,
     init_temp    = NULL,
     cooling_rate = NULL,
@@ -128,8 +128,9 @@ optim_mlr <- function(
   exp_cor <- n_cols * (n_cols - 1) / 2
   term_lbls <- attr(stats::terms(frm), "term.labels")
   exp_reg   <- length(term_lbls) + 1
-  if (!is.numeric(target_cor) || !any(!is.na(target_cor)))
-    stop("`target_cor` must contain at least one non-NA numeric value.")
+  if (!is.numeric(target_cor) || any(!is.na(target_cor) & (target_cor < -1 | target_cor > 1))) {
+    stop("`target_cor` must contain only NA or numeric values between -1 and 1.")
+  }
   if (length(target_cor) != exp_cor)
     stop(sprintf("`target_cor` must be a numeric vector of length %d, not %d.",
                  exp_cor, length(target_cor)))
@@ -142,11 +143,13 @@ optim_mlr <- function(
     if (!is.numeric(target_se) || length(target_se) != length(target_reg))
       stop("`target_se`, if provided, must be a numeric vector the same length as `target_reg`.")
   }
-  if (!is.numeric(weight) || length(weight) != 2)
-    stop("`weight` must be a numeric vector of length 2 (correlation vs. regression error weights).")
-
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0)
-    stop("`tolerance` must be a single non-negative number.")
+  if (!is.numeric(weight) || length(weight) != 1)
+    stop("`weight` must be numeric and of length 1 (correlation vs. regression error mixing weight).")
+  if (weight < 0 || weight > 1)
+    stop("`weight` must be between 0 and 1.")
+  weight = c(weight, 1-weight)
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
+    stop("`thresh` must be a single non-negative number.")
   if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
     stop("`max_iter` must be a single positive number.")
   if (!is.null(init_temp) && (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0))
@@ -172,11 +175,11 @@ optim_mlr <- function(
     range         = range,
     integer       = integer,
     sprite_prec   = sprite_prec,
-    tolerance     = tolerance,
-    max_iter      = max_iter,
+    thresh     = thresh,
+    max_iter      = 5e5,
     init_temp     = 1e-3,
-    cooling_rate  = cooling_rate,
-    max_starts    = max_starts,
+    cooling_rate  = NULL,
+    max_starts    = 3,
     progress_mode = progress_mode
   )
   sim_data <- vec_result$data
@@ -255,7 +258,7 @@ optim_mlr <- function(
     p <- progressr::progressor(steps = ceiling(total_iter / pb_interval))
     for (s in seq_len(max_starts)) {
       # fresh marginals on restarts
-      if (s > 1) {
+      if (FALSE) {
         int_expanded <- rep(integer, length.out = length(target_mean))
         rng_mat <- if (is.matrix(range)) range else
           matrix(rep(range, length(target_mean)), nrow = 2)
@@ -266,7 +269,7 @@ optim_mlr <- function(
             res_v <- optim_vec_single(
               N = N, t_mean = target_mean[vidx], t_sd = target_sd[vidx],
               rng = rng_mat[, vidx], is_int = int_expanded[vidx],
-              sprite_prec = sprite_prec, tolerance = tolerance,
+              sprite_prec = sprite_prec, thresh = thresh,
               max_iter = max_iter, init_temp = init_temp,
               cooling_rate = cooling_rate, max_starts = 1
             )
@@ -326,10 +329,10 @@ optim_mlr <- function(
         track_error[global_iter]       <- best_error
         track_error_ratio[global_iter] <- best_ratio
         if (global_iter %% pb_interval == 0) p()
-        if (is.finite(best_error) && best_error < tolerance) break
+        if (is.finite(best_error) && best_error < thresh) break
       }
       current_candidate <- best_candidate
-      if (is.finite(best_error) && best_error < tolerance) break
+      if (is.finite(best_error) && best_error < thresh) break
       temp <- init_temp
     }
 
@@ -367,7 +370,7 @@ optim_mlr <- function(
       range = range, integer = integer, sprite_prec = sprite_prec,
       target_cor = target_cor, target_reg = target_reg,
       reg_equation = reg_equation, target_se = target_se,
-      weight = weight, tolerance = tolerance, max_iter = max_iter,
+      weight = weight, thresh = thresh, max_iter = max_iter,
       init_temp = init_temp, cooling_rate = cooling_rate,
       max_starts = max_starts, hill_climbs = hill_climbs,
       progress_mode = progress_mode

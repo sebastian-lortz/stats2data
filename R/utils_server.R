@@ -28,7 +28,7 @@ check_vec_inputs <- function(
     N,
     target_mean,
     range,
-    tolerance,
+    thresh,
     max_iter,
     init_temp,
     cooling_rate,
@@ -57,9 +57,9 @@ check_vec_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0) {
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0) {
     showNotification(
-      sprintf("tolerance (%s) must be a single non-negative numeric value.", tolerance),
+      sprintf("thresh (%s) must be a single non-negative numeric value.", thresh),
       type = "error"
     )
     return(FALSE)
@@ -112,7 +112,7 @@ check_aov_inputs <- function(
     levels,
     target_group_means,
     range,
-    tolerance,
+    thresh,
     max_iter,
     init_temp,
     cooling_rate,
@@ -143,9 +143,9 @@ check_aov_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0) {
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0) {
     showNotification(
-      sprintf("tolerance (%s) must be a single non-negative numeric value.", tolerance),
+      sprintf("thresh (%s) must be a single non-negative numeric value.", thresh),
       type = "error"
     )
     return(FALSE)
@@ -194,16 +194,16 @@ check_aov_inputs <- function(
 #'
 #' @noRd
 check_lm_inputs <- function(
-    tolerance,
+    thresh,
     max_iter,
     init_temp,
     cooling_rate,
     hill_climbs,
     max_starts
 ) {
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0) {
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0) {
     showNotification(
-      sprintf("tolerance (%s) must be a single non-negative numeric value.", tolerance),
+      sprintf("thresh (%s) must be a single non-negative numeric value.", thresh),
       type = "error"
     )
     return(FALSE)
@@ -215,12 +215,16 @@ check_lm_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
-    showNotification(
-      sprintf("init_temp (%s) must be a single positive number.", init_temp),
-      type = "error"
-    )
-    return(FALSE)
+  # init_temp may be NULL (auto-calibration); only validate if non-NULL
+
+  if (!is.null(init_temp)) {
+    if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
+      showNotification(
+        sprintf("init_temp (%s) must be a single positive number, or left empty for auto-calibration.", init_temp),
+        type = "error"
+      )
+      return(FALSE)
+    }
   }
   if (!(
     (is.numeric(cooling_rate) &&

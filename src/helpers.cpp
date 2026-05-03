@@ -209,7 +209,7 @@ Rcpp::List error_function_cpp(const arma::mat &candidate,
   );
 
   // Weighted average of the two RMSE components.
-  double total_error = (cor_error * weight(0) + reg_error * weight(1)) / 2.0;
+  double total_error = cor_error * weight(0) + reg_error * weight(1);
 
   // Error ratio (with protection against division by zero).
   double error_ratio = (reg_error == 0.0) ? R_PosInf : cor_error / reg_error;

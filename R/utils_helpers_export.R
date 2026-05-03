@@ -5,7 +5,7 @@
 #' a vertical line at the mean and an annotation of mean and standard deviation (or just mean).
 #'
 #' @param df A \code{data.frame} or matrix whose columns are the variables to plot.
-#' @param tol Numeric; tolerance for deciding whether a variable is integer-valued.
+#' @param tol Numeric; thresh for deciding whether a variable is integer-valued.
 #'   Values within \code{tol} of an integer are plotted as counts (bars).
 #' @param SD Logical; if \code{TRUE}, annotate each plot with mean and standard deviation;
 #'   if \code{FALSE}, annotate with mean only.

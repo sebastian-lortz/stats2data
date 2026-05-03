@@ -7,6 +7,6 @@
 # * https://testthat.r-lib.org/articles/special-files.html
 
 library(testthat)
-library(nds3)
+library(stats2data)
 
-test_check("nds3")
+test_check("stats2data")

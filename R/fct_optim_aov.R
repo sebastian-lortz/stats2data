@@ -16,7 +16,7 @@
 #'   matching length of \code{levels}.
 #' @param subgroup_sizes Optional numeric vector of between-group sizes
 #'   (must sum to \code{N}).
-#' @param tolerance Numeric. Convergence threshold. Default \code{1e-2}.
+#' @param thresh Numeric. Convergence threshold. Default \code{1e-2}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e3}.
 #' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
@@ -24,7 +24,7 @@
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{nds3.object} list with components \code{best_error},
+#' @return A \code{stats2data.object} list with components \code{best_error},
 #'   \code{data}, \code{inputs}, \code{adjusted_targets}, and
 #'   \code{track_error}.
 #'
@@ -39,8 +39,8 @@ optim_aov <- function(
     formula,
     factor_type,
     subgroup_sizes = NULL,
-    tolerance = 5e-3,
-    max_iter = 5e3,
+    thresh = 5e-3,
+    max_iter = 1e4,
     init_temp = 1e-3,
     cooling_rate = NULL,
     max_starts = 3,
@@ -89,8 +89,8 @@ optim_aov <- function(
     if (N != sum(subgroup_sizes))
       stop("`N` must equal sum(subgroup_sizes).")
   }
-  if (!is.numeric(tolerance) || length(tolerance) != 1 || tolerance < 0)
-    stop("`tolerance` must be a single non-negative number.")
+  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
+    stop("`thresh` must be a single non-negative number.")
   if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
     stop("`max_iter` must be a single positive number.")
   if (!is.null(init_temp) && (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0))
@@ -121,7 +121,7 @@ optim_aov <- function(
   # consistent means and F
   targets <- aov_targets(target_group_means, target_F, group_sizes,
                          effect_names = target_f_list$effect, levels, factor_type,
-                         integer, tolerance,
+                         integer, thresh,
                          ID, factor_mat, group_idx, structure, formula_internal)
   adjusted_group_means <- targets$adjusted_means
   target_F     <- targets$adjusted_F
@@ -133,7 +133,7 @@ optim_aov <- function(
   for (j in seq_along(group_idx)) {
     current_candidate[group_idx[[j]]] <- init_fn(
       adjusted_group_means[j], group_sizes[j], range,
-      tolerance = if (integer) 1 / (2 * group_sizes[j]) else 1e-12
+      thresh = if (integer) 1 / (2 * group_sizes[j]) else 1e-12
     )
   }
 
@@ -153,6 +153,22 @@ optim_aov <- function(
     sqrt(mean((fit$anova_table$F - target_F)^2))
     }
   }
+
+  # Move directives: one per error stratum.
+  move_directives <- list()
+  if (structure$has_between) {
+    move_directives[[length(move_directives) + 1L]] <- list(type = "between")
+  }
+  if (structure$has_within) {
+    K <- length(structure$within_levels)
+    for (size in seq_len(K)) {
+      for (W in utils::combn(K, size, simplify = FALSE)) {
+        move_directives[[length(move_directives) + 1L]] <-
+          list(type = "within", W = W)
+      }
+    }
+  }
+  n_moves <- length(move_directives)
 
   # SA setup
   if (is.null(cooling_rate)) cooling_rate <- (max_iter - 10) / max_iter
@@ -181,21 +197,13 @@ optim_aov <- function(
       for (i in seq_len(max_iter)) {
         candidate <- current_candidate
         # candidate modification
-        if (!structure$has_between) {
-          if (needs_within_interaction && runif(1) < 0.5) {
-            candidate <- move_within_interaction(candidate, integer, structure, range)
-          } else {
-            candidate <- move_within_paired(candidate, integer, structure, range)
-          }
-        } else if (structure$has_within) {
-          if (runif(1) < 0.5) {
-            candidate <- move_between(candidate, integer, structure, range)
-          } else {
-            candidate <- move_within_paired(candidate, integer, structure, range)
-          }
+        mv <- move_directives[[sample.int(n_moves, 1L)]]
+        candidate <- if (mv$type == "between") {
+          move_between(current_candidate, integer, structure, range)
         } else {
-          candidate <- move_between(candidate, integer, structure, range)
+          move_within_stratum(current_candidate, mv$W, integer, structure, range)
         }
+        # candidate evaluation
         cand_error <- objective(candidate)
         if (!is.finite(cand_error)) next
         prob <- exp((current_error - cand_error) / temp)
@@ -212,10 +220,10 @@ optim_aov <- function(
         global_iter <- global_iter + 1L
         track_error[global_iter] <- best_error
         if (global_iter %% pb_interval == 0) p()
-        if (is.finite(best_error) && best_error < tolerance) break
+        if (is.finite(best_error) && best_error < thresh) break
         }
       current_candidate <- best_candidate
-      if (is.finite(best_error) && best_error < tolerance) break
+      if (is.finite(best_error) && best_error < thresh) break
       temp <- init_temp
     }
   }, handlers = handler)
@@ -236,7 +244,7 @@ optim_aov <- function(
       integer = integer, range = range,
       formula = formula, factor_type = factor_type,
       subgroup_sizes = subgroup_sizes,
-      tolerance = tolerance, max_iter = max_iter,
+      thresh = thresh, max_iter = max_iter,
       init_temp = init_temp, cooling_rate = cooling_rate,
       max_starts = max_starts, progress_mode = progress_mode
     ),

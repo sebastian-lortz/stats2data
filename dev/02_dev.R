@@ -19,6 +19,11 @@
 attachment::att_amend_desc()
 # If you use devtools:
 devtools::build_readme()
+
+Rcpp::compileAttributes()
+devtools::clean_dll()      # remove stale .o / .so with old name
+devtools::document()
+
 ## Add modules ----
 ## Create a module infrastructure in R/
 golem::add_module(name = "optim_vec", with_test = TRUE) # Name of the module
@@ -39,7 +44,7 @@ golem::add_fct("plot_error", with_test = TRUE)
 
 golem::add_utils("helpers", with_test = TRUE)
 golem::add_utils("helpers_export", with_test = TRUE)
-golem::add_utils("nds3-package", with_test = TRUE)
+golem::add_utils("stats2data-package", with_test = TRUE)
 golem::add_utils("server", with_test = TRUE)
 ## Rcpp
 # regenerate Rcpp bindings and NAMESPACE
@@ -68,7 +73,7 @@ spelling::update_wordlist()
 # Documentation
 
 ## Vignette ----
-usethis::use_vignette("nds3_application")
+usethis::use_vignette("stats2data_application")
 devtools::build_vignettes()
 
 ## Code Coverage----
@@ -115,9 +120,9 @@ usethis::use_pkgdown_github_pages()
 pkgdown::build_site_github_pages()
 
 # render about doc
-rmarkdown::render("/Users/lortz/Desktop/PhD/Research/simdata/nds3/inst/app/www/about.Rmd",
+rmarkdown::render("/Users/lortz/Desktop/PhD/Research/simdata/stats2data/inst/app/www/about.Rmd",
                   output_format = "github_document",
-                  output_file   = "/Users/lortz/Desktop/PhD/Research/simdata/nds3/inst/app/www/about.md")
+                  output_file   = "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/inst/app/www/about.md")
 
 # You're now set! ----
 # go to dev/03_deploy.R

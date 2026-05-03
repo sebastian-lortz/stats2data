@@ -1,5 +1,5 @@
-# nds3 (development version)
+# stats2data (development version)
 
-## nds3 0.0.0.9000
+## stats2data 0.0.0.9000
 
 * Initial version ...

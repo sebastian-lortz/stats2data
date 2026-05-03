@@ -1263,19 +1263,19 @@
         "Archs": "digest.so.dSYM"
       }
     },
-    "nds3": {
+    "stats2data": {
       "Source": "github",
       "Repository": null,
       "description": {
-        "Package": "nds3",
+        "Package": "stats2data",
         "Title": "Data-simulation via Iterative Stochastic Combinatorial Optimization\nUsing Reported Summary Estimates",
         "Version": "0.0.1.000",
         "Date": "2025-06-27",
         "Authors@R": "\n    person(\n      given   = c(\"Sebastian\", \"A.\", \"J.\"),\n      family  = \"Lortz\",\n      email   = \"s.a.j.lortz@gmail.com\",\n      role    = c(\"aut\", \"cre\"),\n      comment = c(ORCID = \"0009-0007-0281-7996\")\n    )",
-        "Description": "I introduce nds3 – this algorithmic\n    framework is designed to reconstruct complete data sets solely from\n    summary statistics.  It provides researchers with a tool to follow-up\n    analyses even when raw data are unavailable.",
+        "Description": "I introduce stats2data – this algorithmic\n    framework is designed to reconstruct complete data sets solely from\n    summary statistics.  It provides researchers with a tool to follow-up\n    analyses even when raw data are unavailable.",
         "License": "MIT + file LICENSE",
-        "URL": "https://github.com/sebastian-lortz/nds3, https://sebastian-lortz.github.io/nds3/",
-        "BugReports": "https://github.com/sebastian-lortz/nds3/issues",
+        "URL": "https://github.com/sebastian-lortz/stats2data, https://sebastian-lortz.github.io/stats2data/",
+        "BugReports": "https://github.com/sebastian-lortz/stats2data/issues",
         "Imports": "afex,\ncar,\nconfig,\ndplyr,\nemmeans,\nfuture,\nfuture.apply,\nggplot2,\ngolem,\nhtmltools,\nlme4,\nmarkdown,\npso,\nprogressr,\nRcpp,\nrhandsontable,\nrlang,\nshiny,\nshinyjs,\nshinyWidgets,\nstats,\ntidyr,\ntidyselect,\nutils",
         "Suggests": "knitr,\nrmarkdown,\nspelling,\ntestthat (>= 3.0.0),\ngridExtra",
         "LinkingTo": "Rcpp,\nRcppArmadillo",
@@ -1292,15 +1292,15 @@
         "RemoteType": "github",
         "RemoteHost": "api.github.com",
         "RemoteUsername": "sebastian-lortz",
-        "RemoteRepo": "nds3",
+        "RemoteRepo": "stats2data",
         "RemoteRef": "main",
         "RemoteSha": "4669aa1580311d50cb23fb6b609f9c5fcb2acc86",
         "GithubHost": "api.github.com",
-        "GithubRepo": "nds3",
+        "GithubRepo": "stats2data",
         "GithubUsername": "sebastian-lortz",
         "GithubRef": "main",
         "GithubSHA1": "4669aa1580311d50cb23fb6b609f9c5fcb2acc86",
-        "Remotes": "github::sebastian-lortz/nds3"
+        "Remotes": "github::sebastian-lortz/stats2data"
       }
     },
     "doBy": {
@@ -5123,13 +5123,13 @@
     "DESCRIPTION": {
       "checksum": "e452c9a4d3b1490541ed153bac850b37"
     },
-    "doc/nds3_application.html": {
+    "doc/stats2data_application.html": {
       "checksum": "82e741222a30dc5864a7e19e57bb2541"
     },
-    "doc/nds3_application.R": {
+    "doc/stats2data_application.R": {
       "checksum": "2bfe49cde34924f0fe247f6543ae656d"
     },
-    "doc/nds3_application.Rmd": {
+    "doc/stats2data_application.Rmd": {
       "checksum": "7336f6c822e5ddeb6d052fe1f92be2d4"
     },
     "docs/.nojekyll": {
@@ -5141,43 +5141,43 @@
     "docs/apple-touch-icon.png": {
       "checksum": "78e59a360037f3f1bf2cf3e15fa49c5b"
     },
-    "docs/articles/nds3_application_files/figure-html/data aov-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/data aov-1.png": {
       "checksum": "7063be0c747d098beab95f0aec6f39e4"
     },
-    "docs/articles/nds3_application_files/figure-html/data lm-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/data lm-1.png": {
       "checksum": "47a6fa464d99c96176681e0c95bd8509"
     },
-    "docs/articles/nds3_application_files/figure-html/data vec-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/data vec-1.png": {
       "checksum": "cc3b11aaf2debeafddbd3bd20d58d85e"
     },
-    "docs/articles/nds3_application_files/figure-html/error ratio lm-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/error ratio lm-1.png": {
       "checksum": "11dd593390c4ae17f41e8ca15e50d19a"
     },
-    "docs/articles/nds3_application_files/figure-html/plot error aov-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot error aov-1.png": {
       "checksum": "f3de42e64c4bcb088601aa0be4c6598e"
     },
-    "docs/articles/nds3_application_files/figure-html/plot error lm-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot error lm-1.png": {
       "checksum": "0a6257f5ff782e50dc34b4cf3fdc4559"
     },
-    "docs/articles/nds3_application_files/figure-html/plot error vec-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot error vec-1.png": {
       "checksum": "5028bb2f14aa87bd06fcf7aa5de13b1d"
     },
-    "docs/articles/nds3_application_files/figure-html/plot rmse aov-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot rmse aov-1.png": {
       "checksum": "f141d725709f51fb56b5b4b12a2b41cf"
     },
-    "docs/articles/nds3_application_files/figure-html/plot rmse lm-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot rmse lm-1.png": {
       "checksum": "aa0c2460125d6a530d1c9b8ddc6444f2"
     },
-    "docs/articles/nds3_application_files/figure-html/plot summary aov-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot summary aov-1.png": {
       "checksum": "888353e6e68a3ed985e051c67237ffc4"
     },
-    "docs/articles/nds3_application_files/figure-html/plot summary lm-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot summary lm-1.png": {
       "checksum": "91cb59dc351eb0e489a4808c1ea53054"
     },
-    "docs/articles/nds3_application_files/figure-html/plot summary vec-1.png": {
+    "docs/articles/stats2data_application_files/figure-html/plot summary vec-1.png": {
       "checksum": "4f11cc5120f7ba621be98f6136230926"
     },
-    "docs/articles/nds3_application.html": {
+    "docs/articles/stats2data_application.html": {
       "checksum": "8bc8660b4246c7cbcd75099c2d98cde8"
     },
     "docs/articles/index.html": {
@@ -5309,10 +5309,10 @@
     "docs/reference/check_grim.html": {
       "checksum": "2f5bca0a85df52a6e444ed139bb41743"
     },
-    "docs/reference/nds3-package.html": {
+    "docs/reference/stats2data-package.html": {
       "checksum": "2b428bb5531891a55a8f7554d4d8fbc4"
     },
-    "docs/reference/nds3.html": {
+    "docs/reference/stats2data.html": {
       "checksum": "4c48f7425c74321713fe5d3d161c1aa9"
     },
     "docs/reference/figures/logo-comp.png": {
@@ -5384,13 +5384,13 @@
     "docs/reference/plot_summary.html": {
       "checksum": "29c6806cea994802ca496612426d270b"
     },
-    "docs/reference/print.summary.nds3.object.html": {
+    "docs/reference/print.summary.stats2data.object.html": {
       "checksum": "b84a87eaa300795b164dfe55525bd11d"
     },
     "docs/reference/run_app.html": {
       "checksum": "d6fa856a3a0b8c4f4fa9155423f0d2ee"
     },
-    "docs/reference/summary.nds3.object.html": {
+    "docs/reference/summary.stats2data.object.html": {
       "checksum": "7ffe957403d3a90cc81edf6d095dd001"
     },
     "docs/reference/weights_est.html": {

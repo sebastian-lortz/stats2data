@@ -1,12 +1,12 @@
 # --------------------------------------------------------------------------
-# stats2data: plot (summary) S3 methods
+# stats2data: plot_summary S3 methods
 # --------------------------------------------------------------------------
 
 # ---- Internal workhorse --------------------------------------------------
 
 #' Build a target-vs-simulated lollipop chart
 #'
-#' Shared plotting logic used by all \code{plot.stats2data_*} methods.
+#' Shared plotting logic used by all \code{plot_summary.*} methods.
 #' Not exported.
 #'
 #' @param df Data frame with columns \code{Measure}, \code{Variable},
@@ -124,7 +124,7 @@
 
 # -- stats2data_mlr --------------------------------------------------------
 
-#' Plot target-vs-simulated statistics for an MLR result
+#' @describeIn plot_summary Method for MLR results (\code{stats2data_mlr}).
 #'
 #' @param x An object of class \code{stats2data_mlr}.
 #' @param standardised Logical; if \code{TRUE} (default), differences are
@@ -138,12 +138,12 @@
 #' @examples
 #' \dontrun{
 #' res <- optim_mlr(...)
-#' plot(res)
-#' plot(res, standardised = FALSE)
+#' plot_summary(res)
+#' plot_summary(res, standardised = FALSE)
 #' }
 #'
 #' @export
-plot.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...) {
+plot_summary.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
   if (!is.logical(standardised) || length(standardised) != 1L) {
     stop("`standardised` must be a single logical value.", call. = FALSE)
@@ -228,7 +228,7 @@ plot.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
 # -- stats2data_aov --------------------------------------------------------
 
-#' Plot target-vs-simulated statistics for an ANOVA result
+#' @describeIn plot_summary Method for ANOVA results (\code{stats2data_aov}).
 #'
 #' @param x An object of class \code{stats2data_aov}.
 #' @param standardised Logical; if \code{TRUE} (default), differences are
@@ -241,11 +241,11 @@ plot.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 #' @examples
 #' \dontrun{
 #' res <- optim_aov(...)
-#' plot(res)
+#' plot_summary(res)
 #' }
 #'
 #' @export
-plot.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...) {
+plot_summary.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
   if (!is.logical(standardised) || length(standardised) != 1L) {
     stop("`standardised` must be a single logical value.", call. = FALSE)
@@ -285,7 +285,8 @@ plot.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
 # -- stats2data_vec --------------------------------------------------------
 
-#' Plot target-vs-simulated statistics for a Descriptives result
+#' @describeIn plot_summary Method for Descriptives results
+#'   (\code{stats2data_vec}).
 #'
 #' @param x An object of class \code{stats2data_vec}.
 #' @param standardised Logical; if \code{TRUE} (default), differences are
@@ -298,11 +299,11 @@ plot.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 #' @examples
 #' \dontrun{
 #' res <- optim_vec(...)
-#' plot(res)
+#' plot_summary(res)
 #' }
 #'
 #' @export
-plot.stats2data_vec <- function(x, standardised = TRUE, eps = 1e-12, ...) {
+plot_summary.stats2data_vec <- function(x, standardised = TRUE, eps = 1e-12, ...) {
 
   if (!is.logical(standardised) || length(standardised) != 1L) {
     stop("`standardised` must be a single logical value.", call. = FALSE)

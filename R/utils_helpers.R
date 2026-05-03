@@ -1,4 +1,4 @@
-#' Internal helper functions for nds3 package
+#' Internal helper functions for stats2data package
 #'
 #' @description Utility functions for data handling and calculations
 #'
@@ -125,7 +125,7 @@ heuristic_move_cont <- function(candidate, target_sd, range) {
 
 
 # generate integer candidate vector (modified Sprite)
-sprite_start_vector <- function(tMean, n, range, tolerance) {
+sprite_start_vector <- function(tMean, n, range, thresh) {
   scaleMin <- range[1]
   scaleMax <- range[2]
 
@@ -141,7 +141,7 @@ sprite_start_vector <- function(tMean, n, range, tolerance) {
 
   for (i in seq_len(max_loops)) {
     cMean <- mean(vec)
-    if (abs(cMean - tMean) < tolerance) break
+    if (abs(cMean - tMean) < thresh) break
 
     delta <- 1 # Maybe this could be improved
     increaseMean <- (cMean < tMean)
@@ -165,7 +165,7 @@ sprite_start_vector <- function(tMean, n, range, tolerance) {
   vec
 }
 
-sprite_start_vector_cont <- function(tMean, n, range, tolerance) {
+sprite_start_vector_cont <- function(tMean, n, range, thresh) {
   scaleMin <- range[1]
   scaleMax <- range[2]
 
@@ -177,16 +177,16 @@ sprite_start_vector_cont <- function(tMean, n, range, tolerance) {
   vec <- runif(n, min = tMean - half_width, max = tMean + half_width)
 
   W <- scaleMax - scaleMin
-  step_floor <- max(n * tolerance, .Machine$double.eps)
+  step_floor <- max(n * thresh, .Machine$double.eps)
   max_loops  <- min(ceiling(W * n / step_floor) * 100, 1e7)
 
   iter <- 0L
   cMean <- mean(vec)
 
-  while (abs(cMean - tMean) > tolerance && iter < max_loops) {
+  while (abs(cMean - tMean) > thresh && iter < max_loops) {
     iter <- iter + 1L
     cMean <- mean(vec)
-    if (abs(cMean - tMean) < tolerance) break
+    if (abs(cMean - tMean) < thresh) break
 
     #if (runif(1) < .2) delta <- 2 * abs(tMean - cMean) else
     delta <- abs(tMean - cMean)
@@ -468,18 +468,20 @@ build_aov_structure <- function(N, levels, factor_type, subgroup_sizes = NULL) {
   df[-1] <- lapply(df[-1], as.factor)
 
   list(
-    df                 = df,
-    N_subjects         = N_subjects,
-    n_within_levels    = n_within,
-    n_between_groups   = n_between,
-    has_between        = has_between,
-    has_within         = has_within,
-    within_levels      = if (has_within) levels[within_idx] else integer(0),
-    subject_indices    = subject_indices,
-    bg_per_subject     = bg_per_subject,
+    df                   = df,
+    N_subjects           = N_subjects,
+    n_within_levels      = n_within,
+    n_between_groups     = n_between,
+    has_between          = has_between,
+    has_within           = has_within,
+    within_levels        = if (has_within) levels[within_idx] else integer(0),
+    within_idx           = within_idx,                                 # *
+    wg_grid              = if (has_within) wg_grid else NULL,          # *
+    subject_indices      = subject_indices,
+    bg_per_subject       = bg_per_subject,
     between_group_labels = bg_labels,
-    subjects_in_bgroup = subjects_in_bg,
-    n_per_bgroup       = sapply(subjects_in_bg, length)
+    subjects_in_bgroup   = subjects_in_bg,
+    n_per_bgroup         = sapply(subjects_in_bg, length)
   )
 }
 
@@ -539,10 +541,9 @@ compute_MSE_between <- function(x, structure) {
 }
 
 # derive consistent aov targets
-
 aov_targets <- function(target_group_means, target_F, group_sizes,
                         effect_names, levels, factor_type,
-                        integer, tolerance,
+                        integer, thresh,
                         ID, factor_mat, group_idx, structure, formula) {
 
   n_obs <- length(ID)
@@ -571,8 +572,8 @@ aov_targets <- function(target_group_means, target_F, group_sizes,
   if (any(!uses_within))  strata$between <- which(!uses_within)
   if (any(uses_within)) {
     within_composition <- sapply(effect_names[uses_within], function(e) {
-      parts <- unlist(strsplit(e, ":"))
-      paste(sort(parts[parts %in% within_names]), collapse = ":")
+      p <- intersect(unlist(strsplit(e, ":")), within_names)
+      paste(p[order(as.integer(sub("Factor", "", p)))], collapse = ":")
     })
     for (key in unique(within_composition)) {
       strata[[key]] <- which(uses_within)[within_composition == key]
@@ -603,10 +604,10 @@ aov_targets <- function(target_group_means, target_F, group_sizes,
     # enumerate achievable means
     cands <- lapply(seq_along(target_group_means), function(k) {
       n_k <- group_sizes[k]; mu_k <- target_group_means[k]
-      lo  <- ceiling((mu_k - tolerance) * n_k)
-      hi  <- floor((mu_k + tolerance) * n_k)
+      lo  <- ceiling((mu_k - thresh) * n_k)
+      hi  <- floor((mu_k + thresh) * n_k)
       if (lo > hi) {
-        warning("Cell ", k, ": no integer mean within tolerance.")
+        warning("Cell ", k, ": no integer mean within thresh.")
         return(round(mu_k * n_k) / n_k)
       }
       (lo:hi) / n_k
@@ -629,9 +630,9 @@ aov_targets <- function(target_group_means, target_F, group_sizes,
     numerator_MS   <- ms_from_means(best_means)
 
   } else {
-    # continuous: optimise within tolerance
-    lower <- target_group_means - tolerance
-    upper <- target_group_means + tolerance
+    # continuous: optimise within thresh
+    lower <- target_group_means - thresh
+    upper <- target_group_means + thresh
     opt <- optim(
       par    = target_group_means,
       fn     = score_mu,
@@ -678,3 +679,58 @@ remap_target_cor <- function(target_cor, sim_data, vars_new) {
 
   as.vector(mat_new[upper.tri(mat_new)])
 }
+
+move_within_stratum <- function(candidate, W, integer, structure, range) {
+  if (!structure$has_within) return(candidate)
+  wl <- structure$within_levels
+  K  <- length(wl)
+  if (length(W) < 1L || any(W < 1L | W > K)) return(candidate)
+  if (any(wl[W] < 2L)) return(candidate)
+
+  lower <- range[1]; upper <- range[2]
+  wg    <- structure$wg_grid
+  bg    <- sample(structure$between_group_labels, 1)
+  subs  <- structure$subjects_in_bgroup[[bg]]
+  if (length(subs) < 2L) return(candidate)
+
+  for (attempt in seq_len(50L)) {
+    # 1. choose two levels per factor in W; keep all levels for j not in W
+    chosen <- vector("list", K)
+    for (j in seq_len(K)) {
+      chosen[[j]] <- if (j %in% W) sort(sample.int(wl[j], 2L)) else seq_len(wl[j])
+    }
+
+    # 2. sub-cube cells (positions in wg_grid order)
+    in_sub <- rep(TRUE, nrow(wg))
+    for (j in seq_len(K)) in_sub <- in_sub & (wg[, j] %in% chosen[[j]])
+    sub_pos <- which(in_sub)
+
+    # 3. signed contrast pattern over the sub-cube
+    sign_c <- rep(1L, length(sub_pos))
+    for (j in W) {
+      sign_c <- sign_c * ifelse(wg[sub_pos, j] == chosen[[j]][1], 1L, -1L)
+    }
+
+    # 4. two subjects from the same between-group
+    pair <- sample(subs, 2)
+    idx1 <- structure$subject_indices[[pair[1]]][sub_pos]
+    idx2 <- structure$subject_indices[[pair[2]]][sub_pos]
+
+    # 5. headroom in candidate; subject 1 receives +sign*delta, subject 2 -sign*delta
+    head1 <- ifelse(sign_c == 1L, upper - candidate[idx1], candidate[idx1] - lower)
+    head2 <- ifelse(sign_c == 1L, candidate[idx2] - lower, upper - candidate[idx2])
+    max_delta <- min(head1, head2)
+
+    if (integer) max_delta <- floor(max_delta)
+    if (max_delta >= 1L || (!integer && max_delta > 1e-8)) break
+  }
+  if (integer && max_delta < 1L) return(candidate)
+  if (!integer && max_delta <= 1e-8) return(candidate)
+
+  delta <- if (integer) sample.int(max_delta, 1L) else stats::runif(1, 0, max_delta)
+
+  candidate[idx1] <- candidate[idx1] + sign_c * delta
+  candidate[idx2] <- candidate[idx2] - sign_c * delta
+  candidate
+}
+

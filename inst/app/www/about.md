@@ -2,7 +2,7 @@
 <div style="float: right; margin: 0 0 1em 1em;">
 
 <img src="logo.png"
-       alt="nds3"
+       alt="stats2data"
        height="100px"
        style="margin-top:-5px;" />
 
@@ -10,9 +10,9 @@
 
 ## About the Project
 
-We introduce the NDS3 framework: Nonparametric Data Simulation from
-Summary Statistics. nds3 is available as R package and shiny app via
-Github page: <https://sebastian-lortz.github.io/nds3/>
+We introduce the stats2data framework: Nonparametric Data Simulation
+from Summary Statistics. stats2data is available as R package and shiny
+app via Github page: <https://sebastian-lortz.github.io/stats2data/>
 
 ### Publications
 
@@ -28,7 +28,7 @@ If you have any questions or comments please write to Sebastian Lortz to
 the following email address: <s.a.j.lortz@gmail.com>
 
 Or submit an issue on the apps Github page:
-<https://github.com/sebastian-lortz/nds3/issues>
+<https://github.com/sebastian-lortz/stats2data/issues>
 
 ### Version
 

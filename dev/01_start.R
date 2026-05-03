@@ -19,18 +19,18 @@
 ## to change the name in the app_sys() function in app_config.R /!\
 ##
 golem::fill_desc(
-  pkg_name = "nds3", # The name of the golem package containing the app (typically lowercase, no underscore or periods)
+  pkg_name = "stats2data", # The name of the golem package containing the app (typically lowercase, no underscore or periods)
   pkg_title = "Data-simulation via Iterative Stochastic Combinatorial Optimization Using Reported Summary Estimates", # What the Package Does (One Line, Title Case, No Period)
-  pkg_description = "We introduce the nds3 framework – Data-simulation via Iterative Stochastic Combinatorial Optimization Using Reported Summary Estimates.
+  pkg_description = "We introduce the stats2data framework – Data-simulation via Iterative Stochastic Combinatorial Optimization Using Reported Summary Estimates.
   This algorithmic framework is designed to reconstruct complete data sets solely from summary statistics.
-  It provides researchers with a tool to inform the nds3 when raw data are unavailable, thereby informing decision‑making in replication studies.", # What the package does (one paragraph).
+  It provides researchers with a tool to inform the stats2data when raw data are unavailable, thereby informing decision‑making in replication studies.", # What the package does (one paragraph).
   authors = person(
     given = "Sebastian A. J.", # Your First Name
     family = "Lortz", # Your Last Name
     email = "s.a.j.lortz@gmail.com", # Your email
     role = c("aut", "cre") # Your role (here author/creator)
   ),
-  repo_url = "https://github.com/sebastian-lortz/nds3", # The URL of the GitHub repo (optional),
+  repo_url = "https://github.com/sebastian-lortz/stats2data", # The URL of the GitHub repo (optional),
   pkg_version = "0.0.0.9000", # The version of the package containing the app
   set_options = TRUE # Set the global golem options
 )
@@ -66,8 +66,8 @@ golem::use_utils_server(with_test = TRUE)
 usethis::use_git()
 ## Sets the remote associated with 'name' to 'url'
 usethis::use_git_remote(
-  name = "nds3",
-  url = "https://github.com/sebastian-lortz/nds3"
+  name = "stats2data",
+  url = "https://github.com/sebastian-lortz/stats2data"
 )
 
 # You're now set! ----

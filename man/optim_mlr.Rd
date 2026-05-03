@@ -15,9 +15,9 @@ optim_mlr(
   reg_equation,
   sprite_prec = c(2, 2),
   target_se = NULL,
-  weight = c(1, 1),
-  tolerance = 0.001,
-  max_iter = 100000,
+  weight = 0.5,
+  thresh = 0.005,
+  max_iter = 1e+05,
   init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
@@ -60,7 +60,7 @@ Default \code{NULL}.}
 \item{weight}{Numeric vector of length 2. Weights for correlation vs.
 regression error in the objective function. Default \code{c(1, 1)}.}
 
-\item{tolerance}{Numeric. Convergence threshold. Default \code{1e-6}.}
+\item{thresh}{Numeric. Convergence threshold. Default \code{1e-6}.}
 
 \item{max_iter}{Integer. Iterations per restart. Default \code{1e5}.}
 
@@ -78,11 +78,11 @@ optional local refinement; if NULL, skips refinement. Default \code{NULL}.}
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{nds3.object} list with components:
+A \code{stats2data.object} list with components:
 \describe{
   \item{best_error}{Numeric. Minimum objective error achieved.}
   \item{data}{Data frame of optimized predictor and outcome values.}
-  \item{optim_vec}{The \code{nds3.object} returned by the internal
+  \item{optim_vec}{The \code{stats2data.object} returned by the internal
     \code{optim_vec} call (marginal optimization results).}
   \item{inputs}{List of all input parameters for reproducibility.}
   \item{track_error}{Numeric vector of best error at each iteration.}

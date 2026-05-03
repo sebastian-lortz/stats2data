@@ -1620,17 +1620,17 @@
       "Maintainer": "Dirk Eddelbuettel <edd@debian.org>",
       "Repository": "CRAN"
     },
-    "nds3": {
-      "Package": "nds3",
+    "stats2data": {
+      "Package": "stats2data",
       "Version": "0.0.1.000",
       "Source": "GitHub",
       "Title": "Data-simulation via Iterative Stochastic Combinatorial Optimization Using Reported Summary Estimates",
       "Date": "2025-06-27",
       "Authors@R": "person( given   = c(\"Sebastian\", \"A.\", \"J.\"), family  = \"Lortz\", email   = \"s.a.j.lortz@gmail.com\", role    = c(\"aut\", \"cre\"), comment = c(ORCID = \"0009-0007-0281-7996\") )",
-      "Description": "I introduce nds3 – this algorithmic framework is designed to reconstruct complete data sets solely from summary statistics.  It provides researchers with a tool to follow-up analyses even when raw data are unavailable.",
+      "Description": "I introduce stats2data – this algorithmic framework is designed to reconstruct complete data sets solely from summary statistics.  It provides researchers with a tool to follow-up analyses even when raw data are unavailable.",
       "License": "MIT + file LICENSE",
-      "URL": "https://github.com/sebastian-lortz/nds3, https://sebastian-lortz.github.io/nds3/",
-      "BugReports": "https://github.com/sebastian-lortz/nds3/issues",
+      "URL": "https://github.com/sebastian-lortz/stats2data, https://sebastian-lortz.github.io/stats2data/",
+      "BugReports": "https://github.com/sebastian-lortz/stats2data/issues",
       "Imports": [
         "afex",
         "car",
@@ -1680,10 +1680,10 @@
       "RemoteType": "github",
       "RemoteHost": "api.github.com",
       "RemoteUsername": "sebastian-lortz",
-      "RemoteRepo": "nds3",
+      "RemoteRepo": "stats2data",
       "RemoteRef": "main",
       "RemoteSha": "4669aa1580311d50cb23fb6b609f9c5fcb2acc86",
-      "Remotes": "github::sebastian-lortz/nds3"
+      "Remotes": "github::sebastian-lortz/stats2data"
     },
     "doBy": {
       "Package": "doBy",
