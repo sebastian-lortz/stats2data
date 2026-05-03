@@ -1,62 +1,91 @@
-# Extract statistics from a single nds3.object
+# Extract statistics from a \`stats2data\` result
 
-Computes and returns key analytical outputs from one \`nds3.object\`,
-including model fits, parameter estimates, and summary statistics
-appropriate for regression, ANOVA, or vector-based analyses.
+Computes and returns key analytical outputs from a \`stats2data\` result
+object, including means, standard deviations, correlations, regression
+coefficients, or F-statistics depending on the module that produced the
+result.
 
 ## Usage
 
 ``` r
-get_stats(result)
+# S3 method for class 'stats2data_aov'
+get_stats(result, ...)
+
+# S3 method for class 'stats2data_mlr'
+get_stats(result, ...)
+
+# S3 method for class 'stats2data_parallel'
+get_stats(result, ...)
+
+# S3 method for class 'stats2data_vec'
+get_stats(result, ...)
+
+get_stats(result, ...)
 ```
 
 ## Arguments
 
 - result:
 
-  A \`nds3.object\` produced by analysis functions (e.g., \`optim_vec\`,
-  \`optim_aov()\`, \`optim_lm()\`, \`optim()\`).
+  A stats2data result object (`stats2data_vec`, `stats2data_mlr`, or
+  `stats2data_aov`).
+
+- ...:
+
+  Additional arguments passed to methods.
 
 ## Value
 
-A named \`list\` containing elements dependent on the input type:
+A named list of statistics. Contents depend on the class of `result`:
 
-- model:
+- For `stats2data_vec`::
 
-  Model object or ANOVA table used for estimating parameters.
+  Elements `mean` and `sd`.
 
-- reg:
+- For `stats2data_mlr`::
 
-  Numeric vector of regression coefficients (fixed effects) for
-  regression-based objects.
+  Elements `model`, `reg`, `se`, `cor`, `mean`, and `sd`.
 
-- se:
+- For `stats2data_aov`::
 
-  Numeric vector of standard errors corresponding to \`reg\`.
+  Elements `model`, `F_value`, and `mean`.
 
-- cor:
+## Details
 
-  Numeric vector of bivariate correlations for regression-based objects.
+For `stats2data_parallel` objects, `get_stats` aggregates each numeric
+component returned by the per-run `get_stats` method across all runs.
+The result is a named list of data frames, one per component (e.g.,
+`F_value`, `mean`, `reg`, `cor`, `sd`), each containing columns `mean`,
+`median`, `sd`, `min`, and `max`.
 
-- mean:
+## Cell ordering for `stats2data_aov`
 
-  Numeric vector of means: for regression-based, variable means (columns
-  in wide format); for vector-based, variable means; for ANOVA,
-  (sub)group means.
+The vector `$mean` is returned in \*\*sorted-key\*\* cell order (Factor1
+fastest, then Factor2, then Factor3, ...). This matches the order the
+optimiser uses internally and the order in which `target_group_means` is
+consumed by
+[`optim_aov`](https://sebastian-lortz.github.io/stats2data/reference/optim_aov.md).
+The returned vector is named with the cell identifier (e.g. `"1_1"`,
+`"1_2"`, `"2_1"`, ...) so the cell each value belongs to is unambiguous
+downstream.
 
-- sd:
+## Model formula
 
-  Numeric vector of standard deviations for regression- and vector-based
-  objects.
-
-- F_value:
-
-  Numeric vector of F-statistics for ANOVA-based objects.
+`get_stats` reuses the formula stored in `result$inputs$formula` rather
+than reconstructing one from the factor names. This guarantees the model
+fitted here is the same as the one the optimiser used, eliminating drift
+across afex versions or design types (purely-within, purely-between,
+mixed).
 
 ## Examples
 
 ``` r
- if (FALSE) { # \dontrun{
-get_stats(nds3.object)
+if (FALSE) { # \dontrun{
+res <- optim_vec(
+  N = 50, target_mean = c(x = 5), target_sd = c(x = 1),
+  range = c(0, 10), integer = FALSE, sprite_prec = c(2, 2),
+  max_iter = 1e4, max_starts = 1, progress_mode = "off"
+)
+get_stats(res)
 } # }
 ```

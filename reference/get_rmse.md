@@ -1,57 +1,82 @@
-# Compute RMSE for a single nds3.object result
+# Compute RMSE for a stats2data result
 
-Calculates root-mean-square error (RMSE) metrics for a single
-\`nds3.object\` output, comparing model estimates of the simulated data
-against original target inputs.
+Calculates root-mean-square error metrics comparing the achieved summary
+statistics of the simulated data against the target inputs.
 
 ## Usage
 
 ``` r
-get_rmse(result)
+# S3 method for class 'stats2data_aov'
+get_rmse(result, ...)
+
+# S3 method for class 'stats2data_mlr'
+get_rmse(result, ...)
+
+# S3 method for class 'stats2data_parallel'
+get_rmse(result, ...)
+
+# S3 method for class 'stats2data_vec'
+get_rmse(result, ...)
+
+get_rmse(result, ...)
 ```
 
 ## Arguments
 
 - result:
 
-  A \`nds3.object\` produced by analysis functions (e.g., \`optim_vec\`,
-  \`optim_aov()\`, \`optim_lm()\`, \`optim()\`).
+  A stats2data result object (`stats2data_vec`, `stats2data_mlr`, or
+  `stats2data_aov`).
+
+- ...:
+
+  Additional arguments passed to methods.
 
 ## Value
 
-A named \`list\` of RMSE values. Possible elements:
+A named list of RMSE values. Contents depend on the class of `result`:
 
-- rmse_cor:
+- For `stats2data_vec`::
 
-  Numeric. RMSE of correlation estimates for LM-based objects.
+  Elements `rmse_mean` and `rmse_sd`.
 
-- rmse_reg:
+- For `stats2data_mlr`::
 
-  Numeric. RMSE of regression coefficient estimates for LM-based
-  objects.
+  Elements `rmse_cor`, `rmse_reg`, and `rmse_se`.
 
-- rmse_se:
+- For `stats2data_aov`::
 
-  Numeric. RMSE of standard error estimates for LM-based objects.
+  Elements `rmse_F` and `rmse_mean`.
 
-- rmse_F:
+## Details
 
-  Numeric. RMSE of F-values for ANOVA-based objects.
+For `stats2data_parallel` objects, `get_rmse` returns a list with three
+elements:
 
-- rmse_mean:
+- between_rmse:
 
-  Numeric. RMSE of means for vector-based objects.
+  Data frame. Per-metric summary (Mean, SD, Min, Max) of run-to-run
+  RMSE, computed against the grand mean across runs.
 
-- rmse_sd:
+- target_rmse:
 
-  Numeric. RMSE of standard deviations for vector-based objects.
+  Data frame. Per-metric summary of RMSE from each run to the original
+  targets.
+
+- raw:
+
+  List with numeric vectors `between` and `target` holding the per-run
+  raw RMSE values, keyed by metric name.
 
 ## Examples
 
 ``` r
- if (FALSE) { # \dontrun{
-# Regression-based result
-result <- optim_lm(args = ..., ...)
-get_rmse(result)
+if (FALSE) { # \dontrun{
+res <- optim_vec(
+  N = 50, target_mean = c(x = 5), target_sd = c(x = 1),
+  range = c(0, 10), integer = FALSE, sprite_prec = c(2, 2),
+  max_iter = 1e4, max_starts = 1, progress_mode = "off"
+)
+get_rmse(res)
 } # }
 ```

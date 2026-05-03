@@ -2,59 +2,63 @@
 
 ## All functions
 
-- [`check_grim()`](https://sebastian-lortz.github.io/nds3/reference/check_grim.md)
-  : Check plausibility of a reported mean with the GRIM test (Brown &
-  Heathers 2007)
-- [`get_rmse()`](https://sebastian-lortz.github.io/nds3/reference/get_rmse.md)
-  : Compute RMSE for a single nds3.object result
-- [`get_rmse_parallel()`](https://sebastian-lortz.github.io/nds3/reference/get_rmse_parallel.md)
-  : Compute RMSE metrics across nds3.object runs
-- [`get_stats()`](https://sebastian-lortz.github.io/nds3/reference/get_stats.md)
-  : Extract statistics from a single nds3.object
-- [`get_stats_parallel()`](https://sebastian-lortz.github.io/nds3/reference/get_stats_parallel.md)
-  : Aggregate statistics across nds3.object runs
-- [`hill_climb()`](https://sebastian-lortz.github.io/nds3/reference/hill_climb.md)
+- [`check_grim()`](https://sebastian-lortz.github.io/stats2data/reference/check_grim.md)
+  : Check plausibility of a reported mean with the GRIM test
+- [`coef(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/coef.stats2data_mlr.md)
+  : Extract regression coefficients from a stats2data MLR result
+- [`get_rmse()`](https://sebastian-lortz.github.io/stats2data/reference/get_rmse.md)
+  : Compute RMSE for a stats2data result
+- [`get_stats()`](https://sebastian-lortz.github.io/stats2data/reference/get_stats.md)
+  : Extract statistics from a \`stats2data\` result
+- [`hill_climb()`](https://sebastian-lortz.github.io/stats2data/reference/hill_climb.md)
   : Perform hill-climbing optimization
-- [`long_to_wide()`](https://sebastian-lortz.github.io/nds3/reference/long_to_wide.md)
+- [`long_to_wide()`](https://sebastian-lortz.github.io/stats2data/reference/long_to_wide.md)
   : Reshape Data from Long to Wide Format
-- [`nds3`](https://sebastian-lortz.github.io/nds3/reference/nds3-package.md)
-  [`nds3-package`](https://sebastian-lortz.github.io/nds3/reference/nds3-package.md)
-  : nds3: Non-Parametric Data Simulation from Summary Statistics
-- [`optim_aov()`](https://sebastian-lortz.github.io/nds3/reference/optim_aov.md)
+- [`optim_aov()`](https://sebastian-lortz.github.io/stats2data/reference/optim_aov.md)
   : Optimize simulated data to match ANOVA F-values
-- [`optim_lm()`](https://sebastian-lortz.github.io/nds3/reference/optim_lm.md)
-  : Optimize simulated data to match target correlations and
-  fixed-effects regression estimates
-- [`optim_vec()`](https://sebastian-lortz.github.io/nds3/reference/optim_vec.md)
+- [`optim_mlr()`](https://sebastian-lortz.github.io/stats2data/reference/optim_mlr.md)
+  : Optimize simulated data to match target correlations and regression
+  estimates
+- [`optim_vec()`](https://sebastian-lortz.github.io/stats2data/reference/optim_vec.md)
   : Optimize a vector or matrix to match target means and SDs
-- [`parallel_aov()`](https://sebastian-lortz.github.io/nds3/reference/parallel_aov.md)
-  : Optimize multiple data sets to match ANOVA F-values
-- [`parallel_lm()`](https://sebastian-lortz.github.io/nds3/reference/parallel_lm.md)
-  : Optimize multiple simulated data sets to match target correlations
-  and fixed-effects regression fits
-- [`plot_cooling()`](https://sebastian-lortz.github.io/nds3/reference/plot_cooling.md)
-  : Plot cooling schedule of a nds3.object
-- [`plot_error()`](https://sebastian-lortz.github.io/nds3/reference/plot_error.md)
-  : Plot Error Ratio Evolution for a nds3.object
-- [`plot_error_ratio()`](https://sebastian-lortz.github.io/nds3/reference/plot_error_ratio.md)
-  : Plot Error Ratio Evolution for a nds3.object
-- [`plot_histogram()`](https://sebastian-lortz.github.io/nds3/reference/plot_histogram.md)
+- [`parallel_optim()`](https://sebastian-lortz.github.io/stats2data/reference/parallel_optim.md)
+  : Run an optimization function multiple times in parallel
+- [`plot(`*`<stats2data_parallel>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data_parallel.md)
+  : Plot RMSE distributions for a parallel result
+- [`plot_cooling()`](https://sebastian-lortz.github.io/stats2data/reference/plot_cooling.md)
+  : Plot cooling schedule for a stats2data result
+- [`plot_error()`](https://sebastian-lortz.github.io/stats2data/reference/plot_error.md)
+  : Plot error trajectory for a stats2data result
+- [`plot_histogram()`](https://sebastian-lortz.github.io/stats2data/reference/plot_histogram.md)
   : Plot Histograms for Each Variable
-- [`plot_partial_regression()`](https://sebastian-lortz.github.io/nds3/reference/plot_partial_regression.md)
+- [`plot_partial_regression()`](https://sebastian-lortz.github.io/stats2data/reference/plot_partial_regression.md)
   : Partial Regression Plots for a Linear Model
-- [`plot_rmse()`](https://sebastian-lortz.github.io/nds3/reference/plot_rmse.md)
-  : Plot RMSE Comparison for nds3.object runs
-- [`plot_summary()`](https://sebastian-lortz.github.io/nds3/reference/plot_summary.md)
-  : Plot Summary of Simulated vs. Target Statistics for a nds3.object
-- [`print(`*`<summary.nds3.object>`*`)`](https://sebastian-lortz.github.io/nds3/reference/print.summary.nds3.object.md)
-  : Print summary for summary.nds3.object
-- [`run_app()`](https://sebastian-lortz.github.io/nds3/reference/run_app.md)
+- [`plot_summary()`](https://sebastian-lortz.github.io/stats2data/reference/plot_summary.md)
+  : Plot summary of target-vs-simulated statistics
+- [`print(`*`<stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_aov.md)
+  : Print a stats2data ANOVA result
+- [`print(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_mlr.md)
+  : Print a stats2data MLR result
+- [`print(`*`<stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_vec.md)
+  : Print a stats2data Descriptives result
+- [`print(`*`<summary.stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_aov.md)
+  : Print a stats2data ANOVA summary
+- [`print(`*`<summary.stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_mlr.md)
+  : Print a stats2data MLR summary
+- [`print(`*`<summary.stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_vec.md)
+  : Print a stats2data Descriptives summary
+- [`run_app()`](https://sebastian-lortz.github.io/stats2data/reference/run_app.md)
   : Run the Shiny Application
-- [`summary(`*`<nds3.object>`*`)`](https://sebastian-lortz.github.io/nds3/reference/summary.nds3.object.md)
-  : Summarize a nds3.object
-- [`weights_est()`](https://sebastian-lortz.github.io/nds3/reference/weights_est.md)
-  : Estimate objective function weights via pilot simulations
-- [`weights_vec()`](https://sebastian-lortz.github.io/nds3/reference/weights_vec.md)
-  : Estimate weighting factors for mean and SD errors
-- [`wide_to_long()`](https://sebastian-lortz.github.io/nds3/reference/wide_to_long.md)
+- [`stats2data`](https://sebastian-lortz.github.io/stats2data/reference/stats2data-package.md)
+  [`stats2data-package`](https://sebastian-lortz.github.io/stats2data/reference/stats2data-package.md)
+  : stats2data: Data Simulation from Summary Statistics
+- [`summary(`*`<stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_aov.md)
+  : Summarize a stats2data ANOVA result
+- [`summary(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_mlr.md)
+  : Summarize a stats2data MLR result
+- [`summary(`*`<stats2data_parallel>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_parallel.md)
+  : Summarize a stats2data parallel result
+- [`summary(`*`<stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_vec.md)
+  : Summarize a stats2data Descriptives result
+- [`wide_to_long()`](https://sebastian-lortz.github.io/stats2data/reference/wide_to_long.md)
   : Reshape Data from Wide to Long Format

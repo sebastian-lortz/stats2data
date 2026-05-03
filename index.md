@@ -1,10 +1,10 @@
-# nds3
+# stats2data
 
 [![Lifecycle:
 experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 
-We introduce the NDS3 framework: Nonparametric Data Simulation from
-Summary Statistics.
+We introduce the stats2data package for nonparametric data simulation
+from summary statistics.
 
 ## Usage
 
@@ -12,27 +12,30 @@ The method is available as R package and comprehensive ShinyApp.
 
 ### Web App
 
-You can use the app at <https://sebastian-lortz.shinyapps.io/nds3/>.
-Expect longer computation time compared to running the app locally.
+You can use the app at
+<https://sebastian-lortz.shinyapps.io/stats2data/>. Expect longer
+computation time compared to running the app locally.
 
 ### System Requirements
 
-The `nds3` package was build under R Version 4.4.2 using Apple clang
-version 16.0.0 (clang-1600.0.26.6) and GNU Fortran (GCC) 14.2.0. To
-compile R from source, install the appropriate toolchain  
+The `stats2data` package was build under R Version 4.4.2 using Apple
+clang version 16.0.0 (clang-1600.0.26.6) and GNU Fortran (GCC) 14.2.0.
+To compile R from source, install the appropriate toolchain  
 - macOS: see <https://mac.r-project.org/tools/>  
 - windows: see <https://cran.r-project.org/bin/windows/Rtools/>
 
 ### Installation
 
-You can install the latest version of the R package `nds3` like so:
+You can install the latest version of the R package `stats2data` like
+so:
 
 ``` r
+
 # install devtools if needed
 if (!requireNamespace("devtools")) {install.packages("devtools")}
 
 # install from GitHub
-devtools::install_github("sebastian-lortz/nds3")
+devtools::install_github("sebastian-lortz/stats2data")
 ```
 
 ### Run
@@ -40,27 +43,28 @@ devtools::install_github("sebastian-lortz/nds3")
 You can launch the ShinyApp locally by running:
 
 ``` r
-nds3::run_app()
+
+stats2data::run_app()
 ```
 
 ## Citation
 
-Please cite `nds3` if you use it. To cite the software, use:
+Please cite `stats2data` if you use it. To cite the software, use:
 
-Lortz SAJ (2025). *nds3: Non-Parametric Data Simulation from Summary
-Statistics*. R package version 0.0.1.000,
-<https://sebastian-lortz.github.io/nds3/>,
-<https://github.com/sebastian-lortz/nds3>.
+Lortz SAJ (2025). *stats2data: Data Simulation from Summary Statistics*.
+R package version 0.0.1.000,
+<https://sebastian-lortz.github.io/stats2data/>,
+<https://github.com/sebastian-lortz/stats2data>.
 
 Or copy the reference information to your BibTeX file:
 
 ``` bibtex
-@Manual{nds3,
-  title        = {nds3: Non-Parametric Data Simulation from Summary Statistics},
+@Manual{stats2data,
+  title        = {stats2data: Non-Parametric Data Simulation from Summary Statistics},
   author       = {S. A. J. Lortz},
   year         = {2026},
   note         = {R package version 0.0.1.000},
-  url          = {https://github.com/sebastian-lortz/nds3}
+  url          = {https://github.com/sebastian-lortz/stats2data}
 }
 ```
 
@@ -73,4 +77,4 @@ Conduct.
 
 You are reading the doc about version: 0.0.1.000
 
-This README has been compiled on 2026-01-15 16:58:34.
+This README has been compiled on 2026-05-03 22:06:10.

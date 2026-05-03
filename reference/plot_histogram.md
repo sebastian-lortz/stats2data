@@ -19,7 +19,7 @@ plot_histogram(df, tol = 1e-08, SD = TRUE)
 
 - tol:
 
-  Numeric; tolerance for deciding whether a variable is integer-valued.
+  Numeric; thresh for deciding whether a variable is integer-valued.
   Values within `tol` of an integer are plotted as counts (bars).
 
 - SD:

@@ -1,5 +1,5 @@
 # Articles
 
-### nds3_application
+### stats2data_application
 
-- [nds3_application](https://sebastian-lortz.github.io/nds3/articles/nds3_application.md):
+- [stats2data_application](https://sebastian-lortz.github.io/stats2data/articles/stats2data_application.md):

@@ -1,32 +1,69 @@
-# Plot cooling schedule of a nds3.object
+# Plot cooling schedule for a stats2data result
 
-Visualizes the squared annealing temperature across iterations for a
-given \`nds3.object\`, allowing inspection of the cooling schedule used
-in optimization.
+Visualizes the simulated-annealing temperature decay across iterations.
+Dispatches to class-specific methods for `stats2data_aov`,
+`stats2data_mlr`, and `stats2data_vec`.
 
 ## Usage
 
 ``` r
-plot_cooling(nds3_obj)
+# S3 method for class 'stats2data_aov'
+plot_cooling(x, ...)
+
+# S3 method for class 'stats2data_mlr'
+plot_cooling(x, ...)
+
+# S3 method for class 'stats2data_vec'
+plot_cooling(x, ...)
+
+plot_cooling(x, ...)
 ```
 
 ## Arguments
 
-- nds3_obj:
+- x:
 
-  A \`nds3.object\` returned by one of the \`optim\_\*\` functions,
-  containing \`inputs\$max_iter\`, \`inputs\$init_temp\`, and
-  \`inputs\$cooling_rate\`.
+  A stats2data result object (`stats2data_aov`, `stats2data_mlr`, or
+  `stats2data_vec`).
+
+- ...:
+
+  Arguments passed to methods.
 
 ## Value
 
-A \`ggplot2\` object.
+A [`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)
+object, returned invisibly.
+
+A [`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)
+object, returned invisibly.
+
+A [`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)
+object, returned invisibly.
+
+A [`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)
+object, returned invisibly.
+
+## Methods (by class)
+
+- `plot_cooling(stats2data_aov)`: Method for ANOVA results
+  (`stats2data_aov`).
+
+- `plot_cooling(stats2data_mlr)`: Method for MLR results
+  (`stats2data_mlr`).
+
+- `plot_cooling(stats2data_vec)`: Method for Descriptives results
+  (`stats2data_vec`).
+
+## See also
+
+[`plot_error`](https://sebastian-lortz.github.io/stats2data/reference/plot_error.md)
 
 ## Examples
 
 ``` r
- if (FALSE) { # \dontrun{
-result <- optim_aov(args = ..., ...)
-plot_cooling(result)
+if (FALSE) { # \dontrun{
+res <- optim_aov(...)
+plot_cooling(res)
 } # }
 ```

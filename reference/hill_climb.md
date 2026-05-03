@@ -1,8 +1,8 @@
 # Perform hill-climbing optimization
 
 Executes a hill-climbing algorithm to iteratively improve a candidate
-data set by minimizing a supplied error function. Supports both the LM
-modules.
+data set by minimizing a supplied error function. Supports the LM
+module.
 
 ## Usage
 
@@ -13,11 +13,10 @@ hill_climb(
   N,
   hill_climbs = 100,
   num_preds = NULL,
-  progress_bar = TRUE,
   neighborhood_size = 4,
-  outcome = NULL,
   progressor = NULL,
-  pb_interval = NULL
+  pb_interval = NULL,
+  progress_mode = "console"
 )
 ```
 
@@ -25,49 +24,42 @@ hill_climb(
 
 - current_candidate:
 
-  A data frame representing the initial candidate solution to be
-  optimized.
+  Matrix. The predictor matrix to be optimized.
 
 - error_function:
 
-  An objective function that takes a candidate and returns a list
-  containing element \`\$total_error\`.
+  Function. Objective function that takes a candidate and returns a list
+  with element `$total_error`.
 
 - N:
 
-  Integer. Sample size; the number of subjects in \`current_candidate\`.
+  Integer. Number of observations (rows) in `current_candidate`.
 
 - hill_climbs:
 
-  Integer. Maximum number of iterations for hill climbing. Default is
-  1e2.
+  Integer. Maximum number of iterations. Default `1e2`.
 
 - num_preds:
 
-  Integer. Number of predictors (columns).
-
-- progress_bar:
-
-  Logical. Whether to display a text progress bar. Default is TRUE.
+  Integer. Number of predictor columns.
 
 - neighborhood_size:
 
-  Integer. Number of candidate moves evaluated per iteration. Default is
-  4.
-
-- outcome:
-
-  Optional vector. Outcome variable for standard model moves (unused if
-  error_function handles it).
+  Integer. Number of candidate moves evaluated per iteration. Default
+  `4`.
 
 - progressor:
 
-  Optional function. Callback for external progress updates (internal
-  use).
+  Function or NULL. A `progressr` progressor callback. Default `NULL`.
 
 - pb_interval:
 
-  Optional numeric. Interval (in iterations) between progressor calls.
+  Integer or NULL. Interval (in iterations) between progressor calls.
+  Default `NULL`.
+
+- progress_mode:
+
+  Character: `"console"`, `"shiny"`, or `"off"`. Default `"console"`.
 
 ## Value
 
@@ -75,26 +67,22 @@ A list with components:
 
 - best_candidate:
 
-  The optimized candidate structure achieving lowest error.
+  The optimized candidate matrix achieving lowest error.
 
 - best_error:
 
-  Numeric. The minimum value of the objective function found during
-  optimization.
+  Numeric. The minimum objective function value found.
 
 ## Examples
 
 ``` r
- if (FALSE) { # \dontrun{
+if (FALSE) { # \dontrun{
 hill_climb(
- current_candidate = data.frame(),
- outcome = NULL,
- N = 100,
- error_function = function(candidate) {},
- hill_climbs = 100,
- num_preds = NULL,
- progress_bar = TRUE,
- progressor = NULL,
- pb_interval= NULL)
- } # }
+  current_candidate = matrix(rnorm(200), 100, 2),
+  error_function = function(cand) list(total_error = sum(cand^2)),
+  N = 100,
+  hill_climbs = 100,
+  num_preds = 2
+)
+} # }
 ```

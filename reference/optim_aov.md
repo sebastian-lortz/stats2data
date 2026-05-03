@@ -1,14 +1,13 @@
 # Optimize simulated data to match ANOVA F-values
 
-Uses the nds3 algorithmic framework to simulate data that produce target
-ANOVA F-statistics under a specified factorial design given input
-parameters.
+Uses simulated annealing to generate raw data that reproduce target
+ANOVA F-statistics and group means under a specified factorial design.
 
 ## Usage
 
 ``` r
 optim_aov(
-  N,
+  S,
   levels,
   target_group_means,
   target_f_list,
@@ -17,176 +16,80 @@ optim_aov(
   formula,
   factor_type,
   subgroup_sizes = NULL,
-  df_effects = NULL,
-  tolerance = 1e-08,
-  typeSS = 3,
-  max_iter = 1000,
-  init_temp = 1,
+  thresh = 0.005,
+  max_iter = 10000,
+  init_temp = 0.001,
   cooling_rate = NULL,
-  max_step = 0.2,
-  max_starts = 1,
-  checkGrim = FALSE,
-  min_decimals = 1,
-  progress_bar = TRUE,
+  max_starts = 3,
   progress_mode = "console"
 )
 ```
 
 ## Arguments
 
-- N:
+- S:
 
-  Integer. Total number of subjects (sum of \`subgroup_sizes\`).
+  Integer. Total number of subjects.
 
 - levels:
 
-  Integer vector. Number of factor levels per factor in the design.
+  Integer vector. Number of levels per factor.
 
 - target_group_means:
 
-  Numeric vector. Desired means for each group in the design.
+  Numeric vector of length `prod(levels)`. Target cell means in
+  `expand.grid` order.
 
 - target_f_list:
 
-  List with components:
-
-  F
-
-  :   Numeric vector of target F-statistics.
-
-  effect
-
-  :   Character vector of effect names matching \`F\`.
-
-  contrast
-
-  :   Optional character formula for contrasts.
-
-  contrast_method
-
-  :   Optional character specifying contrast method.
+  List with components `effect` (character) and `F` (numeric) of equal
+  length.
 
 - integer:
 
-  Logical. If TRUE, candidate values are treated as integers, if FALSE
-  treated as continuous values.
+  Logical. Generate integer-valued data?
 
 - range:
 
-  Numeric vector of length 2. Lower and upper bounds for candidate
-  means.
+  Numeric vector of length 2. Bounds for individual observations.
 
 - formula:
 
-  Formula or character. Model formula used to compute F-values (e.g.,
-  \`y ~ A + B + A\*B\`).
+  Formula or character. ANOVA model formula.
 
 - factor_type:
 
-  Character vector. Type of each factor (\`"between"\` or \`"within"\`)
-  matching length of \`levels\`.
+  Character vector (`"between"`/`"within"`) matching length of `levels`.
 
 - subgroup_sizes:
 
-  Numeric vector. Optional sizes of each between-subjects group for
-  unbalanced designs; length must equal product of \`levels\` for
-  between factors.
+  Optional numeric vector of between-group sizes (must sum to `N`).
 
-- df_effects:
+- thresh:
 
-  Numeric vector. Degrees of freedom of the model effects. Default is
-  \`NULL\`.
-
-- tolerance:
-
-  Numeric. Error tolerance for convergence; stops early if best error \<
-  \`tolerance\`. Default \`1e-6\`.
-
-- typeSS:
-
-  Integer. Type of sums-of-squares for ANOVA (2 or 3). Default is 3.
+  Numeric. Convergence threshold. Default `1e-2`.
 
 - max_iter:
 
-  Integer. Maximum iterations per restart. Default is 1e3.
+  Integer. Iterations per restart. Default `1e3`.
 
 - init_temp:
 
-  Numeric. Initial temperature for annealing. Default is 1.
+  Numeric. Initial SA temperature. Default `1`.
 
 - cooling_rate:
 
-  Numeric. Cooling rate per iteration (between 0 and 1); if NULL,
-  calculated automatically as \`(init_temp-10)/init_temp\`.
-
-- max_step:
-
-  Numeric. Maximum move size as proportion of \`range\`. Default is 0.2.
+  Numeric in (0,1) or `NULL` (auto). Default `NULL`.
 
 - max_starts:
 
-  Integer. Number of annealing restarts. Default is 1.
-
-- checkGrim:
-
-  Logical. If TRUE and \`integer = TRUE\`, perform GRIM checks on
-  \`target_group_means\`. Default is FALSE.
-
-- min_decimals:
-
-  Integer. Minimum number of decimal places for target values (including
-  trailing zeros). Default \`1\`.
-
-- progress_bar:
-
-  Logical. Show text progress bar during optimization. Default is TRUE.
+  Integer. Number of restarts. Default `1`.
 
 - progress_mode:
 
-  Character. Either "console" or "shiny" (or "off" internally set) for
-  progress handler. Default \`console\`.
+  Character: `"console"`, `"shiny"`, or `"off"`. Default `"console"`.
 
 ## Value
 
-A \`nds3.object\` list containing:
-
-- best_error:
-
-  Numeric. Minimum error (RMSE) achieved.
-
-- data:
-
-  Data frame of optimized outcome values (and grouping variables).
-
-- inputs:
-
-  List of all input arguments.
-
-- track_error:
-
-  Numeric vector of best error at each iteration.
-
-- grim:
-
-  List of the GRIM results.
-
-## Examples
-
-``` r
- if (FALSE) { # \dontrun{
-# Balanced 2x2 design
-optim_aov(
-  N = 40,
-  levels = c(2, 2),
-  target_group_means = c(1, 2, 3, 4),
-  target_f_list = list(effect = c("A", "B"),
-                       F = c(5.6, 8.3), ),
-  formula = y ~ A + B + A*B,
-  factor_type = c("between", "between"),
-  range = c(0, 5),
-  integer = FALSE,
-  max_iter = 1000,
-  max_starts = 3
-)
-} # }
-```
+A `stats2data.object` list with components `best_error`, `data`,
+`inputs`, `adjusted_targets`, and `track_error`.
