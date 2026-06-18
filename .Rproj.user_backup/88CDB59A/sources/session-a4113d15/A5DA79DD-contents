@@ -1,0 +1,103 @@
+### Quick visual inspection of the 9 distribution families x 3 parameterizations
+# One plot per family, three parameterizations overlaid.
+
+library(ggplot2)
+library(patchwork)
+library(sn)
+
+N <- 5000
+
+# Data generator (same switch as in simulation_study.R)
+data_gen <- function(type, pars) {
+  switch(type,
+         normal   = do.call(rsn,      pars),
+         uniform  = do.call(runif,    pars),
+         t        = do.call(rt,       pars),
+         binomial = do.call(rbinom,   pars),
+         exp      = do.call(rexp,     pars),
+         gamma    = do.call(rgamma,   pars),
+         weibull  = do.call(rweibull, pars),
+         chisq    = do.call(rchisq,   pars),
+         lnorm    = do.call(rlnorm,   pars),
+         stop("Unknown distribution type"))
+}
+
+# Same parameterizations as in the manuscript
+pars_conditions <- function(N) {
+  list(
+    normal   = list(standard = list(n = N, xi = 0,   omega = 1,  alpha = 0),
+                    extreme1 = list(n = N, xi = 0,   omega = 5,  alpha = -5),
+                    extreme2 = list(n = N, xi = 100, omega = 10, alpha = 10)),
+    uniform  = list(standard = list(n = N, min = 0,   max = 10),
+                    extreme1 = list(n = N, min = -100, max = 100),
+                    extreme2 = list(n = N, min = 0,   max = 1)),
+    t        = list(standard = list(n = N, df = 10),
+                    extreme1 = list(n = N, df = 3),
+                    extreme2 = list(n = N, df = 50)),
+    binomial = list(standard = list(n = N, size = 10,   prob = 0.5),
+                    extreme1 = list(n = N, size = 1000, prob = 0.01),
+                    extreme2 = list(n = N, size = 1000, prob = 0.99)),
+    exp      = list(standard = list(n = N, rate = 1),
+                    extreme1 = list(n = N, rate = 0.1),
+                    extreme2 = list(n = N, rate = 0.01)),
+    gamma    = list(standard = list(n = N, shape = 3,  rate = 0.5),
+                    extreme1 = list(n = N, shape = 1,  rate = 0.2),
+                    extreme2 = list(n = N, shape = 10, rate = 1)),
+    weibull  = list(standard = list(n = N, shape = 2,   scale = 5),
+                    extreme1 = list(n = N, shape = 0.5, scale = 1),
+                    extreme2 = list(n = N, shape = 5,   scale = 10)),
+    chisq    = list(standard = list(n = N, df = 5),
+                    extreme1 = list(n = N, df = 1),
+                    extreme2 = list(n = N, df = 100)),
+    lnorm    = list(standard = list(n = N, meanlog = 0, sdlog = 1),
+                    extreme1 = list(n = N, meanlog = 0, sdlog = 2),
+                    extreme2 = list(n = N, meanlog = 5, sdlog = 0.1))
+  )
+}
+
+set.seed(310779)
+pars <- pars_conditions(N)
+
+# pretty labels
+fam_labels <- c(normal = "Skew-normal", uniform = "Uniform", t = "t",
+                binomial = "Binomial", exp = "Exponential", gamma = "Gamma",
+                weibull = "Weibull", chisq = "Chi-squared", lnorm = "Log-normal")
+
+# build one plot per family with the 3 parameterizations overlaid
+plot_family <- function(fam) {
+  df <- do.call(rbind, lapply(names(pars[[fam]]), function(cond) {
+    data.frame(value = data_gen(fam, pars[[fam]][[cond]]),
+               cond  = cond)
+  }))
+  df$cond <- factor(df$cond,
+                    levels = c("standard", "extreme1", "extreme2"),
+                    labels = c("Standard", "Extreme 1", "Extreme 2"))
+
+  ggplot(df, aes(x = value, fill = cond, colour = cond)) +
+    geom_density(alpha = 0.35, linewidth = 0.4) +
+    scale_fill_manual(values   = c("Standard" = "grey25",
+                                   "Extreme 1" = "steelblue",
+                                   "Extreme 2" = "firebrick")) +
+    scale_colour_manual(values = c("Standard" = "grey25",
+                                   "Extreme 1" = "steelblue",
+                                   "Extreme 2" = "firebrick")) +
+    labs(title = fam_labels[fam], x = NULL, y = NULL,
+         fill = NULL, colour = NULL) +
+    theme_minimal(base_size = 10) +
+    theme(legend.position = "none")
+}
+
+plots <- lapply(names(pars), plot_family)
+
+# put the legend on the last panel only
+plots[[length(plots)]] <- plots[[length(plots)]] +
+  theme(legend.position = "bottom")
+
+fig <- wrap_plots(plots, ncol = 3)
+
+# show on screen
+print(fig)
+
+# optional: save
+# ggsave("distribution_families.pdf", fig, width = 280, height = 280,
+#        units = "mm", bg = "white")

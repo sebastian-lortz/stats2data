@@ -1,0 +1,13 @@
+{
+    "sortOrder": [
+        {
+            "columnIndex": 2,
+            "ascending": false
+        },
+        {
+            "columnIndex": 4,
+            "ascending": false
+        }
+    ],
+    "path": "~/Desktop/PhD/Research/simdata/nds3/data-raw"
+}

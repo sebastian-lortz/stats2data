@@ -1,0 +1,28 @@
+{
+    "id": "9A4BC984",
+    "path": "~/Desktop/PhD/Research/simdata/stats2data/data-raw/simulation_study.R",
+    "project_path": "data-raw/simulation_study.R",
+    "type": "r_source",
+    "hash": "462261190",
+    "contents": "",
+    "dirty": false,
+    "created": 1778460741056.0,
+    "source_on_save": false,
+    "relative_order": 9,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "717,0",
+        "scrollLine": "706",
+        "docOutlineVisible": "0",
+        "docOutlineSize": "284"
+    },
+    "folds": "1108|17|1203|0|\n",
+    "lastKnownWriteTime": 1778761778,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1778761778738,
+    "read_only": false,
+    "read_only_alternatives": []
+}

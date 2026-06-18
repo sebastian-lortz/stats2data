@@ -1,0 +1,27 @@
+{
+    "id": "094B25C9",
+    "path": "~/Desktop/PhD/Research/simdata/stats2data/R/fct_optim_aov.R",
+    "project_path": "R/fct_optim_aov.R",
+    "type": "r_source",
+    "hash": "762237989",
+    "contents": "",
+    "dirty": false,
+    "created": 1778719811315.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "110,0",
+        "scrollLine": "0",
+        "docOutlineVisible": "1"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1778721567,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1778721567996,
+    "read_only": false,
+    "read_only_alternatives": []
+}

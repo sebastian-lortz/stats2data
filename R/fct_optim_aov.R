@@ -6,7 +6,7 @@
 #' @param S Integer. Total number of subjects.
 #' @param levels Integer vector. Number of levels per factor.
 #' @param target_group_means Numeric vector of length \code{prod(levels)}.
-#'   Target cell means in \code{expand.grid} order.
+#'   Target cell means in lexicographic sort order: Factor1 slowest, Factor2 fastest, i.e. 11, 12, 21, 22 for a 2x2.
 #' @param target_f_list List with components \code{effect} (character) and
 #'   \code{F} (numeric) of equal length.
 #' @param integer Logical. Generate integer-valued data?
@@ -18,7 +18,11 @@
 #'   (must sum to \code{N}).
 #' @param thresh Numeric. Convergence threshold. Default \code{1e-2}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e3}.
-#' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
+#' @param init_temp Numeric or \code{NULL}. Initial SA temperature.
+#'   If \code{NULL} (default) and \code{integer = TRUE}, the temperature is
+#'   set adaptively from the empirical distribution of single-move
+#'   |delta-objective| values. If \code{NULL} and \code{integer = FALSE},
+#'   falls back to \code{1e-3}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
 #' @param max_starts Integer. Number of restarts. Default \code{1}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
@@ -41,7 +45,7 @@ optim_aov <- function(
     subgroup_sizes = NULL,
     thresh = 5e-3,
     max_iter = 1e4,
-    init_temp = 1e-3,
+    init_temp = NULL,
     cooling_rate = NULL,
     max_starts = 3,
     progress_mode = "console"
@@ -148,9 +152,10 @@ optim_aov <- function(
     }
   } else {
     objective <- function(x) {
-    fit <- afex::aov_car(formula = formula_internal, data =  cbind(structure$df,
-                                                   outcome = x))
-    sqrt(mean((fit$anova_table$F - target_F)^2))
+      fit <- suppressMessages(
+        afex::aov_car(formula = formula_internal,
+                      data =  cbind(structure$df, outcome = x)))
+      sqrt(mean((fit$anova_table$F - target_F)^2))
     }
   }
 
@@ -180,6 +185,28 @@ optim_aov <- function(
   global_iter    <- 0L
   n_within_factors <- sum(factor_type == "within")
   needs_within_interaction <- n_within_factors >= 2 && any(grepl(":", target_f_list$effect))
+
+  # Adaptive init temperature for the integer landscape (mirrors optim_mlr).
+  # The continuous landscape is smooth and the existing scalar default suffices.
+  if (integer && is.null(init_temp)) {
+    deltas <- replicate(100, {
+      mv <- move_directives[[sample.int(n_moves, 1L)]]
+      cand <- if (mv$type == "between") {
+        move_between(current_candidate, integer, structure, range)
+      } else {
+        move_within_stratum(current_candidate, mv$W, integer, structure, range)
+      }
+      abs(objective(cand) - current_error)
+    })
+    deltas <- deltas[is.finite(deltas) & deltas > 0]
+    init_temp <- if (length(deltas) > 0L) {
+      -stats::median(deltas) / log(0.5)
+    } else {
+      1e-3  # fallback if every sampled move was a no-op or non-finite
+    }
+  }
+  if (is.null(init_temp)) init_temp <- 1e-3  # continuous default, unchanged
+  #cat("Initial temperature:", init_temp, "\n")
   temp <- init_temp
 
   # progress handler
@@ -215,13 +242,32 @@ optim_aov <- function(
             best_candidate <- candidate
           }
         }
+        # Within-cell permutation escape
+        if (integer && i %% 100L == 0L) {
+          esc_candidate <- current_candidate
+            j <- sample(seq_along(group_idx), 1L)
+            idx <- group_idx[[j]]
+            n_j <- length(idx)
+            n_perm <- 2
+            sel <- sample(idx, n_perm)
+            esc_candidate[sel] <- sample(esc_candidate[sel])
+          esc_error <- objective(esc_candidate)
+          if (is.finite(esc_error)) {
+            current_candidate <- esc_candidate
+            current_error     <- esc_error
+            if (esc_error < best_error) {
+              best_error     <- esc_error
+              best_candidate <- esc_candidate
+            }
+          }
+        }
 
         temp <- temp * cooling_rate
         global_iter <- global_iter + 1L
         track_error[global_iter] <- best_error
         if (global_iter %% pb_interval == 0) p()
         if (is.finite(best_error) && best_error < thresh) break
-        }
+      }
       current_candidate <- best_candidate
       if (is.finite(best_error) && best_error < thresh) break
       temp <- init_temp

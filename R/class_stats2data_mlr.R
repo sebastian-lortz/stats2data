@@ -234,13 +234,13 @@ print.summary.stats2data_mlr <- function(x, ...) {
   }
 
   cat("\nDescriptives (Target vs. Simulated):\n")
-  print(x$descriptives, row.names = FALSE, digits = 4)
+  print.data.frame(x$descriptives, row.names = FALSE, digits = 4)
 
   cat("\nCoefficients (Target vs. Simulated):\n")
-  print(x$coefficients, row.names = FALSE, digits = 4)
+  print.data.frame(x$coefficients, row.names = FALSE, digits = 4)
 
   cat("\nCorrelations (Target vs. Simulated):\n")
-  print(x$correlations, row.names = FALSE, digits = 4)
+  print.data.frame(x$correlations, row.names = FALSE, digits = 4)
 
   invisible(x)
 }

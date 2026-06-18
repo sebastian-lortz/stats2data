@@ -159,11 +159,8 @@ plot_summary.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...
   target_cor <- inp$target_cor
   target_se  <- inp$target_se
 
-  reg_dec <- max(count_decimals(target_reg))
-  cor_dec <- max(count_decimals(target_cor))
-
-  sim_reg_r <- round(stats$reg, reg_dec)
-  sim_cor_r <- round(stats$cor, cor_dec)
+  sim_reg_r <- stats$reg
+  sim_cor_r <- stats$cor
 
   # regression coefficients
   df_reg <- data.frame(
@@ -194,8 +191,7 @@ plot_summary.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12, ...
   # standard errors (optional)
   df_se <- NULL
   if (!is.null(target_se)) {
-    se_dec   <- max(count_decimals(target_se))
-    sim_se_r <- round(stats$se, se_dec)
+    sim_se_r <- stats$se
     var_names_se <- if (!is.null(names(target_se))) {
       names(target_se)
     } else {
@@ -258,8 +254,7 @@ plot_summary.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...
   stats <- get_stats(x)
 
   target_F <- inp$target_f_list$F_value
-  F_dec    <- count_decimals(target_F)
-  sim_F_r  <- round(stats$F_value, F_dec)
+  sim_F_r  <- stats$F_value
 
   effect_names <- inp$target_f_list$effect
   if (is.null(effect_names)) {
@@ -267,7 +262,7 @@ plot_summary.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...
   }
 
   df <- data.frame(
-    Measure   = "F Statistic",
+    Measure   = "F",
     Variable  = effect_names,
     Simulated = as.numeric(sim_F_r),
     Target    = as.numeric(target_F),
@@ -317,11 +312,9 @@ plot_summary.stats2data_vec <- function(x, standardised = TRUE, eps = 1e-12, ...
 
   target_mean <- inp$target_mean
   target_sd   <- inp$target_sd
-  mean_dec    <- count_decimals(target_mean)
-  sd_dec      <- count_decimals(target_sd)
 
-  sim_mean_r <- round(stats$mean, mean_dec)
-  sim_sd_r   <- round(stats$sd,   sd_dec)
+  sim_mean_r <- stats$mean
+  sim_sd_r   <- stats$sd
 
   vars <- colnames(x$data)
   if (is.null(vars)) vars <- names(target_mean)

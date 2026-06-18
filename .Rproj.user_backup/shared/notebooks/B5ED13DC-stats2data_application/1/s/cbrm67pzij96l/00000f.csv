@@ -1,0 +1,5 @@
+"0","S                  <- 16"
+"0","levels             <- c(2, 2)"
+"0","factor_type        <- c(""within"", ""within"")"
+"0","formula            <- ""outcome ~ Factor1 * Factor2 + Error(ID / (Factor1 * Factor2))"""
+"0","integer            <- FALSE"

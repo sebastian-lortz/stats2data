@@ -173,7 +173,7 @@ get_stats.stats2data_aov <- function(result, ...) {
 #' @export
 get_rmse.stats2data_aov <- function(result, ...) {
   s  <- get_stats(result)
-  tf <- result$inputs$target_f_list$F
+  tf <- result$inputs$target_f_list$F_value
   tm <- result$inputs$target_group_means
 
   list(
@@ -208,7 +208,7 @@ summary.stats2data_aov <- function(object, ...) {
   # F-values comparison
   f_comparison <- data.frame(
     effect    = inp$target_f_list$effect,
-    target_F  = as.numeric(inp$target_f_list$F),
+    target_F  = as.numeric(inp$target_f_list$F_value),
     sim_F     = as.numeric(s$F_value),
     row.names = NULL
   )

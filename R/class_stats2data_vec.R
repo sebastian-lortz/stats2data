@@ -164,7 +164,7 @@ print.summary.stats2data_vec <- function(x, ...) {
   cat("  SDs:  ", format(x$rmse$rmse_sd, digits = 4), "\n")
 
   cat("\nTarget vs. Simulated:\n")
-  print(x$comparison, row.names = FALSE, digits = 4)
+  print.data.frame(x$comparison, row.names = FALSE, digits = 4)
 
   invisible(x)
 }

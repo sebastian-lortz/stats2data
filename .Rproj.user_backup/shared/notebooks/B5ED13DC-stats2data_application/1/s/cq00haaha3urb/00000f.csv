@@ -1,0 +1,2 @@
+"0","if (!requireNamespace(""devtools"", quietly = TRUE)) install.packages(""devtools"")"
+"0","devtools::install_github(""sebastian-lortz/stats2data"")"

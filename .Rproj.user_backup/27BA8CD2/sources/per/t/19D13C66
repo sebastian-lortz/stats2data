@@ -1,0 +1,26 @@
+{
+    "id": "19D13C66",
+    "path": "~/Desktop/PhD/Research/simdata/stats2data/data-raw/aov_simulation_study.R",
+    "project_path": "data-raw/aov_simulation_study.R",
+    "type": "r_source",
+    "hash": "2944797255",
+    "contents": "",
+    "dirty": false,
+    "created": 1778487730432.0,
+    "source_on_save": false,
+    "relative_order": 10,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "302,2",
+        "scrollLine": "289"
+    },
+    "folds": "397|13|660|0|\n",
+    "lastKnownWriteTime": 1778753245,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1778753245494,
+    "read_only": false,
+    "read_only_alternatives": []
+}

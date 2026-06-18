@@ -1,0 +1,5 @@
+"0","target_f_list <- list("
+"0","  effect = c(""Factor1"", ""Factor2"", ""Factor1:Factor2""),"
+"0","  F_value      = c(30.5, 0.4, 0.5)"
+"0",")"
+"0","target_group_means <- c(543, 536, 614, 618)"

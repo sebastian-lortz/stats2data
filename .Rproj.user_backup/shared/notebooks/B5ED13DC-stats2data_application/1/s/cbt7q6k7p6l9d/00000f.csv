@@ -1,0 +1,8 @@
+"0","range  <- c(min(target_group_means) - floor(4 * sqrt(3070)),"
+"0","            max(target_group_means) + ceiling(4 * sqrt(3070)))"
+"0","range"
+"1","[1]"
+"1"," 315"
+"1"," 840"
+"1","
+"

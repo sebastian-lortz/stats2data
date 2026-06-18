@@ -16,7 +16,7 @@ optim_aov(
   subgroup_sizes = NULL,
   thresh = 0.005,
   max_iter = 10000,
-  init_temp = 0.001,
+  init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
   progress_mode = "console"
@@ -28,7 +28,7 @@ optim_aov(
 \item{levels}{Integer vector. Number of levels per factor.}
 
 \item{target_group_means}{Numeric vector of length \code{prod(levels)}.
-Target cell means in \code{expand.grid} order.}
+Target cell means in lexicographic sort order: Factor1 slowest, Factor2 fastest, i.e. 11, 12, 21, 22 for a 2x2.}
 
 \item{target_f_list}{List with components \code{effect} (character) and
 \code{F} (numeric) of equal length.}
@@ -49,7 +49,11 @@ matching length of \code{levels}.}
 
 \item{max_iter}{Integer. Iterations per restart. Default \code{1e3}.}
 
-\item{init_temp}{Numeric. Initial SA temperature. Default \code{1}.}
+\item{init_temp}{Numeric or \code{NULL}. Initial SA temperature.
+If \code{NULL} (default) and \code{integer = TRUE}, the temperature is
+set adaptively from the empirical distribution of single-move
+|delta-objective| values. If \code{NULL} and \code{integer = FALSE},
+falls back to \code{1e-3}.}
 
 \item{cooling_rate}{Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.}
 

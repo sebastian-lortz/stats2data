@@ -1,0 +1,17 @@
+{
+    "dialog-state": {
+        "query": "round(",
+        "path": "",
+        "regex": false,
+        "caseSensitive": false,
+        "wholeWord": false,
+        "filePatterns": [],
+        "useGitGrep": true,
+        "excludeGitIgnore": false,
+        "excludeFilePatterns": [],
+        "resultsCount": 85,
+        "errorCount": 0,
+        "replaceErrors": "",
+        "projectRelative": true
+    }
+}

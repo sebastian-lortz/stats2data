@@ -1,0 +1,89 @@
+[
+    {
+        "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+        "file_last_write": 1777546773.0,
+        "definitions": [
+            {
+                "usr": "c:@F@roundTo#d#I#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "roundTo(double, int)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 7,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@candidate_cor_cpp#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "candidate_cor_cpp(const arma::mat &, const arma::vec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 13,
+                "column": 11,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@candidate_reg_cpp#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#&1$@N@arma@S@Col>#i#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "candidate_reg_cpp(const arma::mat &, const arma::vec &, const arma::uvec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 36,
+                "column": 11,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@candidate_reg_cpp_se#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#&1$@N@arma@S@Col>#i#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "candidate_reg_cpp_se(const arma::mat &, const arma::vec &, const arma::uvec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 78,
+                "column": 11,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@objective_cpp#$@N@Rcpp@S@Vector>#VI14#@N@Rcpp@ST>1#T@PreserveStorage#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "objective_cpp(NumericVector, double)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 149,
+                "column": 8,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@error_function_cpp#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#S2_#S2_#S2_#&1$@N@arma@S@Col>#i#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "error_function_cpp(const arma::mat &, const arma::vec &, const arma::vec &, const arma::vec &, const arma::vec &, const arma::uvec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 186,
+                "column": 12,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@error_function_cpp_se#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#S2_#S0_#S2_#&1$@N@arma@S@Col>#i#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "error_function_cpp_se(const arma::mat &, const arma::vec &, const arma::vec &, const arma::mat &, const arma::vec &, const arma::uvec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 226,
+                "column": 12,
+                "hidden": false
+            },
+            {
+                "usr": "c:@F@ols_from_design#&1$@N@arma@S@Mat>#d#&1$@N@arma@S@Col>#d#",
+                "kind": 6,
+                "parent_name": "",
+                "name": "ols_from_design(const arma::mat &, const arma::vec &)",
+                "file": "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/src/helpers.cpp",
+                "line": 267,
+                "column": 11,
+                "hidden": false
+            }
+        ],
+        "hidden": false
+    }
+]

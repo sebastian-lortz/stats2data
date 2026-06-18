@@ -5,9 +5,9 @@ options(golem.app.prod = FALSE) # TRUE = production mode, FALSE = development mo
 options(shiny.port = httpuv::randomPort())
 
 # Detach all loaded packages and clean your environment
-remove.packages("stats2data")
-.rs.restartR()    # or quit/relaunch R
-golem::detach_all_attached()
+# remove.packages("stats2data")
+# .rs.restartR()    # or quit/relaunch R
+ golem::detach_all_attached()
 # rm(list=ls(all.names = TRUE))
 
 # Document and reload your package
