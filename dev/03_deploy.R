@@ -12,6 +12,13 @@
 ######################################
 
 # Test your app
+# read me info
+readLines(".Rbuildignore")
+system("clang --version")   # macOS C/C++ compiler
+system("gfortran --version")# Fortran compiler
+R.version.string
+# Test your app
+devtools::document()
 
 ## Run checks ----
 ## Check the package before sending to prod
@@ -67,4 +74,4 @@ rsconnect::deployApp(
   forceUpdate = TRUE
 )
 
-
+pkgdown::build_site()

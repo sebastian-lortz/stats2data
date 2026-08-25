@@ -60,6 +60,7 @@
     ggplot2::geom_line(color = "steelblue", linewidth = 1) +
     ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
     ggplot2::labs(title = title, x = "Iteration", y = y_lab) +
+    scale_y_log10() + # log
     theme_stats2data() +
     ggplot2::coord_cartesian(clip = "off")
 
