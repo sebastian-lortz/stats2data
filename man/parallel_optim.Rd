@@ -10,6 +10,7 @@ parallel_optim(
   runs = 10L,
   cores = 1L,
   seed = NULL,
+  stop_conv = FALSE,
   progress_mode = "console"
 )
 }
@@ -26,9 +27,12 @@ or \code{\link{optim_aov}}.}
 (sequential). Values \code{> 1} require the \pkg{future} and
 \pkg{future.apply} packages.}
 
-\item{seed}{Integer or \code{NULL}. If non-\code{NULL}, passed to
-\code{future.apply::future_lapply} as \code{future.seed} for
-reproducibility. Default \code{NULL}.}
+\item{seed}{Integer or \code{NULL}. If non-\code{NULL}, a reproducible
+seed is generated per run. Default \code{NULL}.}
+
+\item{stop_conv}{Logical. If \code{TRUE}, stop launching further runs as
+soon as one run has converged, i.e. its \code{best_error} is below the
+convergence threshold. Default \code{FALSE}.}
 
 \item{progress_mode}{Character: \code{"console"}, \code{"shiny"}, or
 \code{"off"}. Controls the outer progress bar only; individual runs
@@ -37,13 +41,17 @@ always execute silently. Default \code{"console"}.}
 \value{
 An object of class \code{stats2data_parallel} — a list with:
 \describe{
-  \item{results}{List of length \code{runs}. Each element is the object
+  \item{results}{List of completed runs. Each element is the object
     returned by \code{FUN} (class \code{stats2data_vec},
     \code{stats2data_mlr}, or \code{stats2data_aov}).}
   \item{best}{The single result with the lowest \code{best_error}.}
   \item{module}{Character. One of \code{"vec"}, \code{"mlr"}, or
     \code{"aov"}, inferred from the class of the first result.}
-  \item{runs}{Integer. Number of runs completed.}
+  \item{runs}{Integer. Number of runs actually completed.}
+  \item{runs_requested}{Integer. Number of runs requested via \code{runs}.}
+  \item{converged}{Logical. \code{TRUE} if a converged run triggered early
+    stopping.}
+  \item{thresh}{Numeric or \code{NULL}. Threshold used to judge convergence.}
 }
 }
 \description{
@@ -54,6 +62,16 @@ the results.
 When \code{cores > 1}, a \code{\link[future]{multisession}} plan is set up
 and torn down automatically. Any pre-existing \code{future} plan is
 restored on exit.
+
+With \code{stop_conv = TRUE} and \code{cores > 1}, runs are dispatched in
+batches of \code{cores} and the convergence check happens after each batch.
+Up to \code{cores - 1} runs may therefore complete after the first
+converged run; they are kept in \code{results}. With
+\code{stop_conv = FALSE} all runs are dispatched in a single call, as before.
+
+Convergence of a single run is judged as \code{best_error < thresh}. For
+\code{stats2data_vec} results, where \code{best_error} is a list of
+per-variable errors, every component must be below \code{thresh}.
 }
 \examples{
 \dontrun{
@@ -63,10 +81,14 @@ res <- parallel_optim(
   args = list(S = 30, levels = c(2, 2), ...),
   runs = 20, cores = 4
 )
-summary(res)          # aggregated summary
-get_stats(res)        # pooled stats across runs
-get_rmse(res)         # between-run and target RMSE
-res$best              # single best result
+summary(res)
+
+# Stop as soon as one run converges
+res <- parallel_optim(
+  FUN  = optim_mlr,
+  args = list(N = 100, thresh = 1e-3, ...),
+  runs = 20, cores = 4, stop_conv = TRUE
+)
 }
 
 }
