@@ -6,9 +6,9 @@
 
 #### Configs ####
 options(repos = c(CRAN = "https://ftp.belnet.be/mirror/CRAN/"))
-HPC <- FALSE
-cov_check = TRUE
-run_vec <- TRUE
+HPC <- TRUE
+cov_check = FALSE
+run_vec <- FALSE
 run_mlr <- TRUE
 
 # Install package
