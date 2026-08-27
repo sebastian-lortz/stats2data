@@ -73,7 +73,7 @@ get_rmse <- function(result, ...) UseMethod("get_rmse")
 
 #' Plot error trajectory for a stats2data result
 #'
-#' Visualizes how the objective-function error evolves across iterations of
+#' Visualises how the objective-function error evolves across iterations of
 #' the simulated-annealing optimiser.  Dispatches to class-specific methods
 #' for \code{stats2data_aov}, \code{stats2data_mlr}, and \code{stats2data_vec}.
 #'
@@ -105,7 +105,7 @@ plot_error <- function(x, ...) UseMethod("plot_error")
 
 #' Plot cooling schedule for a stats2data result
 #'
-#' Visualizes the simulated-annealing temperature decay across iterations.
+#' Visualises the simulated-annealing temperature decay across iterations.
 #' Dispatches to class-specific methods for \code{stats2data_aov},
 #' \code{stats2data_mlr}, and \code{stats2data_vec}.
 #'

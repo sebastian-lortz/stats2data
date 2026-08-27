@@ -4,7 +4,7 @@
 \alias{plot_histogram}
 \title{Plot Histograms for Each Variable}
 \usage{
-plot_histogram(df, tol = 1e-08, SD = TRUE)
+plot_histogram(df, tol = 0.00000001, SD = TRUE)
 }
 \arguments{
 \item{df}{A \code{data.frame} or matrix whose columns are the variables to plot.}

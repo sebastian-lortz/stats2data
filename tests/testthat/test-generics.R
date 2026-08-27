@@ -1,6 +1,6 @@
 test_that("the generics dispatch on stats2data classes", {
-  expect_s3_class(get_stats(fx_vec()), "list")
-  expect_s3_class(get_rmse(fx_vec()), "list")
+  expect_type(get_stats(fx_vec()), "list")
+  expect_type(get_rmse(fx_vec()), "list")
   expect_true(is.function(plot_error))
   expect_true(is.function(plot_cooling))
   expect_true(is.function(plot_summary))

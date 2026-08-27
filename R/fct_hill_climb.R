@@ -3,7 +3,7 @@
 #' Executes a hill-climbing algorithm to iteratively improve a candidate data set
 #' by minimizing a supplied error function. Supports the LM module.
 #'
-#' @param current_candidate Matrix. The predictor matrix to be optimized.
+#' @param current_candidate Matrix. The predictor matrix to be optimised.
 #' @param error_function Function. Objective function that takes a candidate and
 #'   returns a list with element \code{$total_error}.
 #' @param N Integer. Number of observations (rows) in \code{current_candidate}.
@@ -20,7 +20,7 @@
 #'
 #' @return A list with components:
 #' \describe{
-#'   \item{best_candidate}{The optimized candidate matrix achieving lowest error.}
+#'   \item{best_candidate}{The optimised candidate matrix achieving lowest error.}
 #'   \item{best_error}{Numeric. The minimum objective function value found.}
 #' }
 #'
@@ -44,7 +44,7 @@ hill_climb <- function(current_candidate, error_function, N,
                        progress_mode = "console") {
   # input checks
   if (missing(current_candidate)) {
-    stop("`current_candidate` must be provided, the matrix to be optimized.")
+    stop("`current_candidate` must be provided, the matrix to be optimised.")
   }
   if (!is.function(error_function)) {
     stop("`error_function` must be a function returning a list with element `$total_error`.")

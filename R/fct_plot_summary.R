@@ -33,9 +33,9 @@
     title <- paste0(title, " \u2014 ", title_module)
   }
 
-  if (any(df$SimulatedType == "Unstandardized Diff", na.rm = TRUE)) {
+  if (any(df$SimulatedType == "Unstandardised Diff", na.rm = TRUE)) {
     warning(
-      "One or more target values were practically 0; ",
+      "One or more target values were practically 0",
       "the unstandardised difference was computed for these values.",
       call. = FALSE
     )
@@ -63,7 +63,7 @@
       name   = "",
       values = c(
         "Simulated"            = "steelblue",
-        "Unstandardized Diff"  = "red"
+        "Unstandardised Diff"  = "orange"
       )
     ) +
     ggplot2::labs(title = title, y = y_label, x = x_lab) +
@@ -86,7 +86,7 @@
 #' @param sim Numeric vector of simulated values.
 #' @param target Numeric vector of target values.
 #' @param standardised Logical.
-#' @param eps Numeric; zero-threshold for standardisation.
+#' @param eps Numeric; zero-threshold for standardization.
 #'
 #' @return Numeric vector of differences.
 #'
@@ -114,7 +114,7 @@
 .tag_sim_type <- function(df, standardised, eps) {
   df$SimulatedType <- ifelse(
     standardised & abs(df$Target) < eps,
-    "Unstandardized Diff", "Simulated"
+    "Unstandardised Diff", "Simulated"
   )
   df
 }
@@ -130,7 +130,7 @@
 #' @param standardised Logical; if \code{TRUE} (default), differences are
 #'   divided by target values (except when targets are near zero).
 #' @param eps Numeric; threshold below which a target is treated as zero
-#'   for standardisation. Default \code{1e-12}.
+#'   for standardization. Default \code{1e-12}.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -257,8 +257,9 @@ plot_summary.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12, ...
   sim_F_r  <- stats$F_value
 
   effect_names <- inp$target_f_list$effect
-  if (is.null(effect_names)) {
-    effect_names <- paste0("Effect", seq_along(target_F))
+  if (length(effect_names) != length(target_F)) {
+    stop("`inputs$target_f_list` needs one `effect` name per `F_value`.",
+         call. = FALSE)
   }
 
   df <- data.frame(

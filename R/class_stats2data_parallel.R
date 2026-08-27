@@ -291,6 +291,14 @@ summary.stats2data_parallel <- function(object, ...) {
 }
 
 
+#' Print a stats2data parallel summary
+#'
+#' @param x An object of class \code{summary.stats2data_parallel}, as
+#'   returned by \code{\link{summary.stats2data_parallel}}.
+#' @param ... Additional arguments (unused).
+#'
+#' @return Invisibly returns \code{x}.
+#'
 #' @method print summary.stats2data_parallel
 #' @export
 print.summary.stats2data_parallel <- function(x, ...) {
@@ -423,7 +431,7 @@ plot.stats2data_parallel <- function(x, ...) {
 #'   (\code{stats2data_parallel}). Aggregates each simulated parameter as the
 #'   across-run mean (rounded to the target's reported precision) and overlays
 #'   an error bar showing the across-run min/max
-#'   (\code{error_type = "range"}, default) or \code{mean \u00b1 SD}
+#'   (\code{error_type = "range"}, default) or \code{mean +/- SD}
 #'   (\code{error_type = "sd"}). Module-specific data assembly is dispatched
 #'   internally based on \code{x$module}.
 #'
@@ -432,9 +440,9 @@ plot.stats2data_parallel <- function(x, ...) {
 #'   divided by target values, with a fall-back to the unstandardised
 #'   difference for targets whose absolute value is below \code{eps}.
 #' @param eps Numeric; threshold below which a target is treated as zero
-#'   for standardisation. Default \code{1e-12}.
+#'   for standardization. Default \code{1e-12}.
 #' @param error_type Character; \code{"range"} (default) draws across-run
-#'   min/max error bars, \code{"sd"} draws \code{mean \u00b1 SD} across runs.
+#'   min/max error bars, \code{"sd"} draws \code{mean +/- SD} across runs.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -483,7 +491,7 @@ plot_summary.stats2data_parallel <- function(x,
 
   err_label <- switch(error_type,
                       range = "across-run min/max",
-                      sd    = "mean \u00b1 SD across runs")
+                      sd    = "mean +/- SD across runs")
 
   # ---- per-run cloud, on the same Centered scale as the lollipop --------
   jitter_df <- .parallel_jitter_df(x, built$df, standardised, eps)
@@ -579,7 +587,6 @@ plot_summary.stats2data_parallel <- function(x,
     }
   } else if (module == "aov") {
     eff <- inp$target_f_list$effect
-    if (is.null(eff)) eff <- paste0("Effect", seq_along(inp$target_f_list$F_value))
     add_block(do.call(cbind, lapply(stats_list, `[[`, "F_value")),
               inp$target_f_list$F_value, "F", eff)
   }
@@ -759,8 +766,9 @@ plot_summary.stats2data_parallel <- function(x,
   bfb <- .centered_bounds(fb$lo, fb$hi, target_F, standardised, eps)
 
   effect_names <- inp$target_f_list$effect
-  if (is.null(effect_names)) {
-    effect_names <- paste0("Effect", seq_along(target_F))
+  if (length(effect_names) != length(target_F)) {
+    stop("`inputs$target_f_list` needs one `effect` name per `F_value`.",
+         call. = FALSE)
   }
 
   df <- data.frame(

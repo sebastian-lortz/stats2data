@@ -709,8 +709,8 @@ mod_optim_aov_server <- function(id){
                    checkboxInput(
                      ns("std"),
                      name_with_info(
-                       "Standardized",
-                       "Select whether the differences between simulated and target values are standardized."
+                       "standardised",
+                       "Select whether the differences between simulated and target values are standardised."
                      ),
                      TRUE,
                      width = "100%"
@@ -738,7 +738,7 @@ mod_optim_aov_server <- function(id){
       }
     )
     output$dl_data <- downloadHandler(
-      filename = "optimized_data.csv",
+      filename = "optimised_data.csv",
       content  = function(file) {
         req(!rv$dirty)
         ds <- selected_dataset()

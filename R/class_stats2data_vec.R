@@ -11,8 +11,8 @@
 #' \code{\link{optim_vec}}.
 #'
 #' @param best_error List of per-variable best objective errors.
-#' @param data Data frame of optimized variable columns.
-#' @param inputs List of all input parameters used in the optimisation.
+#' @param data Data frame of optimised variable columns.
+#' @param inputs List of all input parameters used in the optimization.
 #' @param track_error List of per-variable numeric vectors tracking the best
 #'   error at each iteration.
 #'

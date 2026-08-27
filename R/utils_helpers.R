@@ -116,7 +116,7 @@ heuristic_move_cont <- function(candidate, target_sd, range) {
 
   if (max_delta <= 0) return(candidate)
 
-  delta <- runif(1, min = 0, max = max_delta) # continuous
+  delta <- stats::runif(1, min = 0, max = max_delta) # continuous
   candidate[i_dec] <- candidate[i_dec] - delta
   candidate[i_inc] <- candidate[i_inc] + delta
 
@@ -135,7 +135,7 @@ sprite_start_vector <- function(tMean, n, range, thresh) {
 
   # random start around the mean
   half_width <- min(tMean - scaleMin, scaleMax - tMean)
-  vec <- as.integer(runif(n, min = tMean - half_width, max = tMean + half_width))
+  vec <- as.integer(stats::runif(n, min = tMean - half_width, max = tMean + half_width))
   max_loops <- max(10000, n * (scaleMax - scaleMin + 1))
 
 
@@ -174,7 +174,7 @@ sprite_start_vector_cont <- function(tMean, n, range, thresh) {
   if (n < 2) stop("n must be >= 2.")
 
   half_width <- min(tMean - scaleMin, scaleMax - tMean)
-  vec <- runif(n, min = tMean - half_width, max = tMean + half_width)
+  vec <- stats::runif(n, min = tMean - half_width, max = tMean + half_width)
 
   W <- scaleMax - scaleMin
   step_floor <- max(n * thresh, .Machine$double.eps)
@@ -232,7 +232,7 @@ move_between <- function(candidate, integer, structure, range) {
   idx2 <- structure$subject_indices[[pair[2]]]
 
   # Random direction (I could improve this)
-  if (runif(1) < 0.5) {
+  if (stats::runif(1) < 0.5) {
     dec_idx <- idx1; inc_idx <- idx2
   } else {
     dec_idx <- idx2; inc_idx <- idx1
@@ -249,7 +249,7 @@ move_between <- function(candidate, integer, structure, range) {
     delta <- sample.int(max_delta, 1)
   } else {
     if (max_delta <= 0) return(candidate)
-    delta <- runif(1, 0, max_delta)
+    delta <- stats::runif(1, 0, max_delta)
   }
 
   candidate[dec_idx] <- candidate[dec_idx] - delta
@@ -507,11 +507,11 @@ aov_targets <- function(target_group_means, target_F, group_sizes,
     }
   }
 
-  # how well can the optimizer hit target_F given these means?
+  # how well can the optimiser hit target_F given these means?
   score_mu <- function(mu) {
     ms <- ms_from_means(mu)
 
-    # for effects sharing an error term, the best the optimizer can do
+    # for effects sharing an error term, the best the optimiser can do
     # is find MSE* that minimises sum((ms/MSE - F)^2) within each stratum
     f_dev <- 0
     for (s in strata) {
@@ -560,7 +560,7 @@ aov_targets <- function(target_group_means, target_F, group_sizes,
     # continuous: optimise within thresh
     lower <- target_group_means - thresh
     upper <- target_group_means + thresh
-    opt <- optim(
+    opt <- stats::optim(
       par    = target_group_means,
       fn     = score_mu,
       method = "L-BFGS-B",
@@ -627,7 +627,7 @@ move_within_paired <- function(candidate, integer, structure, range) {
     c1 <- cond[1]; c2 <- cond[2]
 
     # random direction (I could improve this later)
-    s1 <- if (runif(1) < 0.5) -1 else 1
+    s1 <- if (stats::runif(1) < 0.5) -1 else 1
 
     if (s1 == -1) {
       max_delta <- min(
@@ -655,7 +655,7 @@ move_within_paired <- function(candidate, integer, structure, range) {
   if (integer) {
     delta <- sample.int(max_delta, 1)
   } else {
-    delta <- runif(1, 0, max_delta)
+    delta <- stats::runif(1, 0, max_delta)
   }
 
   candidate[idx1[c1]] <- candidate[idx1[c1]] + s1 * delta
@@ -696,7 +696,7 @@ move_within_interaction <- function(candidate, integer, structure, range) {
     idx1 <- structure$subject_indices[[pair[1]]]
     idx2 <- structure$subject_indices[[pair[2]]]
 
-    s1 <- if (runif(1) < 0.5) 1 else -1
+    s1 <- if (stats::runif(1) < 0.5) 1 else -1
 
     i1_plus  <- idx1[c(pos[1], pos[4])]
     i1_minus <- idx1[c(pos[2], pos[3])]
@@ -727,7 +727,7 @@ move_within_interaction <- function(candidate, integer, structure, range) {
   if (integer && max_delta < 1L) return(candidate)
   if (!integer && max_delta <= 1e-8) return(candidate)
 
-  delta <- if (integer) sample.int(max_delta, 1) else runif(1, 0, max_delta)
+  delta <- if (integer) sample.int(max_delta, 1) else stats::runif(1, 0, max_delta)
 
   candidate[i1_plus]  <- candidate[i1_plus]  + s1 * delta
   candidate[i1_minus] <- candidate[i1_minus] - s1 * delta

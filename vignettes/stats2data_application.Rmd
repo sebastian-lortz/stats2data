@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
   fig.width  = 6,
   fig.height = 4,
   fig.align  = "left",
-  dpi        = 300
+  dpi        = 100
 )
 ```
 
@@ -32,7 +32,7 @@ This vignette walks through two empirical examples based on published studies wh
 
 Across the two examples, every exported function in `stats2data` is demonstrated:
 
-* the optimisation functions `optim_aov()`, `optim_vec()`, `optim_mlr()`, and `parallel_optim()`;
+* the optimization functions `optim_aov()`, `optim_vec()`, `optim_mlr()`, and `parallel_optim()`;
 * the S3 inspection methods `print()`, `summary()`, `get_stats()`, `get_rmse()`, and `coef()`;
 * the diagnostic and comparison plots `plot_error()`, `plot_cooling()`, `plot_summary()`, and `plot()` (for parallel results);
 * the GRIM helper `check_grim()`;
@@ -59,7 +59,7 @@ set.seed(2026)
 
 # 1. ANOVA module --- Reynolds & Besner (2008)
 
-In their effort to assess the reproducibility of psychological science, the Open Science Collaboration (2015) attempted a large-scale replication of research findings. Among the replicated studies are Reynolds and Besner (2008), who reported a 2 × 2 within-subjects design (`S = 16`) measuring response times to exception words and nonwords under predictable switch and stay sequences. The original raw data are not publicly available (Open Science Collaboration, 2015). The reported cell means and F-statistics provide the targets required by `optim_aov()`. This section simulates a plausible raw dataset consistent with those targets, using the optimisation methods implemented in `stats2data`.
+In their effort to assess the reproducibility of psychological science, the Open Science Collaboration (2015) attempted a large-scale replication of research findings. Among the replicated studies are Reynolds and Besner (2008), who reported a 2 × 2 within-subjects design (`S = 16`) measuring response times to exception words and nonwords under predictable switch and stay sequences. The original raw data are not publicly available (Open Science Collaboration, 2015). The reported cell means and F-statistics provide the targets required by `optim_aov()`. This section simulates a plausible raw dataset consistent with those targets, using the optimization methods implemented in `stats2data`.
 
 ## 1.1 Encoding the targets
 
@@ -104,7 +104,8 @@ result.aov <- optim_aov(
   factor_type        = factor_type,
   range              = range,
   formula            = formula,
-  integer            = integer
+  integer            = integer,
+  max_iter = 100 # remove later
 )
 ```
 
@@ -139,19 +140,19 @@ get_rmse(result.aov)
 
 `plot_error()` shows the simulated-annealing best-error trajectory.
 
-```{r aov-error, fig.alt = "Error trajectory for the ANOVA optimisation."}
+```{r aov-error, fig.alt = "Error trajectory for the ANOVA optimization."}
 plot_error(result.aov)
 ```
 
 `plot_cooling()` reconstructs the temperature schedule from the stored `inputs`.
 
-```{r aov-cooling, fig.alt = "Cooling schedule for the ANOVA optimisation."}
+```{r aov-cooling, fig.alt = "Cooling schedule for the ANOVA optimization."}
 plot_cooling(result.aov)
 ```
 
 ## 1.5 Target vs. simulated comparison
 
-`plot_summary()` builds a lollipop chart of simulated minus target values. With `standardised = FALSE` (used here because one target F is below the standardisation threshold), the y-axis is on the original F-scale; with the default `standardised = TRUE`, discrepancies would be divided by the target value, with a fall-back to the unstandardised difference for near-zero targets.
+`plot_summary()` builds a lollipop chart of simulated minus target values. With `standardised = FALSE` (used here because one target F is below the standardization threshold), the y-axis is on the original F-scale; with the default `standardised = TRUE`, discrepancies would be divided by the target value, with a fall-back to the unstandardised difference for near-zero targets.
 
 ```{r aov-summary-plot, fig.alt = "ANOVA target-vs-simulated lollipop chart."}
 plot_summary(result.aov, standardised = FALSE)
@@ -208,10 +209,11 @@ result.parallel_aov <- parallel_optim(
     factor_type        = factor_type,
     range              = range,
     formula            = formula,
-    integer            = integer
+    integer            = integer,
+    max_iter = 100 # remove later
   ),
-  runs  = 18,
-  cores = 6,
+  runs  = 6,
+  cores = 6, # change later
   seed  = 2026
 )
 ```
@@ -330,7 +332,7 @@ get_rmse(result.vec)
 plot_error(result.vec, run = 2)
 ```
 
-```{r vec-cooling, fig.alt = "Cooling schedule for the descriptives optimisation."}
+```{r vec-cooling, fig.alt = "Cooling schedule for the descriptives optimization."}
 plot_cooling(result.vec)
 ```
 
@@ -447,7 +449,7 @@ get_rmse(result.mlr)
 
 `plot_error()` shows the total-objective trajectory:
 
-```{r lm-error, fig.alt = "Error trajectory for the MLR optimisation."}
+```{r lm-error, fig.alt = "Error trajectory for the MLR optimization."}
 plot_error(result.mlr, first_iter = 1000)
 ```
 
@@ -457,7 +459,7 @@ For `stats2data_mlr` objects, `plot_error()` exposes a `ratio = TRUE` switch tha
 plot_error(result.mlr, ratio = TRUE)
 ```
 
-The trajectory shows that the regression component dominates the objective. To rebalance the two error components, the optimisation is repeated with a smaller `weight = .05`:
+The trajectory shows that the regression component dominates the objective. To rebalance the two error components, the optimization is repeated with a smaller `weight = .9`:
 
 ```{r lm-rerun, fig.alt = "Weight-tuned MLR error ratio."}
 result.mlr <- optim_mlr(
@@ -471,7 +473,7 @@ result.mlr <- optim_mlr(
   target_reg   = target_reg,
   target_se    = target_se,
   thresh       = .0005,
-  weight       = .05
+  weight       = .9 
 )
 plot_error(result.mlr, ratio = TRUE)
 ```
@@ -516,10 +518,10 @@ result.parallel <- parallel_optim(
     target_reg   = target_reg,
     target_se    = target_se,
     thresh       = .0005,
-    weight       = .05
+    weight       = .9
   ),
-  runs  = 18,
-  cores = 6,
+  runs  = 6, # change later
+  cores = 6, 
   seed  = 2026
 )
 ```

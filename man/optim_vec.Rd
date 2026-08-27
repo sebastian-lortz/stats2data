@@ -12,7 +12,7 @@ optim_vec(
   integer,
   thresh = 0.005,
   sprite_prec = c(2, 2),
-  max_iter = 5e+05,
+  max_iter = 500000,
   init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,

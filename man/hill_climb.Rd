@@ -17,7 +17,7 @@ hill_climb(
 )
 }
 \arguments{
-\item{current_candidate}{Matrix. The predictor matrix to be optimized.}
+\item{current_candidate}{Matrix. The predictor matrix to be optimised.}
 
 \item{error_function}{Function. Objective function that takes a candidate and
 returns a list with element \code{$total_error}.}
@@ -43,7 +43,7 @@ progressor calls. Default \code{NULL}.}
 \value{
 A list with components:
 \describe{
-  \item{best_candidate}{The optimized candidate matrix achieving lowest error.}
+  \item{best_candidate}{The optimised candidate matrix achieving lowest error.}
   \item{best_error}{Numeric. The minimum objective function value found.}
 }
 }

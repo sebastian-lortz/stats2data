@@ -127,7 +127,8 @@ check_aov_inputs <- function(
   }
   if (!is.numeric(levels) || length(levels) < 1 || any(levels != as.integer(levels))) {
     showNotification(
-      sprintf("Levels (%s) must be a numeric vector of integers (e.g. 1, 2, 3) with length > 0, specifying the number of levels per factor.", levels),
+      sprintf("Levels (%s) must be a numeric vector of integers ...",
+              paste(levels, collapse = ", ")),
       type = "error"
     )
     return(FALSE)

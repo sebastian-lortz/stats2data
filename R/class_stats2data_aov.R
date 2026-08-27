@@ -13,10 +13,10 @@
 #' @param best_error Numeric scalar. Minimum objective error achieved.
 #' @param data Data frame with columns \code{ID}, factor columns, and
 #'   \code{outcome}.
-#' @param inputs List of all input parameters used in the optimisation.
+#' @param inputs List of all input parameters used in the optimization.
 #' @param adjusted_targets List with elements \code{group_means} and
 #'   \code{F_values} containing the (possibly adjusted) target values used
-#'   during optimisation.
+#'   during optimization.
 #' @param track_error Numeric vector of best error at each iteration.
 #'
 #' @return An object of class \code{stats2data_aov}.

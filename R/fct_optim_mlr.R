@@ -44,7 +44,7 @@
 #' @return A \code{stats2data.object} list with components:
 #' \describe{
 #'   \item{best_error}{Numeric. Minimum objective error achieved.}
-#'   \item{data}{Data frame of optimized predictor and outcome values.}
+#'   \item{data}{Data frame of optimised predictor and outcome values.}
 #'   \item{optim_vec}{The \code{stats2data.object} returned by the internal
 #'     \code{optim_vec} call (marginal optimization results).}
 #'   \item{inputs}{List of all input parameters for reproducibility.}
@@ -249,7 +249,7 @@ optim_mlr <- function(
       abs(error_function(cand)$total_error - current_error)
     })
     deltas <- deltas[is.finite(deltas) & deltas > 0]
-    init_temp <- -median(deltas) / log(0.5)
+    init_temp <- -stats::median(deltas) / log(0.5)
   }
   temp <- init_temp
 

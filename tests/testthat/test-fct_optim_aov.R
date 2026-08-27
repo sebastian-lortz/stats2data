@@ -1,4 +1,4 @@
-aov_args <- list(
+aov_args <- function() list(
   S = 8, levels = 2, target_group_means = c(3, 5),
   target_f_list = list(effect = "Factor1", F_value = 4), integer = FALSE,
   range = c(0, 10), formula = "outcome ~ Factor1", factor_type = "between",
@@ -6,7 +6,7 @@ aov_args <- list(
   max_starts = 1, progress_mode = "off"
 )
 
-run_aov <- function(...) do.call(optim_aov, utils::modifyList(aov_args, list(...)))
+run_aov <- function(...) do.call(optim_aov, utils::modifyList(aov_args(), list(...)))
 
 test_that("optim_aov validates its arguments", {
   expect_error(run_aov(range = c(10, 0)), "range\\[1\\] < range\\[2\\]")
@@ -15,8 +15,11 @@ test_that("optim_aov validates its arguments", {
   expect_error(run_aov(integer = c(TRUE, FALSE)), "single logical value")
   expect_error(run_aov(target_group_means = c(3)), "length prod")
   expect_error(run_aov(target_group_means = c(3, 99)), "must lie within")
-  expect_error(run_aov(target_f_list = list(effect = "Factor1")),
-               "numeric vector")
+  expect_error({
+    bad <- aov_args()
+    bad$target_f_list <- list(effect = "Factor1")
+    do.call(optim_aov, bad)
+  }, "numeric vector")
   expect_error(run_aov(target_f_list = list(effect = c("a", "b"), F_value = 4)),
                "must match length")
   expect_error(run_aov(formula = 1), "formula or single character")

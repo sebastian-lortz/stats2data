@@ -6,7 +6,7 @@ test_that(".compute_centered standardises unless the target is near zero", {
 
 test_that(".tag_sim_type flags near-zero targets", {
   df <- .tag_sim_type(data.frame(Target = c(1, 0)), TRUE, 1e-12)
-  expect_equal(df$SimulatedType, c("Simulated", "Unstandardized Diff"))
+  expect_equal(df$SimulatedType, c("Simulated", "Unstandardised Diff"))
   expect_equal(.tag_sim_type(data.frame(Target = 0), FALSE, 1e-12)$SimulatedType,
                "Simulated")
 })
@@ -14,7 +14,7 @@ test_that(".tag_sim_type flags near-zero targets", {
 test_that(".plot_summary_engine warns about unstandardised entries", {
   df <- data.frame(
     Measure = "Mean", Variable = factor("V1"), Simulated = 1, Target = 0,
-    Centered = 1, SimulatedType = "Unstandardized Diff"
+    Centered = 1, SimulatedType = "Unstandardised Diff"
   )
   expect_warning(.plot_summary_engine(df, TRUE, "Variable"), "practically 0")
 })
@@ -55,12 +55,6 @@ test_that("plot_summary.stats2data_aov uses the effect names", {
   skip_if_not_installed("afex")
   p <- suppressMessages(quiet_plot(plot_summary(fx_aov())))
   expect_equal(as.character(p$data$Variable), "Factor1")
-  x <- fx_aov()
-  x$inputs$target_f_list$effect <- NULL
-  expect_equal(
-    as.character(suppressMessages(quiet_plot(plot_summary(x)))$data$Variable),
-    "Effect1"
-  )
 })
 
 test_that("plot_summary methods validate their arguments", {

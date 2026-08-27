@@ -31,19 +31,19 @@ range  = c(min(target_group_means) - floor(4 * sqrt(3070)),
 )
 
 
-# ---- Single ANOVA optimisation ------------------------------------------
+# ---- Single ANOVA optimization ------------------------------------------
 result_aov <- do.call(optim_aov, sumstats)
 
 # Inspect
 summary(result_aov)
 
 
-# Figure: error trajectory + cooling schedule
+# Figure: error trajectory + summary
 fig_diag <- (plot_error(result_aov, first_iter = 500)) | (plot_summary(result_aov, standardised = FALSE))
 
 ggsave(file.path(fig_dir, "aov.empirical.diagnostics.pdf"),
        fig_diag,
-       width = 260, height = 90, units = "mm",
+       width = 360, height = 150, units = "mm",
        bg = "white", dpi = 300)
 
 
@@ -53,15 +53,16 @@ out_parallel_aov <- parallel_optim(
   args = sumstats,
   runs  = 100,
   cores = 6,
-  seed  = 2026
+  seed  = 2026,
+  stop_conv = FALSE
 )
 saveRDS(out_parallel_aov, file.path("data-raw", "results", "out_parallel_aov") )
 # Inspect: across-run aggregation + RMSEs
-summary(result.parallel_aov)
+summary(out_parallel_aov)
 
 
 # ---- Figure: parallel-run RMSE distribution + best-run lollipop ---------
-fig_parallel <- (plot(result.parallel_aov)) | (plot_summary(result.parallel_aov, standardised = FALSE))
+fig_parallel <- (plot(out_parallel_aov)) | (plot_summary(out_parallel_aov, standardised = FALSE))
 
 ggsave(file.path(fig_dir, "aov.empirical.parallel.pdf"),
        fig_parallel,

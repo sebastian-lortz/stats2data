@@ -43,11 +43,11 @@ library(progressr)
 library(tidyr)
 library(PearsonDS)
 library(moments)
-library(ggnewscale)
+#library(ggnewscale)
 
 # backend
 if (HPC) {
-  plan(multisession, workers = availableCores()-5)
+  plan(multisession, workers = future::availableCores()-1)
 } else {
   plan(multisession, workers = 6L)
 }
@@ -741,6 +741,35 @@ extract_mc_errors_mlr <- function(mc_res) {
           "cont_vec", "int_vec")]
 }
 
+#### Run Simulation ####
+cat("Simulation starting...\n\n")
+
+# VEC
+if (run_vec) {
+st = Sys.time()
+vec_mc_res <- sim_optim_vec_mc(N = 300, tol = 0.005, dec = 2, R = 1e5, seed = seed, keep_full = 0)
+saveRDS(vec_mc_res, file.path(save_dir, "vec_mc_res"))
+#check_vec_conv(vec_mc_res, tol = 0.005)
+en = Sys.time()
+cat("Time diff: ", en-st, "\n\n")
+
+cat("VEC module done!\n\n")
+rm(vec_mc_res)
+}
+
+# MLR
+if (run_mlr) {
+st = Sys.time()
+lm_mc_res <- sim_optim_mlr_mc(N = 300, n.cond = 500, tol = 0.005, dec = 2, R = 100, seed = seed)
+saveRDS(lm_mc_res, file.path(save_dir, "lm_mc_res"))
+en = Sys.time()
+cat("Time diff: ", en-st,"\n\n")
+
+cat("MLR module done!\n\n")
+rm(lm_mc_res)
+}
+stop("COMPLETED SIMULATION")
+
 #### Plotting ####
 source("/Users/lortz/Desktop/PhD/Research/simdata/stats2data/data-raw/moment_plane_graph.R")
 
@@ -771,34 +800,6 @@ plot_cf_heat <- function(heat, discrete, col_mid, limits = NULL) {
     )
 }
 
-#### Run Simulation ####
-cat("Simulation starting...\n\n")
-
-# VEC
-if (run_vec) {
-st = Sys.time()
-vec_mc_res <- sim_optim_vec_mc(N = 300, tol = 0.005, dec = 2, R = 1e5, seed = seed, keep_full = 0)
-saveRDS(vec_mc_res, file.path(save_dir, "vec_mc_res"))
-#check_vec_conv(vec_mc_res, tol = 0.005)
-en = Sys.time()
-cat("Time diff: ", en-st, "\n\n")
-
-cat("VEC module done!\n\n")
-rm(vec_mc_res)
-}
-
-# MLR
-if (run_mlr) {
-st = Sys.time()
-lm_mc_res <- sim_optim_mlr_mc(N = 300, n.cond = 500, tol = 0.005, dec = 2, R = 100, seed = seed)
-saveRDS(lm_mc_res, file.path(save_dir, "lm_mc_res"))
-en = Sys.time()
-cat("Time diff: ", en-st,"\n\n")
-
-cat("MLR module done!\n\n")
-rm(lm_mc_res)
-}
-stop("COMPLETED SIMULATION")
 
 #### VEC Results ####
 if (!HPC) {
@@ -875,7 +876,7 @@ if (!HPC) {
 
   cbPalette <- c("#999999", "#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
 
-  # ---- Continuous: standardized quantile distance, at the true Pearson moments ----
+  # ---- Continuous: standardised quantile distance, at the true Pearson moments ----
   heat_cont <- make_heat(d$true_skew, d$true_exkurt, d$cont_ach_dist)
   ph_cont   <- plot_cf_heat(heat_cont, discrete = FALSE, col_mid = .2) +
     theme(legend.position = "right")

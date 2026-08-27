@@ -31,7 +31,7 @@ A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 }
 \description{
-Visualizes the simulated-annealing temperature decay across iterations.
+Visualises the simulated-annealing temperature decay across iterations.
 Dispatches to class-specific methods for \code{stats2data_aov},
 \code{stats2data_mlr}, and \code{stats2data_vec}.
 }

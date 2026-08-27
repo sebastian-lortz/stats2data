@@ -1,3 +1,39 @@
+test_that(".step_points keeps only the change points and the last index", {
+  expect_equal(.step_points(c(5, 5, 5, 3, 3, 1)), c(1L, 4L, 6L))
+  expect_equal(.step_points(c(2, 2, 2)), c(1L, 3L))
+  expect_equal(.step_points(c(3, 2, 1)), c(1L, 2L, 3L))
+  expect_equal(.step_points(5), 1L)
+  expect_equal(.step_points(c(1, NA, 1)), c(1L, 2L, 3L))
+})
+
+test_that(".plot_error_engine plots one point per distinct error level", {
+  err <- c(9, rep(5, 50), rep(2, 49))
+  p <- .plot_error_engine(err, first_iter = 0L)
+  expect_equal(nrow(p$data), 4)
+  expect_equal(p$data$Iteration, c(1, 2, 52, 100))
+  expect_equal(p$data$Error, c(9, 5, 2, 2))
+})
+
+test_that(".plot_error_engine supports a log y axis", {
+  p <- .plot_error_engine(c(3, 2, 1), first_iter = 0L, log_y = TRUE)
+  expect_true(any(vapply(p$scales$scales,
+                         function(s) identical(s$trans$name, "log-10"),
+                         logical(1))))
+  expect_warning(.plot_error_engine(c(3, 2, 0), first_iter = 0L, log_y = TRUE),
+                 "could not be plotted")
+  expect_error(
+    suppressWarnings(.plot_error_engine(c(0, 0), first_iter = 0L, log_y = TRUE)),
+    "No plottable error values"
+  )
+  expect_error(.plot_error_engine(c(1, 2), log_y = "yes"), "single logical")
+})
+
+test_that(".plot_error_ratio_engine deduplicates constant stretches", {
+  p <- .plot_error_ratio_engine(c(4, rep(7, 8), 3), first_iter = 0L)
+  expect_equal(p$data$Iteration, c(1, 2, 10))
+  expect_equal(p$data$ErrorRatio, c(4, 7, 3))
+})
+
 test_that(".plot_error_engine builds a trajectory plot", {
   p <- .plot_error_engine(c(3, 2, 1), first_iter = 1L)
   expect_s3_class(p, "ggplot")

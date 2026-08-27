@@ -7,7 +7,7 @@
 \alias{plot_error}
 \title{Plot error trajectory for a stats2data result}
 \usage{
-\method{plot_error}{stats2data_aov}(x, run = 1L, show_best = TRUE, first_iter = 1L, ...)
+\method{plot_error}{stats2data_aov}(x, run = 1L, show_best = TRUE, first_iter = 1L, log_y = FALSE, ...)
 
 \method{plot_error}{stats2data_mlr}(
   x,
@@ -18,10 +18,11 @@
   show_mean = TRUE,
   show_median = TRUE,
   show_final = TRUE,
+  log_y = FALSE,
   ...
 )
 
-\method{plot_error}{stats2data_vec}(x, run = 1L, show_best = TRUE, first_iter = 1L, ...)
+\method{plot_error}{stats2data_vec}(x, run = 1L, show_best = TRUE, first_iter = 1L, log_y = FALSE, ...)
 
 plot_error(x, ...)
 }
@@ -35,6 +36,10 @@ plot_error(x, ...)
 error.}
 
 \item{first_iter}{Integer. Iterations to skip; default \code{1}.}
+
+\item{log_y}{Logical. If \code{TRUE}, the y axis uses a base-10
+logarithmic scale; non-positive errors are dropped with a warning.
+Default \code{FALSE}.}
 
 \item{...}{Arguments passed to methods (see individual method pages).}
 
@@ -62,7 +67,7 @@ A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 }
 \description{
-Visualizes how the objective-function error evolves across iterations of
+Visualises how the objective-function error evolves across iterations of
 the simulated-annealing optimiser.  Dispatches to class-specific methods
 for \code{stats2data_aov}, \code{stats2data_mlr}, and \code{stats2data_vec}.
 }
@@ -84,11 +89,13 @@ correlation-to-regression error ratio instead of the total error.
 \dontrun{
 res <- optim_aov(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 }
 
 \dontrun{
 res <- optim_mlr(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 plot_error(res, ratio = TRUE)
 plot_error(res, ratio = TRUE, show_mean = FALSE)
 }
@@ -96,6 +103,7 @@ plot_error(res, ratio = TRUE, show_mean = FALSE)
 \dontrun{
 res <- optim_vec(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 }
 
 \dontrun{

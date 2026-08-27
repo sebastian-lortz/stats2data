@@ -12,16 +12,16 @@
 \method{plot_summary}{stats2data_parallel}(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   error_type = c("range", "sd"),
   ...
 )
 
-\method{plot_summary}{stats2data_mlr}(x, standardised = TRUE, eps = 1e-12, ...)
+\method{plot_summary}{stats2data_mlr}(x, standardised = TRUE, eps = 0.000000000001, ...)
 
-\method{plot_summary}{stats2data_aov}(x, standardised = TRUE, eps = 1e-12, ...)
+\method{plot_summary}{stats2data_aov}(x, standardised = TRUE, eps = 0.000000000001, ...)
 
-\method{plot_summary}{stats2data_vec}(x, standardised = TRUE, eps = 1e-12, ...)
+\method{plot_summary}{stats2data_vec}(x, standardised = TRUE, eps = 0.000000000001, ...)
 
 plot_summary(x, ...)
 }
@@ -35,7 +35,7 @@ divided by target values (except when targets are near zero).}
 \item{eps}{Numeric; zero-threshold. Default \code{1e-12}.}
 
 \item{error_type}{Character; \code{"range"} (default) draws across-run
-min/max error bars, \code{"sd"} draws \code{mean \u00b1 SD} across runs.}
+min/max error bars, \code{"sd"} draws \code{mean +/- SD} across runs.}
 
 \item{...}{Arguments passed to methods (typically \code{standardised} and
 \code{eps}).}
@@ -62,7 +62,7 @@ Dispatches to class-specific methods for \code{stats2data_aov},
 (\code{stats2data_parallel}). Aggregates each simulated parameter as the
 across-run mean (rounded to the target's reported precision) and overlays
 an error bar showing the across-run min/max
-(\code{error_type = "range"}, default) or \code{mean \u00b1 SD}
+(\code{error_type = "range"}, default) or \code{mean +/- SD}
 (\code{error_type = "sd"}). Module-specific data assembly is dispatched
 internally based on \code{x$module}.
 

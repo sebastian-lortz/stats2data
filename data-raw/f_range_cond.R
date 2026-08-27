@@ -9,7 +9,7 @@
 ##       both for continuous and integer-rounded data
 ##   (2) Cohen's f range -> empirical F range mapping
 ##   (3) Whether the simulated F's actually cover the difficulty regimes
-##       the optimizer has to handle
+##       the optimiser has to handle
 ##   (4) Comparison to the original [0.5, 10] target_F range
 ## ============================================================================
 

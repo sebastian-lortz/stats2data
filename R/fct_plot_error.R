@@ -2,6 +2,30 @@
 # stats2data: plot_error S3 methods
 # --------------------------------------------------------------------------
 
+#' Reduce a piecewise-constant trace to its change points
+#'
+#' \code{track_error} stores the best-so-far error at every iteration, so it
+#' is a step function that is constant over long stretches. Keeping only the
+#' first index of each run of equal values, plus the final index, reproduces
+#' the curve exactly when drawn with \code{geom_step(direction = "hv")}.
+#' Not exported.
+#'
+#' @param y Numeric vector.
+#'
+#' @return An integer vector of indices into \code{y}.
+#'
+#' @noRd
+.step_points <- function(y) {
+  n <- length(y)
+  if (n <= 1L) return(seq_len(n))
+
+  same <- y[-1L] == y[-n]
+  same[is.na(same)] <- FALSE
+
+  sort(unique(c(1L, which(!same) + 1L, n)))
+}
+
+
 #' Build an error-trajectory ggplot from a numeric vector
 #'
 #' Shared plotting logic used by all \code{plot_error.*} methods.
@@ -9,11 +33,14 @@
 #'
 #' @param err_vec Numeric vector of error values (one per iteration).
 #' @param show_best Logical; if \code{TRUE}, mark the minimum error with a
-#'   red point.
+#'   point.
 #' @param first_iter Integer; number of leading iterations to omit from the
 #'   plot (zero-based).
 #' @param title Character; plot title.
 #' @param y_lab Character; y-axis label.
+#' @param log_y Logical; if \code{TRUE}, draw the y axis on a base-10
+#'   logarithmic scale. Non-positive errors cannot be shown on that scale and
+#'   are dropped with a warning.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object.
 #'
@@ -22,7 +49,8 @@
                                show_best  = TRUE,
                                first_iter = 1L,
                                title      = "Error Reduction of Objective Function",
-                               y_lab      = "Error") {
+                               y_lab      = "Error",
+                               log_y      = FALSE) {
 
   # --- guards -------------------------------------------------------------
   n <- length(err_vec)
@@ -42,13 +70,33 @@
       call. = FALSE
     )
   }
+  if (!is.logical(log_y) || length(log_y) != 1L || is.na(log_y)) {
+    stop("`log_y` must be a single logical value.", call. = FALSE)
+  }
 
   # --- data ---------------------------------------------------------------
   seg_err <- err_vec[(first_iter + 1L):n]
+  seg_it  <- first_iter + seq_along(seg_err)
+
+  keep <- .step_points(seg_err)
   df <- data.frame(
-    Iteration = first_iter + seq_along(seg_err),
-    Error     = seg_err
+    Iteration = seg_it[keep],
+    Error     = seg_err[keep]
   )
+
+  drop <- !is.finite(df$Error) | (log_y & df$Error <= 0)
+  if (any(drop)) {
+    warning(
+      sprintf("%d error value%s could not be plotted and %s dropped.",
+              sum(drop), if (sum(drop) == 1L) "" else "s",
+              if (sum(drop) == 1L) "was" else "were"),
+      call. = FALSE
+    )
+    df <- df[!drop, , drop = FALSE]
+  }
+  if (nrow(df) == 0L) {
+    stop("No plottable error values remain.", call. = FALSE)
+  }
 
   best_idx   <- which.min(err_vec)[1L]
   best_error <- err_vec[best_idx]
@@ -57,20 +105,28 @@
   p <- ggplot2::ggplot(df, ggplot2::aes(
     x = .data$Iteration, y = .data$Error
   )) +
-    ggplot2::geom_line(color = "steelblue", linewidth = 1) +
-    ggplot2::geom_hline(yintercept = 0, linetype = "dashed") +
+    ggplot2::geom_step(color = "steelblue", linewidth = 1, direction = "hv") +
     ggplot2::labs(title = title, x = "Iteration", y = y_lab) +
-    scale_y_log10() + # log
     theme_stats2data() +
     ggplot2::coord_cartesian(clip = "off")
 
-  if (show_best) {
+  if (nrow(df) == 1L) {
+    p <- p + ggplot2::geom_point(color = "steelblue", size = 2)
+  }
+
+  if (log_y) {
+    p <- p + ggplot2::scale_y_log10()
+  } else {
+    p <- p + ggplot2::geom_hline(yintercept = 0, linetype = "dashed")
+  }
+
+  if (show_best && is.finite(best_error) && (!log_y || best_error > 0)) {
     best_df <- data.frame(Iteration = best_idx, Error = best_error)
     p <- p +
       ggplot2::geom_point(
         data    = best_df,
         mapping = ggplot2::aes(
-          x = .data$Iteration, y = .data$Error, color = "Best Error"
+          x = .data$Iteration, y = .data$Error, color = "Lowest error"
         ),
         size        = 3,
         show.legend = TRUE
@@ -80,10 +136,10 @@
   p <- p +
     ggplot2::scale_color_manual(
       name   = "",
-      values = c("Best Error" = "red"),
-      breaks = "Best Error",
+      values = c("Lowest error" = "darkgreen"),
+      breaks = "Lowest error",
       labels = paste(
-        "Best Error =",
+        "Lowest error =",
         formatC(best_error, format = "e", digits = 3)
       )
     ) +
@@ -105,6 +161,7 @@
 #' @param show_median Logical; draw a horizontal line at the median ratio.
 #' @param show_final Logical; draw a horizontal line at the final ratio.
 #' @param title Character; plot title.
+#' @param log_y Logical; draw the y axis on a base-10 logarithmic scale.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object.
 #'
@@ -114,7 +171,8 @@
                                      show_mean   = TRUE,
                                      show_median = TRUE,
                                      show_final  = TRUE,
-                                     title       = "Error Ratio Cor/Reg") {
+                                     title       = "Error Ratio Cor/Reg",
+                                     log_y       = FALSE) {
 
   # --- guards -------------------------------------------------------------
   n <- length(ratio_vec)
@@ -134,13 +192,33 @@
       call. = FALSE
     )
   }
+  if (!is.logical(log_y) || length(log_y) != 1L || is.na(log_y)) {
+    stop("`log_y` must be a single logical value.", call. = FALSE)
+  }
 
   # --- data ---------------------------------------------------------------
-  seg <- ratio_vec[(first_iter + 1L):n]
+  seg    <- ratio_vec[(first_iter + 1L):n]
+  seg_it <- first_iter + seq_along(seg)
+
+  keep <- .step_points(seg)
   df <- data.frame(
-    Iteration  = first_iter + seq_along(seg),
-    ErrorRatio = seg
+    Iteration  = seg_it[keep],
+    ErrorRatio = seg[keep]
   )
+
+  drop <- !is.finite(df$ErrorRatio) | (log_y & df$ErrorRatio <= 0)
+  if (any(drop)) {
+    warning(
+      sprintf("%d ratio value%s could not be plotted and %s dropped.",
+              sum(drop), if (sum(drop) == 1L) "" else "s",
+              if (sum(drop) == 1L) "was" else "were"),
+      call. = FALSE
+    )
+    df <- df[!drop, , drop = FALSE]
+  }
+  if (nrow(df) == 0L) {
+    stop("No plottable ratio values remain.", call. = FALSE)
+  }
 
   mean_val   <- round(mean(ratio_vec), 1)
   median_val <- round(stats::median(ratio_vec), 1)
@@ -150,10 +228,17 @@
   p <- ggplot2::ggplot(df, ggplot2::aes(
     x = .data$Iteration, y = .data$ErrorRatio
   )) +
-    ggplot2::geom_line(color = "steelblue", linewidth = 1) +
+    ggplot2::geom_step(color = "steelblue", linewidth = 1, direction = "hv") +
     ggplot2::labs(title = title, x = "Iteration", y = "Error Ratio Cor/Reg") +
     theme_stats2data() +
     ggplot2::coord_cartesian(clip = "off")
+
+  if (nrow(df) == 1L) {
+    p <- p + ggplot2::geom_point(color = "steelblue", size = 2)
+  }
+  if (log_y) {
+    p <- p + ggplot2::scale_y_log10()
+  }
 
   # reference lines
   ref_stats  <- character(0)
@@ -265,6 +350,9 @@
 #'   with the smallest error.
 #' @param first_iter Integer. Number of initial iterations to skip before
 #'   plotting (zero-based); default \code{1}.
+#' @param log_y Logical. If \code{TRUE}, the y axis uses a base-10
+#'   logarithmic scale; non-positive errors are dropped with a warning.
+#'   Default \code{FALSE}.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -273,14 +361,15 @@
 #' \dontrun{
 #' res <- optim_aov(...)
 #' plot_error(res)
+#' plot_error(res, log_y = TRUE)
 #' }
 #'
 #' @importFrom rlang .data
-#' @importFrom ggplot2 ggplot aes geom_line geom_hline geom_point labs
-#'   scale_color_manual coord_cartesian theme
+#' @importFrom ggplot2 ggplot aes geom_step geom_hline geom_point labs
+#'   scale_color_manual scale_y_log10 coord_cartesian theme
 #' @export
 plot_error.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
-                               first_iter = 1L, ...) {
+                                      first_iter = 1L, log_y = FALSE, ...) {
 
   if (is.null(x$track_error)) {
     stop("No `track_error` element found in this stats2data_aov object.",
@@ -292,7 +381,8 @@ plot_error.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
     err_vec    = err_vec,
     show_best  = show_best,
     first_iter = first_iter,
-    title      = "Error Reduction \u2014 ANOVA Module"
+    title      = "Error Reduction \u2014 ANOVA Module",
+    log_y      = log_y
   )
   print(p)
   invisible(p)
@@ -319,6 +409,9 @@ plot_error.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 #' @param show_final Logical. When \code{ratio = TRUE}, draw a horizontal
 #'   line at the final ratio. Default \code{TRUE}. Ignored when
 #'   \code{ratio = FALSE}.
+#' @param log_y Logical. If \code{TRUE}, the y axis uses a base-10
+#'   logarithmic scale; non-positive values are dropped with a warning.
+#'   Default \code{FALSE}.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -327,18 +420,20 @@ plot_error.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 #' \dontrun{
 #' res <- optim_mlr(...)
 #' plot_error(res)
+#' plot_error(res, log_y = TRUE)
 #' plot_error(res, ratio = TRUE)
 #' plot_error(res, ratio = TRUE, show_mean = FALSE)
 #' }
 #'
 #' @export
 plot_error.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
-                               first_iter = 1L,
-                               ratio = FALSE,
-                               show_mean = TRUE,
-                               show_median = TRUE,
-                               show_final = TRUE,
-                               ...) {
+                                      first_iter = 1L,
+                                      ratio = FALSE,
+                                      show_mean = TRUE,
+                                      show_median = TRUE,
+                                      show_final = TRUE,
+                                      log_y = FALSE,
+                                      ...) {
 
   if (!is.logical(ratio) || length(ratio) != 1L) {
     stop("`ratio` must be a single logical value.", call. = FALSE)
@@ -370,23 +465,25 @@ plot_error.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
       show_mean   = show_mean,
       show_median = show_median,
       show_final  = show_final,
-      title       = "Error Ratio Cor/Reg \u2014 MLR Module"
+      title       = "Error Ratio Cor/Reg \u2014 MLR Module",
+      log_y       = log_y
     )
     print(p)
     return(invisible(p))
   }
 
-  if (is.null(x$track_error)) {
+  if (is.null(x[["track_error"]])) {          # was x$track_error
     stop("No `track_error` element found in this stats2data_mlr object.",
          call. = FALSE)
   }
-  err_vec <- .extract_error_vec(x$track_error, run = run)
+  err_vec <- .extract_error_vec(x[["track_error"]], run = run)
 
   p <- .plot_error_engine(
     err_vec    = err_vec,
     show_best  = show_best,
     first_iter = first_iter,
-    title      = "Error Reduction \u2014 MLR Module"
+    title      = "Error Reduction \u2014 MLR Module",
+    log_y      = log_y
   )
   print(p)
   invisible(p)
@@ -404,6 +501,9 @@ plot_error.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 #' @param show_best Logical. If \code{TRUE} (default), marks the minimum
 #'   error.
 #' @param first_iter Integer. Iterations to skip; default \code{1}.
+#' @param log_y Logical. If \code{TRUE}, the y axis uses a base-10
+#'   logarithmic scale; non-positive errors are dropped with a warning.
+#'   Default \code{FALSE}.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -412,11 +512,12 @@ plot_error.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 #' \dontrun{
 #' res <- optim_vec(...)
 #' plot_error(res)
+#' plot_error(res, log_y = TRUE)
 #' }
 #'
 #' @export
 plot_error.stats2data_vec <- function(x, run = 1L, show_best = TRUE,
-                               first_iter = 1L, ...) {
+                                      first_iter = 1L, log_y = FALSE, ...) {
 
   if (is.null(x$track_error)) {
     stop(
@@ -444,7 +545,8 @@ plot_error.stats2data_vec <- function(x, run = 1L, show_best = TRUE,
     err_vec    = err_vec,
     show_best  = show_best,
     first_iter = first_iter,
-    title      = title
+    title      = title,
+    log_y      = log_y
   )
   print(p)
   invisible(p)

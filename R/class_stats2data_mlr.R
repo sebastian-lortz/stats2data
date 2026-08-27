@@ -11,10 +11,10 @@
 #' \code{\link{optim_mlr}}.
 #'
 #' @param best_error Numeric scalar. Minimum objective error achieved.
-#' @param data Data frame of optimized predictor and outcome columns.
+#' @param data Data frame of optimised predictor and outcome columns.
 #' @param optim_vec An object of class \code{stats2data_vec} from the internal
-#'   marginal optimisation step.
-#' @param inputs List of all input parameters used in the optimisation.
+#'   marginal optimization step.
+#' @param inputs List of all input parameters used in the optimization.
 #' @param track_error Numeric vector of best error at each iteration.
 #' @param track_error_ratio Numeric vector of error ratios (correlation vs.
 #'   regression component) per iteration.

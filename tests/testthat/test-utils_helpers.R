@@ -219,7 +219,7 @@ test_that("aov_targets derives consistent means and MS", {
   expect_named(int$numerator_MS, "Factor1")
   expect_true(is.finite(int$numerator_MS))
   expect_equal(int$adjusted_F, 4)
-  expect_equal(int$between_effect_idx, 1L)
+  expect_equal(unname(int$between_effect_idx), 1L)
   expect_length(int$within_effect_idx, 0)
 
   cont <- do.call(aov_targets, c(args, list(integer = FALSE)))
@@ -234,7 +234,7 @@ test_that("aov_targets warns when no integer mean is within the threshold", {
   fm <- s$df[, -1, drop = FALSE]
   gid <- apply(fm, 1, paste0, collapse = "")
   gidx <- split(seq_along(gid), gid)
-  expect_warning(
+  expect_warning(expect_warning(
     aov_targets(
       target_group_means = c(3.1, 5.1), target_F = 4,
       group_sizes = vapply(gidx, length, integer(1)),
@@ -242,7 +242,7 @@ test_that("aov_targets warns when no integer mean is within the threshold", {
       integer = TRUE, thresh = 1e-9, ID = s$df$ID, factor_mat = fm,
       group_idx = gidx, structure = s,
       formula = stats::as.formula("outcome ~ Factor1")
-    ),
+    ), "no integer mean"),
     "no integer mean"
   )
 })

@@ -64,6 +64,8 @@ test_that("print.summary.stats2data_aov warns about empty comparisons", {
   s <- suppressMessages(summary(fx_aov()))
   s$f_comparison <- NULL
   s$means_comparison <- s$means_comparison[0, ]
-  expect_warning(utils::capture.output(print(s)), "f_comparison")
-  expect_warning(utils::capture.output(print(s)), "means_comparison")
+  expect_warning(
+    expect_warning(utils::capture.output(print(s)), "f_comparison"),
+    "means_comparison"
+  )
 })

@@ -40,8 +40,9 @@ test_that("hill_climb stops at a perfect solution and reports to the console", {
 test_that("hill_climb calls the progressor at the requested interval", {
   calls <- 0L
   p <- function() calls <<- calls + 1L
+  flat <- function(cand) list(total_error = 1)
   set.seed(43)
-  hill_climb(matrix(c(3, 1, 2, 4), ncol = 1), err_fn, N = 4, hill_climbs = 4,
+  hill_climb(matrix(c(3, 1, 2, 4), ncol = 1), flat, N = 4, hill_climbs = 4,
              num_preds = 1, progressor = p, pb_interval = 2,
              progress_mode = "off")
   expect_equal(calls, 2L)

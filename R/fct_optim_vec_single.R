@@ -19,7 +19,7 @@ optim_vec_single <- function(N, t_mean, t_sd, rng, is_int,
     objective_cpp(x, target_sd = t_sd)
   }
 
-  # integer data: use rsprite2
+  # integer data
   if (is_int) {
     if (abs(rng[2]-rng[1]) == 1) {
       d1 = round(t_mean*N)
