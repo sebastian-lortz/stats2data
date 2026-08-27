@@ -22,4 +22,4 @@ summary(object, ...)
 ## Value
 
 An object of class `summary.stats2data_parallel`, printed by
-`print.summary.stats2data_parallel`.
+[`print.summary.stats2data_parallel`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_parallel.md).

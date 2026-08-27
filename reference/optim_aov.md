@@ -18,7 +18,7 @@ optim_aov(
   subgroup_sizes = NULL,
   thresh = 0.005,
   max_iter = 10000,
-  init_temp = 0.001,
+  init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
   progress_mode = "console"
@@ -38,7 +38,8 @@ optim_aov(
 - target_group_means:
 
   Numeric vector of length `prod(levels)`. Target cell means in
-  `expand.grid` order.
+  lexicographic sort order: Factor1 slowest, Factor2 fastest, i.e. 11,
+  12, 21, 22 for a 2x2.
 
 - target_f_list:
 
@@ -75,7 +76,10 @@ optim_aov(
 
 - init_temp:
 
-  Numeric. Initial SA temperature. Default `1`.
+  Numeric or `NULL`. Initial SA temperature. If `NULL` (default) and
+  `integer = TRUE`, the temperature is set adaptively from the empirical
+  distribution of single-move \|delta-objective\| values. If `NULL` and
+  `integer = FALSE`, falls back to `1e-3`.
 
 - cooling_rate:
 

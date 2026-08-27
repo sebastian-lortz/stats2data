@@ -1,6 +1,6 @@
 # Plot cooling schedule for a stats2data result
 
-Visualizes the simulated-annealing temperature decay across iterations.
+Visualises the simulated-annealing temperature decay across iterations.
 Dispatches to class-specific methods for `stats2data_aov`,
 `stats2data_mlr`, and `stats2data_vec`.
 

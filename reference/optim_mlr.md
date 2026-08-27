@@ -24,7 +24,7 @@ optim_mlr(
   target_se = NULL,
   weight = 0.5,
   thresh = 0.005,
-  max_iter = 1e+05,
+  max_iter = 100000,
   init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
@@ -128,7 +128,7 @@ A `stats2data.object` list with components:
 
 - data:
 
-  Data frame of optimized predictor and outcome values.
+  Data frame of optimised predictor and outcome values.
 
 - optim_vec:
 

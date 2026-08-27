@@ -11,19 +11,19 @@ statistics. Dispatches to class-specific methods for `stats2data_aov`,
 plot_summary(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   error_type = c("range", "sd"),
   ...
 )
 
 # S3 method for class 'stats2data_mlr'
-plot_summary(x, standardised = TRUE, eps = 1e-12, ...)
+plot_summary(x, standardised = TRUE, eps = 0.000000000001, ...)
 
 # S3 method for class 'stats2data_aov'
-plot_summary(x, standardised = TRUE, eps = 1e-12, ...)
+plot_summary(x, standardised = TRUE, eps = 0.000000000001, ...)
 
 # S3 method for class 'stats2data_vec'
-plot_summary(x, standardised = TRUE, eps = 1e-12, ...)
+plot_summary(x, standardised = TRUE, eps = 0.000000000001, ...)
 
 plot_summary(x, ...)
 ```
@@ -47,7 +47,7 @@ plot_summary(x, ...)
 - error_type:
 
   Character; `"range"` (default) draws across-run min/max error bars,
-  `"sd"` draws `mean 1 SD` across runs.
+  `"sd"` draws `mean +/- SD` across runs.
 
 - ...:
 
@@ -76,7 +76,7 @@ object, returned invisibly.
   (`stats2data_parallel`). Aggregates each simulated parameter as the
   across-run mean (rounded to the target's reported precision) and
   overlays an error bar showing the across-run min/max
-  (`error_type = "range"`, default) or `mean 1 SD`
+  (`error_type = "range"`, default) or `mean +/- SD`
   (`error_type = "sd"`). Module-specific data assembly is dispatched
   internally based on `x$module`.
 

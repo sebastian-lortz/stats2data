@@ -24,7 +24,7 @@ hill_climb(
 
 - current_candidate:
 
-  Matrix. The predictor matrix to be optimized.
+  Matrix. The predictor matrix to be optimised.
 
 - error_function:
 
@@ -67,7 +67,7 @@ A list with components:
 
 - best_candidate:
 
-  The optimized candidate matrix achieving lowest error.
+  The optimised candidate matrix achieving lowest error.
 
 - best_error:
 

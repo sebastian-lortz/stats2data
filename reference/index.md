@@ -45,6 +45,8 @@
   : Print a stats2data ANOVA summary
 - [`print(`*`<summary.stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_mlr.md)
   : Print a stats2data MLR summary
+- [`print(`*`<summary.stats2data_parallel>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_parallel.md)
+  : Print a stats2data parallel summary
 - [`print(`*`<summary.stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.summary.stats2data_vec.md)
   : Print a stats2data Descriptives summary
 - [`run_app()`](https://sebastian-lortz.github.io/stats2data/reference/run_app.md)

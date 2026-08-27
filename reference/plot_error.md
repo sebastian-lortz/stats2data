@@ -1,6 +1,6 @@
 # Plot error trajectory for a stats2data result
 
-Visualizes how the objective-function error evolves across iterations of
+Visualises how the objective-function error evolves across iterations of
 the simulated-annealing optimiser. Dispatches to class-specific methods
 for `stats2data_aov`, `stats2data_mlr`, and `stats2data_vec`.
 
@@ -8,7 +8,7 @@ for `stats2data_aov`, `stats2data_mlr`, and `stats2data_vec`.
 
 ``` r
 # S3 method for class 'stats2data_aov'
-plot_error(x, run = 1L, show_best = TRUE, first_iter = 1L, ...)
+plot_error(x, run = 1L, show_best = TRUE, first_iter = 1L, log_y = FALSE, ...)
 
 # S3 method for class 'stats2data_mlr'
 plot_error(
@@ -20,11 +20,12 @@ plot_error(
   show_mean = TRUE,
   show_median = TRUE,
   show_final = TRUE,
+  log_y = FALSE,
   ...
 )
 
 # S3 method for class 'stats2data_vec'
-plot_error(x, run = 1L, show_best = TRUE, first_iter = 1L, ...)
+plot_error(x, run = 1L, show_best = TRUE, first_iter = 1L, log_y = FALSE, ...)
 
 plot_error(x, ...)
 ```
@@ -47,6 +48,11 @@ plot_error(x, ...)
 - first_iter:
 
   Integer. Iterations to skip; default `1`.
+
+- log_y:
+
+  Logical. If `TRUE`, the y axis uses a base-10 logarithmic scale;
+  non-positive errors are dropped with a warning. Default `FALSE`.
 
 - ...:
 
@@ -114,11 +120,13 @@ correlation-to-regression error ratio instead of the total error.
 if (FALSE) { # \dontrun{
 res <- optim_aov(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 } # }
 
 if (FALSE) { # \dontrun{
 res <- optim_mlr(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 plot_error(res, ratio = TRUE)
 plot_error(res, ratio = TRUE, show_mean = FALSE)
 } # }
@@ -126,6 +134,7 @@ plot_error(res, ratio = TRUE, show_mean = FALSE)
 if (FALSE) { # \dontrun{
 res <- optim_vec(...)
 plot_error(res)
+plot_error(res, log_y = TRUE)
 } # }
 
 if (FALSE) { # \dontrun{

@@ -8,7 +8,7 @@ of mean and standard deviation (or just mean).
 ## Usage
 
 ``` r
-plot_histogram(df, tol = 1e-08, SD = TRUE)
+plot_histogram(df, tol = 0.00000001, SD = TRUE)
 ```
 
 ## Arguments
