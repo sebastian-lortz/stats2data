@@ -30,7 +30,7 @@ check_grim <- function(n,
                        decimals,
                        tol = .Machine$double.eps^0.5) {
 
-  # ---- input validation ---------------------------------------------------
+  # input checks
   if (!is.numeric(n) || length(n) != 1L || n <= 0 || n != as.integer(n))
     stop("`n` must be a single positive integer.", call. = FALSE)
   if (!is.numeric(target_mean) || length(target_mean) != 1L)
@@ -41,7 +41,7 @@ check_grim <- function(n,
   if (!is.numeric(tol) || length(tol) != 1L || tol < 0)
     stop("`tol` must be a single non-negative numeric value.", call. = FALSE)
 
-  # ---- GRIM computation -------------------------------------------------
+  # GRIM
   total_points   <- round(target_mean * n)
   possible_mean  <- total_points / n
   diff           <- abs(target_mean - possible_mean)

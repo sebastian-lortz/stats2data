@@ -32,8 +32,6 @@ A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 }
 \description{
 Visualises the simulated-annealing temperature decay across iterations.
-Dispatches to class-specific methods for \code{stats2data_aov},
-\code{stats2data_mlr}, and \code{stats2data_vec}.
 }
 \section{Methods (by class)}{
 \itemize{
@@ -53,5 +51,5 @@ plot_cooling(res)
 
 }
 \seealso{
-\code{\link{plot_error}}
+\code{\link{plot_convergence}}
 }

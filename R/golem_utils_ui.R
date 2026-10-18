@@ -330,7 +330,6 @@ col_1 <- function(...) {
 #'   shinyApp(ui, server)
 #' }
 make_action_button <- function(tag, inputId = NULL) {
-  # some obvious checks
   if (!inherits(tag, "shiny.tag")) stop("Must provide a shiny tag.")
   if (!is.null(tag$attribs$class)) {
     if (isTRUE(grepl("action-button", tag$attribs$class))) {
@@ -342,7 +341,6 @@ make_action_button <- function(tag, inputId = NULL) {
            access it on the server side.")
   }
 
-  # handle id
   if (!is.null(inputId)) {
     if (!is.null(tag$attribs$id)) {
       warning(
@@ -357,49 +355,10 @@ make_action_button <- function(tag, inputId = NULL) {
     }
   }
 
-  # handle class
   if (is.null(tag$attribs$class)) {
     tag$attribs$class <- "action-button"
   } else {
     tag$attribs$class <- paste(tag$attribs$class, "action-button")
   }
-  # return tag
   tag
 }
-
-
-# UNCOMMENT AND USE
-#
-# attachment::att_amend_desc()
-#
-# To use this part of the UI
-#
-# #' Include Content From a File
-# #'
-# #' Load rendered RMarkdown from a file and turn into HTML.
-# #'
-# #' @rdname includeRMarkdown
-# #' @export
-# #'
-# #' @importFrom rmarkdown render
-# #' @importFrom markdown markdownToHTML
-# #' @importFrom shiny HTML
-# includeRMarkdown <- function(path){
-#
-#   md <- tempfile(fileext = '.md')
-#
-#   on.exit(unlink(md),add = TRUE)
-#
-#   rmarkdown::render(
-#     path,
-#     output_format = 'md_document',
-#     output_dir = tempdir(),
-#     output_file = md,quiet = TRUE
-#     )
-#
-#   html <- markdown::markdownToHTML(md, fragment.only = TRUE)
-#
-#   Encoding(html) <- "UTF-8"
-#
-#   return(HTML(html))
-# }

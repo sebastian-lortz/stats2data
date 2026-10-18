@@ -6,11 +6,11 @@ template <- readLines("/Users/lortz/Desktop/PhD/Research/simdata/stats2data/data
 
 # set save path
 save.dir <- "/Users/lortz/Desktop/PhD/Research/simdata/stats2data/data-raw/hpc/"
-dir.create(save.dir, recursive = TRUE, showWarnings = FALSE)
+ dir.create(save.dir, recursive = TRUE, showWarnings = FALSE)
 
 for (i in 1:n.jobs) {
   script <- gsub("^job = .+$", paste("job =", i), template)
-  script <- gsub("^n.jobs = .+$", paste("n.jobs =", n.jobs), script)
+   script <- gsub("^n.jobs = .+$", paste("n.jobs =", n.jobs), script)
   writeLines(script, file.path(save.dir, paste0("batch", i, ".R")))
 }
 

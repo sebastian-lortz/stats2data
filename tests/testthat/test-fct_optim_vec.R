@@ -34,14 +34,14 @@ test_that("optim_vec returns a stats2data_vec object for integer data", {
   expect_s3_class(res, "stats2data_vec")
   expect_equal(dim(res$data), c(10L, 1L))
   expect_named(res$data, "x")
-  expect_length(res$best_error, 1)
+  expect_length(res$best_objective, 1)
   expect_equal(res$inputs$N, 10)
 })
 
 test_that("optim_vec handles the binary range shortcut", {
   res <- run_vec(target_mean = c(x = 0.4), target_sd = c(x = 0.5), range = c(0, 1))
   expect_equal(sum(res$data$x), 4)
-  expect_equal(res$best_error[[1]], 0)
+  expect_equal(res$best_objective[[1]], 0)
 })
 
 test_that("optim_vec optimises continuous data and per-variable settings", {
@@ -53,7 +53,7 @@ test_that("optim_vec optimises continuous data and per-variable settings", {
   )
   expect_equal(dim(res$data), c(10L, 2L))
   expect_true(all(res$data$y >= 1 & res$data$y <= 5))
-  expect_true(length(res$track_error[[2]]) > 0)
+  expect_true(length(res$track_objective[[2]]) > 0)
   expect_equal(res$inputs$cooling_rate, (20 - 10) / 20)
 })
 
@@ -72,7 +72,7 @@ test_that("optim_vec_single handles degenerate ranges", {
                           max_iter = 5, init_temp = 0.1, cooling_rate = 0.9,
                           max_starts = 1)
   expect_equal(res$data, rep(2, 5))
-  expect_equal(res$best_error, 0)
+  expect_equal(res$best_objective, 0)
 })
 
 test_that("optim_vec_single validates the range", {
@@ -92,6 +92,6 @@ test_that("optim_vec_single reports SPRITE failures instead of erroring", {
                           is_int = TRUE, sprite_prec = c(2, 2), thresh = 0.05,
                           max_iter = 5, init_temp = 0.1, cooling_rate = 0.9,
                           max_starts = 1)
-  expect_true(is.infinite(res$best_error))
+  expect_true(is.infinite(res$best_objective))
   expect_true(!is.null(res$error_msg))
 })

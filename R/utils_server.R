@@ -36,7 +36,7 @@ check_vec_inputs <- function(
 ) {
   if (!is.numeric(N) || length(N) != 1 || N < 10  || N != as.integer(N)) {
     showNotification(
-      sprintf("N (%s) must be a single positive integer > 10.", N),
+      sprintf("N (%s) must be a single integer >= 10.", N),
       type = "error"
     )
     return(FALSE)
@@ -45,8 +45,8 @@ check_vec_inputs <- function(
   if (length(bad_idx) > 0) {
     bad_vals <- target_mean[bad_idx]
     bad_str <- paste0(head(sort(bad_vals), 5), collapse = ", ")
-    min_str <- paste0(range[1, ], collapse = ", ")
-    max_str <- paste0(range[2, ], collapse = ", ")
+     min_str <- paste0(range[1, ], collapse = ", ")
+     max_str <- paste0(range[2, ], collapse = ", ")
     showNotification(
       sprintf(
         "Each target mean must lie between its min (%s) and max (%s). Offending means: %s",
@@ -58,7 +58,7 @@ check_vec_inputs <- function(
     return(FALSE)
   }
   if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0) {
-    showNotification(
+      showNotification(
       sprintf("thresh (%s) must be a single non-negative numeric value.", thresh),
       type = "error"
     )
@@ -71,7 +71,7 @@ check_vec_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
+   if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
     showNotification(
       sprintf("init_temp (%s) must be a single positive number.", init_temp),
       type = "error"
@@ -84,7 +84,7 @@ check_vec_inputs <- function(
      cooling_rate > 0 &&
      cooling_rate < 1) ||
     is.null(cooling_rate)
-  )) {
+     )) {
     showNotification(
       "cooling_rate must be a single number between 0 and 1, or NULL.",
       type = "error"
@@ -97,7 +97,7 @@ check_vec_inputs <- function(
       type = "error"
     )
     return(FALSE)
-  }
+   }
   # all checks passed
   TRUE
 }
@@ -118,17 +118,24 @@ check_aov_inputs <- function(
     cooling_rate,
     max_starts
 ) {
-  if (!is.numeric(N) || length(N) != 1 || N < 10  || N != as.integer(N)) {
+    if (!is.numeric(N) || length(N) != 1 || N < 10  || N != as.integer(N)) {
     showNotification(
-      sprintf("N (%s) must be a single positive integer > 10.", N),
+      sprintf("N (%s) must be a single integer >= 10.", N),
       type = "error"
     )
     return(FALSE)
   }
   if (!is.numeric(levels) || length(levels) < 1 || any(levels != as.integer(levels))) {
     showNotification(
-      sprintf("Levels (%s) must be a numeric vector of integers ...",
+       sprintf("Levels (%s) must be a numeric vector of integers ...",
               paste(levels, collapse = ", ")),
+      type = "error"
+    )
+    return(FALSE)
+  }
+  if (!is.numeric(range) || length(range) != 2 || anyNA(range) || range[1] >= range[2]) {
+    showNotification(
+      "The outcome range must be two numbers with lower < upper.",
       type = "error"
     )
     return(FALSE)
@@ -138,7 +145,7 @@ check_aov_inputs <- function(
       sprintf(
         "All Subgroup means must lie within the outcome range %s and %s. Got means: %s",
         range[1], range[2],
-        paste0(head(sort(target_group_means[ target_group_means < range[1] | target_group_means > range[2] ]), 5), collapse = ", ")
+         paste0(head(sort(target_group_means[ target_group_means < range[1] | target_group_means > range[2] ]), 5), collapse = ", ")
       ),
       type = "error"
     )
@@ -158,7 +165,7 @@ check_aov_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
+   if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
     showNotification(
       sprintf("init_temp (%s) must be a single positive number.", init_temp),
       type = "error"
@@ -177,7 +184,7 @@ check_aov_inputs <- function(
       type = "error"
     )
     return(FALSE)
-  }
+   }
   if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
     showNotification(
       sprintf("max_starts (%s) must be a single positive integer.", max_starts),
@@ -196,7 +203,7 @@ check_aov_inputs <- function(
 #' @noRd
 check_lm_inputs <- function(
     thresh,
-    max_iter,
+     max_iter,
     init_temp,
     cooling_rate,
     hill_climbs,
@@ -216,10 +223,9 @@ check_lm_inputs <- function(
     )
     return(FALSE)
   }
-  # init_temp may be NULL (auto-calibration); only validate if non-NULL
 
   if (!is.null(init_temp)) {
-    if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
+      if (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0) {
       showNotification(
         sprintf("init_temp (%s) must be a single positive number, or left empty for auto-calibration.", init_temp),
         type = "error"
@@ -230,7 +236,7 @@ check_lm_inputs <- function(
   if (!(
     (is.numeric(cooling_rate) &&
      length(cooling_rate) == 1 &&
-     cooling_rate > 0 &&
+      cooling_rate > 0 &&
      cooling_rate < 1) ||
     is.null(cooling_rate)
   )) {
@@ -246,8 +252,8 @@ check_lm_inputs <- function(
      hill_climbs >= 0 && hill_climbs == as.integer(hill_climbs))
   )) {
     showNotification(
-      sprintf("Total hill climbs (%d) must be a non-negative integer.", hill_climbs),
-      type = "error"
+      sprintf("Total hill climbs (%s) must be a non-negative integer.", hill_climbs),
+       type = "error"
     )
     return(FALSE)
   }

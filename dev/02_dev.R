@@ -40,9 +40,9 @@ golem::add_fct("optim_vec", with_test = TRUE)
 golem::add_fct("optim_mlr", with_test = TRUE)
 golem::add_fct("optim_aov", with_test = TRUE)
 golem::add_fct("hill_climb", with_test = TRUE)
-golem::add_fct("plot_summary", with_test = TRUE)
+golem::add_fct("plot_fit", with_test = TRUE)
 golem::add_fct("plot_cooling", with_test = TRUE)
-golem::add_fct("plot_error", with_test = TRUE)
+golem::add_fct("plot_convergence", with_test = TRUE)
 
 
 golem::add_utils("helpers", with_test = TRUE)

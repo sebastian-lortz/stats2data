@@ -15,8 +15,8 @@ optim_aov(
   factor_type,
   subgroup_sizes = NULL,
   thresh = 0.005,
-  max_iter = 10000,
-  init_temp = NULL,
+  max_iter = 30000,
+  init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,
   progress_mode = "console"
@@ -49,11 +49,7 @@ matching length of \code{levels}.}
 
 \item{max_iter}{Integer. Iterations per restart. Default \code{1e3}.}
 
-\item{init_temp}{Numeric or \code{NULL}. Initial SA temperature.
-If \code{NULL} (default) and \code{integer = TRUE}, the temperature is
-set adaptively from the empirical distribution of single-move
-|delta-objective| values. If \code{NULL} and \code{integer = FALSE},
-falls back to \code{1e-3}.}
+\item{init_temp}{Numeric. Initial SA temperature. Default \code{1e-3}.}
 
 \item{cooling_rate}{Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.}
 
@@ -63,9 +59,9 @@ falls back to \code{1e-3}.}
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{stats2data.object} list with components \code{best_error},
+A \code{stats2data.object} list with components \code{best_objective},
   \code{data}, \code{inputs}, \code{adjusted_targets}, and
-  \code{track_error}.
+  \code{track_objective}.
 }
 \description{
 Uses simulated annealing to generate raw data that reproduce target

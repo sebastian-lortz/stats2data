@@ -17,7 +17,7 @@ optim_mlr(
   target_se = NULL,
   weight = 0.5,
   thresh = 0.005,
-  max_iter = 100000,
+  max_iter = 1e+05,
   init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
@@ -80,13 +80,13 @@ optional local refinement; if NULL, skips refinement. Default \code{NULL}.}
 \value{
 A \code{stats2data.object} list with components:
 \describe{
-  \item{best_error}{Numeric. Minimum objective error achieved.}
+  \item{best_objective}{Numeric. Minimum objective error achieved.}
   \item{data}{Data frame of optimised predictor and outcome values.}
   \item{optim_vec}{The \code{stats2data.object} returned by the internal
     \code{optim_vec} call (marginal optimization results).}
   \item{inputs}{List of all input parameters for reproducibility.}
-  \item{track_error}{Numeric vector of best error at each iteration.}
-  \item{track_error_ratio}{Numeric vector of error ratios (cor vs. reg)
+  \item{track_objective}{Numeric vector of best objective value at each iteration.}
+  \item{track_objective_ratio}{Numeric vector of error ratios (cor vs. reg)
     per iteration.}
 }
 }

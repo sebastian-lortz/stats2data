@@ -38,7 +38,7 @@ A named list of statistics. Contents depend on the class of
   }
 }
 \description{
-Computes and returns key analytical outputs from a `stats2data` result
+Computes and returns outputs from a `stats2data` result
 object, including means, standard deviations, correlations, regression
 coefficients, or F-statistics depending on the module that produced the
 result.

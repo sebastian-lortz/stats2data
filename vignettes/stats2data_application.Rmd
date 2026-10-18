@@ -34,7 +34,7 @@ Across the two examples, every exported function in `stats2data` is demonstrated
 
 * the optimization functions `optim_aov()`, `optim_vec()`, `optim_mlr()`, and `parallel_optim()`;
 * the S3 inspection methods `print()`, `summary()`, `get_stats()`, `get_rmse()`, and `coef()`;
-* the diagnostic and comparison plots `plot_error()`, `plot_cooling()`, `plot_summary()`, and `plot()` (for parallel results);
+* the diagnostic and comparison plots `plot_convergence()`, `plot_cooling()`, `plot_fit()`, and `plot()` (for parallel results);
 * the GRIM helper `check_grim()`;
 * the Shiny entry point `run_app()`.
 
@@ -105,13 +105,13 @@ result.aov <- optim_aov(
   range              = range,
   formula            = formula,
   integer            = integer,
-  max_iter = 100 # remove later
+  max_iter = 500 # remove later
 )
 ```
 
 ## 1.3 Inspecting the result
 
-The default `print()` method shows the design, the sample size, the requested effects, and the best objective value. The reported best error is below `thresh = 5e-3`, indicating that the optimiser has located a candidate within the user-specified threshold.
+The default `print()` method shows the design, the sample size, the requested effects, and the best objective value. The reported best objective is below `thresh = 5e-3`, indicating that the optimiser has located a candidate within the user-specified threshold.
 
 ```{r aov-print}
 result.aov
@@ -138,10 +138,10 @@ get_rmse(result.aov)
 
 ## 1.4 Diagnostics
 
-`plot_error()` shows the simulated-annealing best-error trajectory.
+`plot_convergence()` shows the simulated-annealing best-error trajectory.
 
 ```{r aov-error, fig.alt = "Error trajectory for the ANOVA optimization."}
-plot_error(result.aov)
+plot_convergence(result.aov)
 ```
 
 `plot_cooling()` reconstructs the temperature schedule from the stored `inputs`.
@@ -152,10 +152,10 @@ plot_cooling(result.aov)
 
 ## 1.5 Target vs. simulated comparison
 
-`plot_summary()` builds a lollipop chart of simulated minus target values. With `standardised = FALSE` (used here because one target F is below the standardization threshold), the y-axis is on the original F-scale; with the default `standardised = TRUE`, discrepancies would be divided by the target value, with a fall-back to the unstandardised difference for near-zero targets.
+`plot_fit()` builds a lollipop chart of simulated minus target values. With `standardised = FALSE` (used here because one target F is below the standardization threshold), the y-axis is on the original F-scale; with the default `standardised = TRUE`, discrepancies would be divided by the target value, with a fall-back to the unstandardised difference for near-zero targets.
 
 ```{r aov-summary-plot, fig.alt = "ANOVA target-vs-simulated lollipop chart."}
-plot_summary(result.aov, standardised = FALSE)
+plot_fit(result.aov, standardised = FALSE)
 ```
 
 ## 1.6 Inspect the simulated dataset
@@ -250,10 +250,10 @@ plot(result.parallel_aov)
 
 ### Aggregated target-vs-simulated comparison
 
-`plot_summary()` for a parallel result draws the same lollipop chart as for a stand-alone result; the simulated point per parameter is the across-run mean and an error bar overlays the across-run min/max (default).
+`plot_fit()` for a parallel result draws the same lollipop chart as for a stand-alone result; the simulated point per parameter is the across-run mean and an error bar overlays the across-run min/max (default).
 
 ```{r aov-par-summary-plot, fig.width = 8, fig.height = 4, fig.alt = "Across-run aggregated target-vs-simulated summary statistics for parallel ANOVA runs."}
-plot_summary(result.parallel_aov, standardised = FALSE)
+plot_fit(result.parallel_aov, standardised = FALSE)
 ```
 
 The single best run is accessible via `$best` and supports the same S3 methods as a stand-alone result:
@@ -326,10 +326,10 @@ get_rmse(result.vec)
 
 ### Diagnostics
 
-`plot_error()` for a `stats2data_vec` object accepts `run` to select a per-variable trajectory; the trajectory for `Apnea.2` (the second variable) is shown:
+`plot_convergence()` for a `stats2data_vec` object accepts `run` to select a per-variable trajectory; the trajectory for `Apnea.2` (the second variable) is shown:
 
 ```{r vec-error, fig.alt = "Error trajectory for the Apnea.2 marginal."}
-plot_error(result.vec, run = 2)
+plot_convergence(result.vec, run = 2)
 ```
 
 ```{r vec-cooling, fig.alt = "Cooling schedule for the descriptives optimization."}
@@ -339,7 +339,7 @@ plot_cooling(result.vec)
 ### Target vs. simulated comparison
 
 ```{r vec-summary-plot, fig.alt = "Descriptives target-vs-simulated lollipop chart."}
-plot_summary(result.vec, standardised = FALSE)
+plot_fit(result.vec, standardised = FALSE)
 ```
 
 ### Inspect the simulated dataset
@@ -411,9 +411,9 @@ result.mlr <- optim_mlr(
   target_cor   = target_cor,
   target_reg   = target_reg,
   target_se    = target_se,
-  thresh       = .0005,
+  thresh       = .001,
   weight       = .5
-)
+  )
 ```
 
 ### Inspect
@@ -447,19 +447,19 @@ get_rmse(result.mlr)
 
 ### Diagnostics
 
-`plot_error()` shows the total-objective trajectory:
+`plot_convergence()` shows the total-objective trajectory:
 
 ```{r lm-error, fig.alt = "Error trajectory for the MLR optimization."}
-plot_error(result.mlr, first_iter = 1000)
+plot_convergence(result.mlr, first_iter = 1000)
 ```
 
-For `stats2data_mlr` objects, `plot_error()` exposes a `ratio = TRUE` switch that plots the per-iteration correlation-to-regression error ratio together with mean, median, and final reference lines:
+For `stats2data_mlr` objects, `plot_convergence()` exposes a `ratio = TRUE` switch that plots the per-iteration correlation-to-regression error ratio together with mean, median, and final reference lines:
 
 ```{r lm-error-ratio, fig.alt = "Cor/Reg error ratio trajectory for MLR."}
-plot_error(result.mlr, ratio = TRUE)
+plot_convergence(result.mlr, ratio = TRUE)
 ```
 
-The trajectory shows that the regression component dominates the objective. To rebalance the two error components, the optimization is repeated with a smaller `weight = .9`:
+The trajectory shows that the regression component dominates the objective. To rebalance the two error components, the optimization is repeated with a smaller `weight = .1`:
 
 ```{r lm-rerun, fig.alt = "Weight-tuned MLR error ratio."}
 result.mlr <- optim_mlr(
@@ -472,10 +472,10 @@ result.mlr <- optim_mlr(
   target_cor   = target_cor,
   target_reg   = target_reg,
   target_se    = target_se,
-  thresh       = .0005,
-  weight       = .9 
-)
-plot_error(result.mlr, ratio = TRUE)
+  thresh       = .001,
+  weight       = .1
+  )
+plot_convergence(result.mlr, ratio = TRUE)
 ```
 
 The error ratio is now closer to one and the best objective value is lower than in the first call.
@@ -483,7 +483,7 @@ The error ratio is now closer to one and the best objective value is lower than 
 ### Target vs. simulated comparison
 
 ```{r lm-summary-plot, fig.alt = "MLR target-vs-simulated lollipop chart."}
-plot_summary(result.mlr, standardised = FALSE)
+plot_fit(result.mlr, standardised = FALSE)
 ```
 
 ### Inspect the simulated dataset
@@ -517,10 +517,10 @@ result.parallel <- parallel_optim(
     target_cor   = target_cor,
     target_reg   = target_reg,
     target_se    = target_se,
-    thresh       = .0005,
-    weight       = .9
+    thresh       = .001,
+    weight       = .1
   ),
-  runs  = 6, # change later
+  runs  = 12, # change later
   cores = 6, 
   seed  = 2026
 )
@@ -547,13 +547,13 @@ get_rmse(result.parallel)
 ### RMSE distribution
 
 ```{r par-plot, fig.width = 8, fig.height = 4, fig.alt = "Between-run vs. target RMSE distribution across parallel MLR runs."}
-plot(result.parallel)
+plot_stability(result.parallel)
 ```
 
 ### Aggregated target-vs-simulated comparison
 
 ```{r par-summary-plot, fig.width = 8, fig.height = 4, fig.alt = "Across-run aggregated target-vs-simulated lollipop chart for parallel MLR runs."}
-plot_summary(result.parallel, standardised = FALSE)
+plot_fit(result.parallel, standardised = FALSE)
 ```
 
 The single best run is accessible via `$best` and supports the same S3 methods as a stand-alone result:

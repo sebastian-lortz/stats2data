@@ -43,7 +43,7 @@ test_that("optim_aov optimises a continuous between-subject design", {
   expect_named(res$data, c("ID", "Factor1", "outcome"))
   expect_true(all(res$data$outcome >= 0 & res$data$outcome <= 10))
   expect_length(res$adjusted_targets$group_means, 2)
-  expect_gt(length(res$track_error), 0)
+  expect_gt(length(res$track_objective), 0)
 })
 
 test_that("optim_aov calibrates the temperature for integer designs", {

@@ -1,10 +1,8 @@
-# --------------------------------------------------------------------------
 # stats2data: S3 generic definitions
-# --------------------------------------------------------------------------
 
 #' Extract statistics from a `stats2data` result
 #'
-#' Computes and returns key analytical outputs from a `stats2data` result
+#' Computes and returns outputs from a `stats2data` result
 #' object, including means, standard deviations, correlations, regression
 #' coefficients, or F-statistics depending on the module that produced the
 #' result.
@@ -74,8 +72,7 @@ get_rmse <- function(result, ...) UseMethod("get_rmse")
 #' Plot error trajectory for a stats2data result
 #'
 #' Visualises how the objective-function error evolves across iterations of
-#' the simulated-annealing optimiser.  Dispatches to class-specific methods
-#' for \code{stats2data_aov}, \code{stats2data_mlr}, and \code{stats2data_vec}.
+#' the simulated-annealing optimiser.
 #'
 #' For \code{stats2data_mlr} objects, set \code{ratio = TRUE} to plot the
 #' correlation-to-regression error ratio instead of the total error.
@@ -86,28 +83,26 @@ get_rmse <- function(result, ...) UseMethod("get_rmse")
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @seealso \code{\link{plot_error.stats2data_aov}},
-#'   \code{\link{plot_error.stats2data_mlr}},
-#'   \code{\link{plot_error.stats2data_vec}},
+#' @seealso \code{\link{plot_convergence.stats2data_aov}},
+#'   \code{\link{plot_convergence.stats2data_mlr}},
+#'   \code{\link{plot_convergence.stats2data_vec}},
 #'   \code{\link{plot_cooling}}
 #'
 #' @examples
 #' \dontrun{
 #' res <- optim_mlr(...)
-#' plot_error(res)
-#' plot_error(res, ratio = TRUE)
-#' plot_error(res, run = 2, first_iter = 500)
+#' plot_convergence(res)
+#' plot_convergence(res, ratio = TRUE)
+#' plot_convergence(res, run = 2, first_iter = 500)
 #' }
 #'
 #' @export
-plot_error <- function(x, ...) UseMethod("plot_error")
+plot_convergence <- function(x, ...) UseMethod("plot_convergence")
 
 
 #' Plot cooling schedule for a stats2data result
 #'
 #' Visualises the simulated-annealing temperature decay across iterations.
-#' Dispatches to class-specific methods for \code{stats2data_aov},
-#' \code{stats2data_mlr}, and \code{stats2data_vec}.
 #'
 #' @param x A stats2data result object (\code{stats2data_aov},
 #'   \code{stats2data_mlr}, or \code{stats2data_vec}).
@@ -115,7 +110,7 @@ plot_error <- function(x, ...) UseMethod("plot_error")
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @seealso \code{\link{plot_error}}
+#' @seealso \code{\link{plot_convergence}}
 #'
 #' @examples
 #' \dontrun{
@@ -129,9 +124,7 @@ plot_cooling <- function(x, ...) UseMethod("plot_cooling")
 
 #' Plot summary of target-vs-simulated statistics
 #'
-#' Creates a lollipop chart comparing simulated and target summary statistics.
-#' Dispatches to class-specific methods for \code{stats2data_aov},
-#' \code{stats2data_mlr}, and \code{stats2data_vec}.
+#' Creates a chart comparing simulated and target summary statistics.
 #'
 #' @param x A stats2data result object (\code{stats2data_aov},
 #'   \code{stats2data_mlr}, or \code{stats2data_vec}).
@@ -140,14 +133,39 @@ plot_cooling <- function(x, ...) UseMethod("plot_cooling")
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @seealso \code{\link{plot_error}}, \code{\link{plot_cooling}}
+#' @seealso \code{\link{plot_convergence}}, \code{\link{plot_cooling}}
 #'
 #' @examples
 #' \dontrun{
 #' res <- optim_vec(...)
-#' plot_summary(res)
-#' plot_summary(res, standardised = FALSE)
+#' plot_fit(res)
+#' plot_fit(res, standardised = FALSE)
 #' }
 #'
 #' @export
-plot_summary <- function(x, ...) UseMethod("plot_summary")
+plot_fit <- function(x, ...) UseMethod("plot_fit")
+
+#' Plot run-to-run stability for a stats2data result
+#'
+#' Visualises two RMSE distributions across replications: run-to-run
+#' variability, computed against the grand mean over runs, and accuracy,
+#' computed against the requested targets. Box-and-jitter, faceted by
+#' metric. Requires replications, so it is defined only for
+#' \code{stats2data_parallel} objects produced by \code{parallel_optim}.
+#'
+#' @param x A \code{stats2data_parallel} object.
+#' @param ... Arguments passed to methods.
+#'
+#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#'
+#' @seealso \code{\link{get_rmse}}, \code{\link{plot_fit}},
+#'   \code{\link{plot.stats2data}}
+#'
+#' @examples
+#' \dontrun{
+#' res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
+#' plot_stability(res)
+#' }
+#'
+#' @export
+plot_stability <- function(x, ...) UseMethod("plot_stability")

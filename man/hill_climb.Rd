@@ -44,12 +44,12 @@ progressor calls. Default \code{NULL}.}
 A list with components:
 \describe{
   \item{best_candidate}{The optimised candidate matrix achieving lowest error.}
-  \item{best_error}{Numeric. The minimum objective function value found.}
+  \item{best_objective}{Numeric. The minimum objective function value found.}
 }
 }
 \description{
 Executes a hill-climbing algorithm to iteratively improve a candidate data set
-by minimizing a supplied error function. Supports the LM module.
+by minimizing a supplied error function. Supports the MLR module.
 }
 \examples{
 \dontrun{

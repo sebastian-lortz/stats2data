@@ -43,13 +43,13 @@
 #'
 #' @return A \code{stats2data.object} list with components:
 #' \describe{
-#'   \item{best_error}{Numeric. Minimum objective error achieved.}
+#'   \item{best_objective}{Numeric. Minimum objective error achieved.}
 #'   \item{data}{Data frame of optimised predictor and outcome values.}
 #'   \item{optim_vec}{The \code{stats2data.object} returned by the internal
 #'     \code{optim_vec} call (marginal optimization results).}
 #'   \item{inputs}{List of all input parameters for reproducibility.}
-#'   \item{track_error}{Numeric vector of best error at each iteration.}
-#'   \item{track_error_ratio}{Numeric vector of error ratios (cor vs. reg)
+#'   \item{track_objective}{Numeric vector of best objective value at each iteration.}
+#'   \item{track_objective_ratio}{Numeric vector of error ratios (cor vs. reg)
 #'     per iteration.}
 #' }
 #'
@@ -95,7 +95,7 @@ optim_mlr <- function(
     stop("`N` must be a single positive integer.")
   if (!is.numeric(target_mean) || !is.numeric(target_sd) ||
       length(target_mean) != length(target_sd) || length(target_mean) < 1)
-    stop("`target_mean` and `target_sd` must be numeric vectors of the same positive length.")
+     stop("`target_mean` and `target_sd` must be numeric vectors of the same positive length.")
   if (is.null(names(target_mean)) || any(names(target_mean) == ""))
     stop("`target_mean` must have non-empty names.")
   if (!(is.numeric(range) &&
@@ -105,7 +105,7 @@ optim_mlr <- function(
   if (!is.logical(integer) || length(integer) < 1 ||
       (length(integer) != 1 && length(integer) != length(target_mean)))
     stop("`integer` must be a logical vector (length 1 or length(target_mean)).")
-  if (any(integer) && is.null(sprite_prec))
+   if (any(integer) && is.null(sprite_prec))
     stop("`sprite_prec` must be specified when `integer = TRUE`. ",
          "Provide an integer vector of length 2: c(mean_decimals, sd_decimals).")
   if (!is.null(sprite_prec)) {
@@ -119,7 +119,7 @@ optim_mlr <- function(
   frm        <- stats::as.formula(reg_equation)
   all_vars   <- all.vars(frm)
   dv_name    <- all_vars[1]
-  pred_names <- all_vars[-1]
+   pred_names <- all_vars[-1]
   missing_vars <- setdiff(all_vars, names(target_mean))
   if (length(missing_vars) > 0)
     stop("The following variables in `reg_equation` are not in `target_mean`: ",
@@ -133,7 +133,7 @@ optim_mlr <- function(
   }
   if (length(target_cor) != exp_cor)
     stop(sprintf("`target_cor` must be a numeric vector of length %d, not %d.",
-                 exp_cor, length(target_cor)))
+                  exp_cor, length(target_cor)))
   if (!is.numeric(target_reg) || !any(!is.na(target_reg)))
     stop("`target_reg` must contain at least one non-NA numeric value.")
   if (length(target_reg) != exp_reg)
@@ -148,7 +148,7 @@ optim_mlr <- function(
   if (weight < 0 || weight > 1)
     stop("`weight` must be between 0 and 1.")
   weight = c(weight, 1-weight)
-  if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
+   if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
     stop("`thresh` must be a single non-negative number.")
   if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
     stop("`max_iter` must be a single positive number.")
@@ -158,7 +158,7 @@ optim_mlr <- function(
          cooling_rate > 0 && cooling_rate < 1) || is.null(cooling_rate)))
     stop("`cooling_rate` must be in (0,1) or NULL.")
   if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1)
-    stop("`max_starts` must be a single positive integer.")
+     stop("`max_starts` must be a single positive integer.")
   if (!(is.null(hill_climbs) ||
         (is.numeric(hill_climbs) && length(hill_climbs) == 1 &&
          hill_climbs >= 0 && hill_climbs == as.integer(hill_climbs))))
@@ -167,7 +167,7 @@ optim_mlr <- function(
       !progress_mode %in% c("console", "shiny", "off"))
     stop('`progress_mode` must be "console", "shiny", or "off".')
 
-  # marginals optimization via optim_vec
+  # marginals via optim_vec
   vec_result <- optim_vec(
     N             = N,
     target_mean   = target_mean,
@@ -176,7 +176,7 @@ optim_mlr <- function(
     integer       = integer,
     sprite_prec   = sprite_prec,
     thresh     = thresh,
-    max_iter      = 5e5,
+     max_iter      = 5e5,
     init_temp     = 1e-3,
     cooling_rate  = NULL,
     max_starts    = 3,
@@ -193,7 +193,7 @@ optim_mlr <- function(
   # derive term positions for Rcpp
   terms_obj  <- stats::terms(frm)
   design_cpp <- get_design(candidate = predictors, reg_equation, terms_obj)$positions
-  names(target_reg) <- get_design(candidate = predictors, reg_equation, terms_obj)$target_names
+   names(target_reg) <- get_design(candidate = predictors, reg_equation, terms_obj)$target_names
 
   # map the target correlations
   target_cor <- remap_target_cor(target_cor, sim_data, col_names)
@@ -202,7 +202,7 @@ optim_mlr <- function(
   if (is.null(target_se)) {
     error_function <- function(candidate) {
       error_function_cpp(
-        candidate, outcome, target_cor, target_reg,
+         candidate, outcome, target_cor, target_reg,
         weight, design_cpp
       )
     }
@@ -221,13 +221,13 @@ optim_mlr <- function(
 
   current_candidate <- predictors
   best_candidate    <- current_candidate
-  initial           <- error_function(current_candidate)
+   initial           <- error_function(current_candidate)
   current_error     <- initial$total_error
   if (!is.finite(current_error)) current_error <- Inf
-  best_error        <- current_error
+  best_objective        <- current_error
   best_ratio        <- initial$error_ratio
-  track_error       <- numeric(max_iter * max_starts)
-  track_error_ratio <- numeric(max_iter * max_starts)
+  track_objective       <- numeric(max_iter * max_starts)
+  track_objective_ratio <- numeric(max_iter * max_starts)
   global_iter       <- 0L
 
   # progress setup
@@ -242,7 +242,7 @@ optim_mlr <- function(
   # set init temp
   if (is.null(init_temp)) {
     deltas <- replicate(500, {
-      cand <- current_candidate
+       cand <- current_candidate
       col_idx <- sample(num_preds, 1)
       idx <- sample(N, 2)
       cand[idx, col_idx] <- cand[rev(idx), col_idx]
@@ -260,7 +260,7 @@ optim_mlr <- function(
       # fresh marginals on restarts
       if (FALSE) {
         int_expanded <- rep(integer, length.out = length(target_mean))
-        rng_mat <- if (is.matrix(range)) range else
+         rng_mat <- if (is.matrix(range)) range else
           matrix(rep(range, length(target_mean)), nrow = 2)
         for (v in seq_len(num_preds)) {
           vname <- pred_names[v]
@@ -289,7 +289,7 @@ optim_mlr <- function(
         if (move_size == 1) {
           col_idx <- sample(num_preds, 1)
           found <- FALSE
-          for (try in 1:100) {
+           for (try in 1:100) {
             idx <- sample(N, 2)
             if (candidate[idx[1], col_idx] != candidate[idx[2], col_idx]) {
               found <- TRUE
@@ -301,7 +301,7 @@ optim_mlr <- function(
         } else if (move_size == 2) {
           # swap a block
           col_idx <- sample(num_preds, 1)
-          k <- max(2, round(0.05 * N))
+           k <- max(2, round(0.05 * N))
           idx <- sample(N, k)
           candidate[idx, col_idx] <- sample(candidate[idx, col_idx])
         } else {
@@ -313,33 +313,33 @@ optim_mlr <- function(
         # candidate evaluation
         err <- error_function(candidate)
         if (!is.finite(err$total_error)) next
-        prob <- exp((current_error - err$total_error) / temp)
+         prob <- exp((current_error - err$total_error) / temp)
         if (err$total_error < current_error || stats::runif(1) < prob) {
           current_candidate <- candidate
           current_error     <- err$total_error
-          if (current_error < best_error) {
+          if (current_error < best_objective) {
             best_candidate <- current_candidate
-            best_error     <- current_error
+            best_objective     <- current_error
             best_ratio     <- err$error_ratio
           }
         }
 
         temp        <- temp * cooling_rate
         global_iter <- global_iter + 1L
-        track_error[global_iter]       <- best_error
-        track_error_ratio[global_iter] <- best_ratio
+        track_objective[global_iter]       <- best_objective
+        track_objective_ratio[global_iter] <- best_ratio
         if (global_iter %% pb_interval == 0) p()
-        if (is.finite(best_error) && best_error < thresh) break
+        if (is.finite(best_objective) && best_objective < thresh) break
       }
       current_candidate <- best_candidate
-      if (is.finite(best_error) && best_error < thresh) break
+      if (is.finite(best_objective) && best_objective < thresh) break
       temp <- init_temp
     }
 
-    track_error       <- track_error[seq_len(global_iter)]
-    track_error_ratio <- track_error_ratio[seq_len(global_iter)]
+     track_objective       <- track_objective[seq_len(global_iter)]
+    track_objective_ratio <- track_objective_ratio[seq_len(global_iter)]
 
-    # hill climbing refinement
+    # hill climbing
     if (!is.null(hill_climbs) && hill_climbs > 0) {
       local_opt <- hill_climb(
         current_candidate = best_candidate,
@@ -351,7 +351,7 @@ optim_mlr <- function(
         pb_interval       = pb_interval,
         progress_mode     = progress_mode
       )
-      best_error     <- local_opt$best_error
+      best_objective     <- local_opt$best_objective
       best_candidate <- local_opt$best_candidate
     }
   }, handlers = handler)
@@ -362,10 +362,10 @@ optim_mlr <- function(
 
   # return
   new_s2d_mlr(
-    best_error        = best_error,
+    best_objective        = best_objective,
     data              = as.data.frame(best_solution),
     optim_vec         = vec_result,
-    inputs            = list(
+     inputs            = list(
       N = N, target_mean = target_mean, target_sd = target_sd,
       range = range, integer = integer, sprite_prec = sprite_prec,
       target_cor = target_cor, target_reg = target_reg,
@@ -375,7 +375,7 @@ optim_mlr <- function(
       max_starts = max_starts, hill_climbs = hill_climbs,
       progress_mode = progress_mode
     ),
-    track_error       = track_error,
-    track_error_ratio = track_error_ratio
+    track_objective       = track_objective,
+    track_objective_ratio = track_objective_ratio
   )
 }

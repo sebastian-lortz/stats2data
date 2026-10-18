@@ -14,7 +14,7 @@
 #' @param seed Integer or \code{NULL}. If non-\code{NULL}, a reproducible
 #'   seed is generated per run. Default \code{NULL}.
 #' @param stop_conv Logical. If \code{TRUE}, stop launching further runs as
-#'   soon as one run has converged, i.e. its \code{best_error} is below the
+#'   soon as one run has converged, i.e. its \code{best_objective} is below the
 #'   convergence threshold. Default \code{FALSE}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Controls the outer progress bar only; individual runs
@@ -25,7 +25,7 @@
 #'   \item{results}{List of completed runs. Each element is the object
 #'     returned by \code{FUN} (class \code{stats2data_vec},
 #'     \code{stats2data_mlr}, or \code{stats2data_aov}).}
-#'   \item{best}{The single result with the lowest \code{best_error}.}
+#'   \item{best}{The single result with the lowest \code{best_objective}.}
 #'   \item{module}{Character. One of \code{"vec"}, \code{"mlr"}, or
 #'     \code{"aov"}, inferred from the class of the first result.}
 #'   \item{runs}{Integer. Number of runs actually completed.}
@@ -46,8 +46,8 @@
 #' converged run; they are kept in \code{results}. With
 #' \code{stop_conv = FALSE} all runs are dispatched in a single call, as before.
 #'
-#' Convergence of a single run is judged as \code{best_error < thresh}. For
-#' \code{stats2data_vec} results, where \code{best_error} is a list of
+#' Convergence of a single run is judged as \code{best_objective < thresh}. For
+#' \code{stats2data_vec} results, where \code{best_objective} is a list of
 #' per-variable errors, every component must be below \code{thresh}.
 #'
 #' @examples
@@ -87,7 +87,7 @@ parallel_optim <- function(FUN,
     stop("`args` must be a named list of arguments to pass to `FUN`.",
          call. = FALSE)
   }
-  if (!is.numeric(runs) || length(runs) != 1L ||
+   if (!is.numeric(runs) || length(runs) != 1L ||
       runs < 1L || runs != as.integer(runs)) {
     stop("`runs` must be a single positive integer.", call. = FALSE)
   }
@@ -100,7 +100,7 @@ parallel_optim <- function(FUN,
     stop("`seed` must be NULL or a single integer.", call. = FALSE)
   }
   if (!is.logical(stop_conv) || length(stop_conv) != 1L || is.na(stop_conv)) {
-    stop("`stop_conv` must be a single logical (TRUE or FALSE).", call. = FALSE)
+      stop("`stop_conv` must be a single logical (TRUE or FALSE).", call. = FALSE)
   }
   if (!is.character(progress_mode) || length(progress_mode) != 1L ||
       !progress_mode %in% c("console", "shiny", "off")) {
@@ -112,7 +112,7 @@ parallel_optim <- function(FUN,
 
   # error helpers
   error_components <- function(r) {
-    e <- r$best_error
+     e <- r$best_objective
     if (is.list(e)) {
       vapply(e, function(x) {
         if (is.numeric(x) && length(x) == 1L && is.finite(x)) x else Inf
@@ -134,17 +134,17 @@ parallel_optim <- function(FUN,
   # convergence threshold
   thresh <- NULL
   if (stop_conv) {
-    if (!is.null(args$thresh)) {
+     if (!is.null(args$thresh)) {
       thresh <- args$thresh
     } else {
       fml <- formals(FUN)$thresh
-      if (!is.null(fml) && !identical(fml, quote(expr = ))) {
+       if (!is.null(fml) && !identical(fml, quote(expr = ))) {
         thresh <- tryCatch(eval(fml, envir = environment(FUN)),
                            error = function(e) NULL)
       }
     }
     if (!is.numeric(thresh) || length(thresh) != 1L ||
-        !is.finite(thresh) || thresh < 0) {
+         !is.finite(thresh) || thresh < 0) {
       warning("`stop_conv = TRUE` but no usable `thresh` was found in `args` ",
               "or in the formals of `FUN`; early stopping is disabled.",
               call. = FALSE)
@@ -153,12 +153,12 @@ parallel_optim <- function(FUN,
     }
   }
 
-  # per-run RNG
+  # per-run rng
   seeds <- NULL
   if (!is.null(seed)) {
     old_seed <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE))
       get(".Random.seed", envir = globalenv()) else NULL
-    old_kind <- RNGkind("L'Ecuyer-CMRG")[1L]
+     old_kind <- RNGkind("L'Ecuyer-CMRG")[1L]
     on.exit({
       RNGkind(old_kind)
       if (!is.null(old_seed))
@@ -166,7 +166,7 @@ parallel_optim <- function(FUN,
     }, add = TRUE)
 
     set.seed(as.integer(seed))
-    seeds <- vector("list", runs)
+     seeds <- vector("list", runs)
     s     <- get(".Random.seed", envir = globalenv())
     for (i in seq_len(runs)) {
       seeds[[i]] <- s
@@ -174,7 +174,7 @@ parallel_optim <- function(FUN,
     }
   }
 
-  # worker function
+  # worker fun
   run_one <- function(i) {
     do.call(FUN, args)
   }
@@ -185,8 +185,7 @@ parallel_optim <- function(FUN,
 
   # execute
   if (cores > 1L) {
-    # Multi-core
-    if (!requireNamespace("future", quietly = TRUE) ||
+       if (!requireNamespace("future", quietly = TRUE) ||
         !requireNamespace("future.apply", quietly = TRUE)) {
       stop("Packages 'future' and 'future.apply' are required for ",
            "parallel execution (cores > 1). Install them with:\n",
@@ -199,7 +198,7 @@ parallel_optim <- function(FUN,
     old_plan <- future::plan(future::multisession, workers = cores)
     on.exit(future::plan(old_plan), add = TRUE)
 
-    handler <- switch(progress_mode,
+     handler <- switch(progress_mode,
                       console = list(progressr::handler_txtprogressbar()),
                       shiny   = list(progressr::handler_shiny()),
                       off     = list(progressr::handler_void())
@@ -207,13 +206,13 @@ parallel_optim <- function(FUN,
 
     # batch only when early stopping is requested
     idx <- seq_len(runs)
-    batches <- if (stop_conv) {
+     batches <- if (stop_conv) {
       split(idx, ceiling(idx / min(cores, runs)))
     } else {
       list(idx)
     }
 
-    progressr::with_progress({
+      progressr::with_progress({
       p <- progressr::progressor(steps = runs)
       for (b in batches) {
         res_b <- future.apply::future_lapply(
@@ -237,13 +236,13 @@ parallel_optim <- function(FUN,
     }, handlers = handler)
 
   } else {
-    # Sequential
+    # sequential
     args$progress_mode <- progress_mode
 
     if (progress_mode != "off") {
       cat(sprintf("Running %d sequential replications...\n", runs))
     }
-    for (i in seq_len(runs)) {
+      for (i in seq_len(runs)) {
       if (!is.null(seeds)) {
         assign(".Random.seed", seeds[[i]], envir = globalenv())
       }
@@ -263,7 +262,7 @@ parallel_optim <- function(FUN,
   # drop slots
   results <- results[seq_len(n_done)]
 
-  if (converged && progress_mode != "off") {
+    if (converged && progress_mode != "off") {
     cat(sprintf("\nConverged after %d of %d runs (thresh = %s).\n",
                 n_done, runs, format(thresh)))
   }
@@ -280,12 +279,12 @@ parallel_optim <- function(FUN,
   )
 
   # best run
-  errors   <- vapply(results, run_score, numeric(1L))
+   errors   <- vapply(results, run_score, numeric(1L))
   best_idx <- which.min(errors)
 
   # return
   structure(
-    list(
+     list(
       results        = results,
       best           = results[[best_idx]],
       module         = module,
@@ -307,7 +306,7 @@ print.stats2data_parallel <- function(x, ...) {
   cat("  Module:", x$module, "\n")
   if (!is.null(x$runs_requested) && !identical(x$runs, x$runs_requested)) {
     cat("  Runs:  ", x$runs, "of", x$runs_requested, "(stopped early)\n")
-  } else {
+   } else {
     cat("  Runs:  ", x$runs, "\n")
   }
   if (isTRUE(x$converged)) {
@@ -315,17 +314,17 @@ print.stats2data_parallel <- function(x, ...) {
   }
 
   errors <- vapply(x$results, function(r) {
-    e <- r$best_error
+     e <- r$best_objective
     if (is.list(e)) {
       mean(vapply(e, function(v) {
         if (is.numeric(v) && length(v) == 1L && is.finite(v)) v else NA_real_
       }, numeric(1L)), na.rm = TRUE)
-    } else {
+     } else {
       as.numeric(e)
     }
   }, numeric(1L))
 
-  cat("  Best error (across runs):", format(min(errors, na.rm = TRUE), digits = 6), "\n")
-  cat("  Mean error (across runs):", format(mean(errors, na.rm = TRUE), digits = 6), "\n")
+  cat("  Best objective (across runs):", format(min(errors, na.rm = TRUE), digits = 6), "\n")
+  cat("  Mean objective (across runs):", format(mean(errors, na.rm = TRUE), digits = 6), "\n")
   invisible(x)
 }

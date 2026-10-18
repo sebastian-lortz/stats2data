@@ -62,7 +62,7 @@ mod_optim_vec_ui <- function(id) {
           )
         ),
         div(
-          style = "display:inline-block; vertical-align:top; margin-right:20px;",
+           style = "display:inline-block; vertical-align:top; margin-right:20px;",
           wellPanel(
             h4("Algorithm Hyperparameters"),
             numericInput(
@@ -77,7 +77,7 @@ mod_optim_vec_ui <- function(id) {
             ),
             numericInput(ns("max_iter"), name_with_info(
               "Max Iterations",
-              "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e5,   min = 1,    step = 1000),
+               "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e5,   min = 1,    step = 1000),
             numericInput(ns("init_temp"), name_with_info(
               "Initial Temperature",
               "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
@@ -98,12 +98,12 @@ mod_optim_vec_ui <- function(id) {
                 width = 12,
                 div(style = "display:inline-block;",
                     actionButton(ns("run"),       "Run Optimization", class = "btn-primary")
-                )
+                 )
               )
             ),
             div(
               id    = ns("processing_msg"),
-              style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
+               style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
               "Processing, please wait ..."
             ),
             textOutput(ns("status_text")),
@@ -111,11 +111,11 @@ mod_optim_vec_ui <- function(id) {
             h5(name_with_info(
               "Objective Function Value",
               "The minimum value of the objective function attained by the optimization.")),
-            tableOutput(ns("best_errors")),
+            tableOutput(ns("best_objectives")),
             fluidRow( style = "margin-bottom: 10px;",
                       column(12,
-                             actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                             actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
+                             actionButton(ns("plot_fit"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
+                              actionButton(ns("plot_convergence"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
                              actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
                              actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute RMSE"), class = "btn-sm"),
                              actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
@@ -140,7 +140,7 @@ mod_optim_vec_server <- function(id) {
         SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
         Min      = c( 0,     0,  -24,  -3,    -3),
         Max      = c(36,     1,   24,   3,     3),
-        Integer  = rep(TRUE, 5),
+         Integer  = rep(TRUE, 5),
         stringsAsFactors = FALSE
       ),
       result = NULL,
@@ -154,7 +154,7 @@ mod_optim_vec_server <- function(id) {
         input$N,
         input$param_table,
         input$add_row,
-        input$remove_row,
+         input$remove_row,
         input$thresh,
         input$max_iter,
         input$init_temp,
@@ -164,8 +164,8 @@ mod_optim_vec_server <- function(id) {
       rv$dirty <- TRUE
       rv$last <- NULL
       for (btn in c(
-        "plot_error","get_rmse",
-        "plot_summary","plot_cooling",
+        "plot_convergence","get_rmse",
+         "plot_fit","plot_cooling",
         "display_data","download"
       )) {
         shinyjs::disable(btn)
@@ -182,7 +182,7 @@ mod_optim_vec_server <- function(id) {
 
     observeEvent(input$add_row, {
       n <- nrow(rv$params) + 1
-      rv$params <- rbind(rv$params, data.frame(
+       rv$params <- rbind(rv$params, data.frame(
         Variable = paste0("V", n),
         Mean     = 4,
         SD       = 1,
@@ -197,14 +197,14 @@ mod_optim_vec_server <- function(id) {
         rv$params <- rv$params[-nrow(rv$params), ]
     })
 
-    observeEvent(input$max_iter, {
+     observeEvent(input$max_iter, {
       updateNumericInput(session, "cooling_rate",
                          value = max(0, min(1, (input$max_iter - 10)/input$max_iter))
       )
     })
 
     shinyjs::disable("run")
-    lapply(c("plot_error","get_rmse","plot_summary","plot_cooling","display_data","download"),
+    lapply(c("plot_convergence","get_rmse","plot_fit","plot_cooling","display_data","download"),
            shinyjs::disable
     )
 
@@ -223,7 +223,7 @@ mod_optim_vec_server <- function(id) {
       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
       rv$status <- "running"
       df  <- rv$params
-      N            <- input$N
+       N            <- input$N
       thresh    <- input$thresh
       max_iter     <- input$max_iter
       init_temp    <- input$init_temp
@@ -239,7 +239,7 @@ mod_optim_vec_server <- function(id) {
         max_iter = max_iter,
         init_temp = init_temp,
         cooling_rate = cooling_rate,
-        max_starts = max_starts
+         max_starts = max_starts
       )
       if (!input.check) {return()}
       for (tbl in c("param_table")) {
@@ -252,10 +252,13 @@ mod_optim_vec_server <- function(id) {
       lapply(c("N", "param_table", "add_row", "remove_row",
                "thresh", "max_iter", "init_temp", "cooling_rate",
                "max_starts",
-               "plot_error","get_rmse","plot_summary","plot_cooling",
+                "plot_convergence","get_rmse","plot_fit","plot_cooling",
                "display_data","download"),
              shinyjs::disable
       )
+      # drop the previous result so a failed run cannot show it as current
+      rv$result <- NULL
+      rv$dirty  <- TRUE
       tryCatch({
         withProgress(message = "Running optimization...", value = 0, {
           rv$result <- optim_vec(
@@ -265,7 +268,7 @@ mod_optim_vec_server <- function(id) {
             range         = range,
             integer       = df$Integer,
             thresh     = thresh,
-            sprite_prec   = c(2, 2),
+             sprite_prec   = c(2, 2),
             max_iter      = max_iter,
             init_temp     = init_temp,
             cooling_rate  = cooling_rate,
@@ -281,7 +284,7 @@ mod_optim_vec_server <- function(id) {
         return()
       })
       if (is.null(rv$result)) {
-        shinyjs::enable("run")
+         shinyjs::enable("run")
         lapply(c("N", "param_table", "add_row", "remove_row",
                  "thresh", "max_iter", "init_temp", "cooling_rate",
                  "max_starts"),
@@ -293,8 +296,7 @@ mod_optim_vec_server <- function(id) {
         }
         return()
       }
-      # Show per-variable warnings for SPRITE/feasibility failures
-      if (!is.null(rv$result$error_msgs)) {
+        if (!is.null(rv$result$error_msgs)) {
         for (v in seq_along(rv$result$error_msgs)) {
           msg <- rv$result$error_msgs[[v]]
           if (!is.null(msg)) {
@@ -309,11 +311,11 @@ mod_optim_vec_server <- function(id) {
       }
       rv$status <- "done"
       rv$dirty <- FALSE
-      shinyjs::enable("run")
+       shinyjs::enable("run")
       lapply(c("N", "param_table", "add_row", "remove_row",
                "thresh", "max_iter", "init_temp", "cooling_rate",
                "max_starts",
-               "plot_error","get_rmse","plot_summary","plot_cooling",
+               "plot_convergence","get_rmse","plot_fit","plot_cooling",
                "display_data","download"),
              shinyjs::enable
       )
@@ -325,12 +327,12 @@ mod_optim_vec_server <- function(id) {
       }
     })
 
-    output$status_text <- renderText({
+     output$status_text <- renderText({
       if (rv$dirty) return(NULL)
       if (rv$status == "running") "Optimization is running..." else ""
     })
 
-    output$best_errors <- renderTable({
+    output$best_objectives <- renderTable({
       if (rv$dirty) return(NULL)
       vars <- rv$params$Variable
       if (rv$status != "done") {
@@ -338,17 +340,17 @@ mod_optim_vec_server <- function(id) {
         colnames(df) <- vars
         return(df)
       }
-      bes  <- unlist(rv$result$best_error)
+      bes  <- unlist(rv$result$best_objective)
       disp <- ifelse(bes < input$thresh, "converged", format(bes))
       df <- as.data.frame(as.list(disp), stringsAsFactors = FALSE)
       colnames(df) <- rv$params$Variable[seq_along(disp)]
       df
     }, rownames = FALSE)
 
-    observeEvent(input$plot_error, rv$last <- reactive("traj"))
+    observeEvent(input$plot_convergence, rv$last <- reactive("traj"))
     observeEvent(input$get_rmse,       rv$last <- reactive("rmse"))
-    observeEvent(input$plot_summary,    rv$last <- reactive("summary"))
-    observeEvent(input$plot_cooling,    rv$last <- reactive("cooling"))
+    observeEvent(input$plot_fit,    rv$last <- reactive("summary"))
+     observeEvent(input$plot_cooling,    rv$last <- reactive("cooling"))
     observeEvent(input$display_data,    rv$last <- reactive("data"))
     observeEvent(input$download, {
       showModal(modalDialog(
@@ -362,7 +364,7 @@ mod_optim_vec_server <- function(id) {
     observeEvent(rv$params$Variable, {
       if (!is.null(input$run_select)) {
         vars <- rv$params$Variable
-        sel  <- input$run_select
+         sel  <- input$run_select
         if (is.null(sel) || !(sel %in% vars)) {
           sel <- vars[1]
         }
@@ -381,14 +383,14 @@ mod_optim_vec_server <- function(id) {
       req(rv$last)
       vars <- rv$params$Variable
       old     <- isolate(input$run_select)
-      run_id  <- if (!is.null(old) && old %in% vars) old else vars[1]
+       run_id  <- if (!is.null(old) && old %in% vars) old else vars[1]
       idx     <- match(run_id, vars)
 
-      all_runs <- seq_along(rv$result$track_error)
+      all_runs <- seq_along(rv$result$track_objective)
       idx      <- match(run_id, vars, nomatch = 1)
       if (!(idx %in% all_runs)) idx <- all_runs[1]
 
-      n_iters <- length(rv$result$track_error[[idx]])
+      n_iters <- length(rv$result$track_objective[[idx]])
       max_it  <- if (n_iters >= 1) n_iters else 1
 
       switch(
@@ -397,7 +399,7 @@ mod_optim_vec_server <- function(id) {
           plotOutput(ns("error_plot"), width = "600px", height = "400px"),
           fluidRow(
             column(
-              width = 3,
+               width = 3,
               selectizeInput(
                 ns("run_select"),
                 name_with_info("Variable", "Select which variable's (i.e. run's) error trajectory to plot."),
@@ -417,7 +419,7 @@ mod_optim_vec_server <- function(id) {
                 ),
                 value = isolate(input$iter_select %||% 1),
                 min   = 1,
-                max   = max_it,
+                 max   = max_it,
                 step  = 100,
                 width = "100px"
               )
@@ -435,7 +437,7 @@ mod_optim_vec_server <- function(id) {
                 name_with_info(
                   "standardised",
                   "Select whether the differences between simulated and target values are standardised."
-                ),
+                 ),
                 TRUE,
                 width = "100%"
               ),
@@ -447,11 +449,13 @@ mod_optim_vec_server <- function(id) {
 
     output$error_plot <- renderPlot({
       if (rv$dirty) return(NULL)
-      req(input$run_select)
-      plot_error(
+      req(input$run_select, input$iter_select)
+       run  <- match(input$run_select, rv$params$Variable)
+      n_it <- length(rv$result$track_objective[[run]])
+      plot_convergence(
         rv$result,
-        run        = which(rv$params$Variable == input$run_select),
-        first_iter = as.integer(input$iter_select)
+        run        = run,
+        first_iter = min(max(0L, as.integer(input$iter_select) - 1L), n_it - 1L)
       )
     })
     output$rmse_out     <- renderPrint({
@@ -459,10 +463,10 @@ mod_optim_vec_server <- function(id) {
       get_rmse(rv$result) })
     output$summary_plot <- renderPlot({
       if (rv$dirty) return(NULL)
-      plot_summary(rv$result,
-                   standardised = input$std) })
+      plot_fit(rv$result,
+                   standardised = input$std %||% TRUE) })
     output$cooling_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
+       if (rv$dirty) return(NULL)
       plot_cooling(rv$result) })
     output$data_preview <- renderTable({
       if (rv$dirty) return(NULL)
@@ -475,7 +479,7 @@ mod_optim_vec_server <- function(id) {
         saveRDS(rv$result, file)
       }
     )
-    output$dl_data <- downloadHandler(
+     output$dl_data <- downloadHandler(
       filename = "optimised_data.csv",
       content  = function(file) {
         req(!rv$dirty)

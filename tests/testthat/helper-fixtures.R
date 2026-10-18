@@ -14,7 +14,7 @@ fx_vec <- function(shift = 0) {
     V2 = c(2, 2, 3, 3, 4, 4) + shift
   )
   new_s2d_vec(
-    best_error = list(0.01, 0.02),
+    best_objective = list(0.01, 0.02),
     data = d,
     inputs = list(
       N = 6,
@@ -25,7 +25,7 @@ fx_vec <- function(shift = 0) {
       max_iter = 20, init_temp = 0.1, cooling_rate = 0.9,
       max_starts = 1, progress_mode = "off"
     ),
-    track_error = list(V1 = c(1, 0.5, 0.1), V2 = c(2, 0.4, 0.2))
+    track_objective = list(V1 = c(1, 0.5, 0.1), V2 = c(2, 0.4, 0.2))
   )
 }
 
@@ -36,7 +36,7 @@ fx_mlr <- function(shift = 0, se = TRUE) {
     Y  = c(3, 4, 6, 6, 9, 10) + shift
   )
   new_s2d_mlr(
-    best_error = 0.02,
+    best_objective = 0.02,
     data = d,
     optim_vec = fx_vec(),
     inputs = list(
@@ -53,8 +53,8 @@ fx_mlr <- function(shift = 0, se = TRUE) {
       init_temp = 0.1, cooling_rate = 0.9, max_starts = 1,
       hill_climbs = 5, progress_mode = "off"
     ),
-    track_error = c(1, 0.5, 0.02),
-    track_error_ratio = c(2, 1.5, 1.2)
+    track_objective = c(1, 0.5, 0.02),
+    track_objective_ratio = c(2, 1.5, 1.2)
   )
 }
 
@@ -65,7 +65,7 @@ fx_aov <- function(shift = 0) {
     outcome = c(3, 5, 4, 6, 2, 5, 3, 7, 4, 6, 5, 8) + shift
   )
   new_s2d_aov(
-    best_error = 0.03,
+    best_objective = 0.03,
     data = d,
     inputs = list(
       N = 6, levels = 2, target_group_means = c(3.5, 6.17),
@@ -77,7 +77,7 @@ fx_aov <- function(shift = 0) {
       cooling_rate = 0.9, max_starts = 1, progress_mode = "off"
     ),
     adjusted_targets = list(group_means = c(3.5, 6.17), F_values = 20),
-    track_error = c(1, 0.5, 0.03)
+    track_objective = c(1, 0.5, 0.03)
   )
 }
 

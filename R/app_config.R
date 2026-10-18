@@ -11,7 +11,6 @@
 app_sys <- function(...) {
   system.file(..., package = "stats2data")
 }
-options(progressr.enable = TRUE)
 
 #' Read App Config
 #'

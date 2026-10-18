@@ -12,7 +12,7 @@ optim_vec(
   integer,
   thresh = 0.005,
   sprite_prec = c(2, 2),
-  max_iter = 500000,
+  max_iter = 5e+05,
   init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,
@@ -50,13 +50,13 @@ and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{stats2data.object} list with components \code{best_error},
-  \code{data}, \code{inputs}, \code{track_error}, and \code{error_msgs}.
+A \code{stats2data.object} list with components \code{best_objective},
+  \code{data}, \code{inputs}, \code{track_objective}, and \code{error_msgs}.
 }
 \description{
-Uses the stats2data approach to simulate one or multiple
+Uses the stats2data method to simulate one or multiple
 vectors so that each matches specified target means and standard deviations
-under given input parameters.
+within a range under given input parameters.
 }
 \examples{
 \dontrun{

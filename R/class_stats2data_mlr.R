@@ -1,30 +1,22 @@
-# --------------------------------------------------------------------------
 # stats2data: S3 class for MLR module results
-# --------------------------------------------------------------------------
-
-# ---- Constructor ---------------------------------------------------------
 
 #' Create a stats2data MLR result object
 #'
-#' Low-level constructor for objects of class \code{stats2data_mlr}. Not intended to
-#' be called directly by end users; called internally by
-#' \code{\link{optim_mlr}}.
-#'
-#' @param best_error Numeric scalar. Minimum objective error achieved.
+#' @param best_objective Numeric scalar. Minimum objective error achieved.
 #' @param data Data frame of optimised predictor and outcome columns.
 #' @param optim_vec An object of class \code{stats2data_vec} from the internal
 #'   marginal optimization step.
 #' @param inputs List of all input parameters used in the optimization.
-#' @param track_error Numeric vector of best error at each iteration.
-#' @param track_error_ratio Numeric vector of error ratios (correlation vs.
+#' @param track_objective Numeric vector of best objective value at each iteration.
+#' @param track_objective_ratio Numeric vector of error ratios (correlation vs.
 #'   regression component) per iteration.
 #'
 #' @return An object of class \code{stats2data_mlr}.
 #'
 #' @keywords internal
 #' @noRd
-new_s2d_mlr <- function(best_error, data, optim_vec, inputs,
-                        track_error, track_error_ratio) {
+new_s2d_mlr <- function(best_objective, data, optim_vec, inputs,
+                        track_objective, track_objective_ratio) {
   if (!is.data.frame(data)) {
     stop("`data` must be a data.frame.", call. = FALSE)
   }
@@ -36,19 +28,17 @@ new_s2d_mlr <- function(best_error, data, optim_vec, inputs,
   }
   structure(
     list(
-      best_error        = best_error,
+      best_objective        = best_objective,
       data              = data,
-      optim_vec         = optim_vec,
+       optim_vec         = optim_vec,
       inputs            = inputs,
-      track_error       = track_error,
-      track_error_ratio = track_error_ratio
+      track_objective       = track_objective,
+      track_objective_ratio = track_objective_ratio
     ),
     class = "stats2data_mlr"
   )
 }
 
-
-# ---- print ---------------------------------------------------------------
 
 #' Print a stats2data MLR result
 #'
@@ -61,13 +51,11 @@ new_s2d_mlr <- function(best_error, data, optim_vec, inputs,
 print.stats2data_mlr <- function(x, ...) {
   cat("stats2data MLR result\n")
   cat("  N:         ", x$inputs$N, "\n")
-  cat("  Equation:  ", x$inputs$reg_equation, "\n")
-  cat("  Best error:", format(x$best_error, digits = 6), "\n")
+   cat("  Equation:  ", x$inputs$reg_equation, "\n")
+  cat("  Best objective:", format(x$best_objective, digits = 6), "\n")
   invisible(x)
 }
 
-
-# ---- get_stats -----------------------------------------------------------
 
 #' @rdname get_stats
 #' @export
@@ -78,21 +66,26 @@ get_stats.stats2data_mlr <- function(result, ...) {
   vars  <- names(inp$target_mean)
   model <- stats::lm(frm, data = d)
 
-  cor_mat  <- stats::cor(d[, vars])
+  cor_mat  <- stats::cor(d)
   cor_vals <- cor_mat[upper.tri(cor_mat)]
+
+  marg <- d[, intersect(vars, names(d)), drop = FALSE]
+  miss <- setdiff(vars, names(d))
+  if (length(miss) > 0L) {
+    marg <- cbind(marg, result$optim_vec$data[, miss, drop = FALSE])
+  }
+  marg <- marg[, vars, drop = FALSE]
 
   list(
     model = model,
     reg   = stats::coef(model),
     se    = summary(model)$coefficients[, "Std. Error"],
     cor   = cor_vals,
-    mean  = vapply(d[, vars], mean, numeric(1)),
-    sd    = vapply(d[, vars], stats::sd, numeric(1))
+    mean  = vapply(marg, mean, numeric(1)),
+    sd    = vapply(marg, stats::sd, numeric(1))
   )
 }
 
-
-# ---- get_rmse ------------------------------------------------------------
 
 #' @rdname get_rmse
 #' @export
@@ -102,13 +95,13 @@ get_rmse.stats2data_mlr <- function(result, ...) {
   rmse_fn <- function(x, y) sqrt(mean((x - y)^2, na.rm = TRUE))
 
   tc <- inp$target_cor
-  tr <- inp$target_reg
+   tr <- inp$target_reg
   ts <- inp$target_se
 
   list(
     rmse_cor = rmse_fn(s$cor[!is.na(tc)], tc[!is.na(tc)]),
     rmse_reg = rmse_fn(s$reg[!is.na(tr)], tr[!is.na(tr)]),
-    rmse_se  = if (!is.null(ts)) {
+     rmse_se  = if (!is.null(ts)) {
       rmse_fn(s$se[!is.na(ts)], ts[!is.na(ts)])
     } else {
       NA_real_
@@ -116,8 +109,6 @@ get_rmse.stats2data_mlr <- function(result, ...) {
   )
 }
 
-
-# ---- coef ----------------------------------------------------------------
 
 #' Extract regression coefficients from a stats2data MLR result
 #'
@@ -132,12 +123,10 @@ get_rmse.stats2data_mlr <- function(result, ...) {
 #' @export
 coef.stats2data_mlr <- function(object, ...) {
   frm <- stats::as.formula(object$inputs$reg_equation)
-  fit <- stats::lm(frm, data = object$data)
+   fit <- stats::lm(frm, data = object$data)
   stats::coef(fit)
 }
 
-
-# ---- summary -------------------------------------------------------------
 
 #' Summarize a stats2data MLR result
 #'
@@ -157,22 +146,20 @@ summary.stats2data_mlr <- function(object, ...) {
   inp  <- object$inputs
   vars <- names(inp$target_mean)
 
-  # means and SDs comparison
   descriptives <- data.frame(
     variable    = vars,
-    target_mean = as.numeric(inp$target_mean),
+     target_mean = as.numeric(inp$target_mean),
     sim_mean    = as.numeric(s$mean),
     target_sd   = as.numeric(inp$target_sd),
     sim_sd      = as.numeric(s$sd),
     row.names   = NULL
   )
 
-  # coefficients comparison
   reg_names <- names(s$reg)
   coefficients <- data.frame(
     term       = reg_names,
     target_reg = as.numeric(inp$target_reg),
-    sim_reg    = as.numeric(s$reg),
+     sim_reg    = as.numeric(s$reg),
     row.names  = NULL
   )
   if (!is.null(inp$target_se)) {
@@ -180,16 +167,10 @@ summary.stats2data_mlr <- function(object, ...) {
     coefficients$sim_se    <- as.numeric(s$se)
   }
 
-  # correlations comparison
-  n_cor <- length(s$cor)
-  pair_labels <- character(n_cor)
-  idx <- 1L
-  for (i in seq_len(length(vars) - 1L)) {
-    for (j in (i + 1L):length(vars)) {
-      pair_labels[idx] <- paste(vars[i], vars[j], sep = "-")
-      idx <- idx + 1L
-    }
-  }
+  cvars <- colnames(object$data)
+  ut    <- which(upper.tri(diag(length(cvars))), arr.ind = TRUE)
+  pair_labels <- paste(cvars[ut[, "row"]], cvars[ut[, "col"]], sep = "-")
+
   correlations <- data.frame(
     pair       = pair_labels,
     target_cor = as.numeric(inp$target_cor),
@@ -198,11 +179,11 @@ summary.stats2data_mlr <- function(object, ...) {
   )
 
   out <- list(
-    descriptives = descriptives,
+     descriptives = descriptives,
     coefficients = coefficients,
     correlations = correlations,
     rmse         = rmse,
-    best_error   = object$best_error,
+    best_objective   = object$best_objective,
     N            = inp$N,
     reg_equation = inp$reg_equation
   )
@@ -224,7 +205,7 @@ print.summary.stats2data_mlr <- function(x, ...) {
   cat("stats2data MLR Summary\n")
   cat("-----------------------------------------------\n")
   cat("N:", x$N, " | Model:", x$reg_equation, "\n")
-  cat("Best error:", format(x$best_error, digits = 6), "\n")
+   cat("Best objective:", format(x$best_objective, digits = 6), "\n")
 
   cat("\nRMSE\n")
   cat("  Correlations:            ", format(x$rmse$rmse_cor, digits = 4), "\n")
@@ -237,7 +218,7 @@ print.summary.stats2data_mlr <- function(x, ...) {
   print.data.frame(x$descriptives, row.names = FALSE, digits = 4)
 
   cat("\nCoefficients (Target vs. Simulated):\n")
-  print.data.frame(x$coefficients, row.names = FALSE, digits = 4)
+   print.data.frame(x$coefficients, row.names = FALSE, digits = 4)
 
   cat("\nCorrelations (Target vs. Simulated):\n")
   print.data.frame(x$correlations, row.names = FALSE, digits = 4)

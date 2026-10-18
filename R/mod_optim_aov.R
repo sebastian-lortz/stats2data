@@ -37,7 +37,7 @@ mod_optim_aov_ui <- function(id) {
 
     div(style = "white-space: nowrap;",
         div(
-          style = "display:inline-block; vertical-align:top; margin-right:10px;",
+           style = "display:inline-block; vertical-align:top; margin-right:10px;",
           wellPanel(
             h4("Reported Summary Statistics"),
             numericInput(ns("N"),  name_with_info(
@@ -52,7 +52,7 @@ mod_optim_aov_ui <- function(id) {
               style = "width:100%; overflow-x:auto; overflow-y:visible; position:relative;",
               rhandsontable::rHandsontableOutput(ns("factor_table"), height = "100px")
             ),
-            fluidRow(
+             fluidRow(
               column(6, actionButton(ns("add_factor"),    "Add factor",    class = "btn-sm btn-block")),
               column(6, actionButton(ns("remove_factor"), "Remove factor", class = "btn-sm btn-block"))
             ),
@@ -66,7 +66,7 @@ mod_optim_aov_ui <- function(id) {
             ),
             fluidRow(
               column(6)
-            ),
+             ),
             p(tags$b(name_with_info(
               "ANOVA Outcomes",
               "The ANOVA's effect and F-values"
@@ -86,7 +86,7 @@ mod_optim_aov_ui <- function(id) {
                   ns("main_effects"),
                   label   = tags$span(style = "font-size:90%;", "Main Effects:"),
                   choices = NULL
-                )
+                 )
               ),
               column(
                 width = 6,
@@ -107,7 +107,7 @@ mod_optim_aov_ui <- function(id) {
                   "Lower and upper bounds for simulated outcome values."
                 ),
                 value = c(0, 60),
-                min   = NA,
+                 min   = NA,
                 max   = NA,
                 separator = " to ",
                 width = "200px"
@@ -120,7 +120,7 @@ mod_optim_aov_ui <- function(id) {
                 ),
                 value = TRUE
               )
-            )
+             )
           ))
         ,
 
@@ -131,14 +131,14 @@ mod_optim_aov_ui <- function(id) {
             numericInput(
               ns("thresh"),
               name_with_info(
-                "thresh",
+                 "thresh",
                 "The threshold for the objective function value below which the optimization will stop."),
               value = 5e-3,
               min   = 0,
               step  = 1e-3,
               width = "100%"
             ),
-            numericInput(ns("max_iter"), name_with_info(
+             numericInput(ns("max_iter"), name_with_info(
               "Max Iterations",
               "The maximum number of iterations the algorithm will run each time it restarts."), 5e3,   min = 1,    step = 1000),
             numericInput(ns("init_temp"), name_with_info(
@@ -148,21 +148,21 @@ mod_optim_aov_ui <- function(id) {
             numericInput(ns("cooling_rate"), name_with_info(
               "Cooling Rate",
               "The factor by which the temperature is multiplied after each iteration."),
-              (5e3-10)/5e3, min = 0, max = 1, step = 0.0001),
+               (5e3-10)/5e3, min = 0, max = 1, step = 0.0001),
             numericInput(ns("max_starts"), name_with_info(
               "Max Starts",
               "The maximum number of times the optimization algorithm will restart from the current best solution."),
               3,     min = 1,    step = 1),
             numericInput(ns("n_datasets"),
                          name_with_info(
-                           "Number of Datasets",
+                            "Number of Datasets",
                            "How many independent sequential optimization runs to perform."),
                          value = 1, min = 1, step = 1)
           )
         ),
 
         div(style = "display:inline-block; vertical-align:top; margin-left:20px; width: calc(100% - auto);",
-            h4("Optimization Output"),
+             h4("Optimization Output"),
             div(style = "margin-bottom:10px;",
                 actionButton(ns("run"), name_with_info(
                   "Run Optimization",
@@ -177,18 +177,18 @@ mod_optim_aov_ui <- function(id) {
             selectInput(ns("dataset_selector"), name_with_info("Select Dataset", "Choose the data set to inspect or download."),
                         choices = NULL, selected = 1,   width    = "100px"),
             h5(name_with_info("Objective Function Value","The minimum value of the objective function attained by the optimization.")),
-            tableOutput(ns("best_error")),
+             tableOutput(ns("best_objective")),
             fluidRow( style = "margin-bottom: 10px;",
                       column(12,
-                             actionButton(ns("plot_summary"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                             actionButton(ns("plot_error"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
+                             actionButton(ns("plot_fit"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
+                             actionButton(ns("plot_convergence"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
                              actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
                              actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm")
                       )
             ),
             fluidRow(
               column(12,
-                     actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
+                      actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
                      actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
               )
             ),
@@ -212,7 +212,7 @@ mod_optim_aov_server <- function(id){
       type   = c("between", "within"),
       stringsAsFactors = FALSE
     )
-    initial_subgroups <- data.frame(
+     initial_subgroups <- data.frame(
       Factor1 = rep(1:2, each = 2),
       Factor2 = rep(1:2, 2),
       Mean    = c(31.4, 21.4, 30.1, 17.8),
@@ -226,7 +226,7 @@ mod_optim_aov_server <- function(id){
     )
 
     rv <- reactiveValues(
-      factors   = initial_factors,
+        factors   = initial_factors,
       subgroups = initial_subgroups,
       status    = "ready",
       result    = NULL,
@@ -242,7 +242,7 @@ mod_optim_aov_server <- function(id){
         input$subgroup_table,
         input$anova_table,
         input$main_effects,
-        input$inter_effects,
+         input$inter_effects,
         input$range,
         input$integer,
         input$thresh,
@@ -254,11 +254,11 @@ mod_optim_aov_server <- function(id){
     }, {
       rv$dirty <- TRUE
       for (btn in c(
-        "plot_error","get_rmse",
-        "plot_summary","plot_cooling",
+        "plot_convergence","get_rmse",
+        "plot_fit","plot_cooling",
         "display_data","download","dataset_selector"
       )) {
-        shinyjs::disable(btn)
+         shinyjs::disable(btn)
       }
     })
 
@@ -271,7 +271,7 @@ mod_optim_aov_server <- function(id){
           for (col in factor_cols) {
             tb <- hot_col(tb, col = col, readOnly = TRUE)
           }
-          hot_col(tb, "Mean", type = "numeric", format = "0.00") %>%
+           hot_col(tb, "Mean", type = "numeric", format = "0.00") %>%
             hot_col("Size", type = "numeric", format = "0")
         }
     })
@@ -279,14 +279,14 @@ mod_optim_aov_server <- function(id){
     build_subgroups <- function(factors_df) {
       lvls <- lapply(factors_df$levels, function(n) seq_len(n))
       names(lvls) <- factors_df$name
-      sg <- expand.grid(rev(lvls), KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+       sg <- expand.grid(rev(lvls), KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
       sg <- sg[, rev(seq_along(sg)), drop = FALSE]
       sg$Mean <- NA_real_
       sg$Size <- NA_real_
       sg
     }
 
-    observeEvent(rv$factors, {
+     observeEvent(rv$factors, {
       ff <- rv$factors
       valid <- !is.na(ff$levels) &
         ff$levels >= 2     &
@@ -300,10 +300,10 @@ mod_optim_aov_server <- function(id){
       rhandsontable(rv$factors, rowHeaders = NULL) %>%
         hot_col("name",   type = "text") %>%
         hot_col("levels", type = "numeric", format = "0") %>%
-        hot_col("type",   type = "dropdown", source = c("between", "within"))
+         hot_col("type",   type = "dropdown", source = c("between", "within"))
     })
 
-    observeEvent(input$factor_table, {
+     observeEvent(input$factor_table, {
       req(input$factor_table)
       rv$factors <- hot_to_r(input$factor_table)
     })
@@ -326,7 +326,7 @@ mod_optim_aov_server <- function(id){
     })
 
     initial_df_aov <- data.frame(
-      effect          = c("Factor1", "Factor2", "Factor1:Factor2"),
+       effect          = c("Factor1", "Factor2", "Factor1:Factor2"),
       F_value               = c(8.2, 321.2, 3.4),
       stringsAsFactors = FALSE
     )
@@ -340,7 +340,7 @@ mod_optim_aov_server <- function(id){
     output$anova_table <- renderRHandsontable({
       facts <- rv$factors$name
       inters <- if (length(facts)>1) utils::combn(facts,2, FUN = function(x) paste(x,collapse=":")) else character(0)
-      choices <- c(facts, inters)
+       choices <- c(facts, inters)
       rhandsontable(rv_aov$params, useTypes = TRUE) %>%
         hot_table(overflow = "visible") %>%
         hot_col(
@@ -350,13 +350,13 @@ mod_optim_aov_server <- function(id){
           strict       = TRUE,
           allowInvalid = FALSE
         ) %>%
-        hot_col("F",         type = "numeric", format = "0.00")
+        hot_col("F_value",   type = "numeric", format = "0.00")
     })
 
     observeEvent(input$anova_table, {
       req(input$anova_table)
       rv_aov$params <- hot_to_r(input$anova_table)
-    })
+     })
 
     observeEvent(input$add_effect, {
       df <- rv_aov$params
@@ -369,7 +369,7 @@ mod_optim_aov_server <- function(id){
     observeEvent(input$remove_effect, {
       df <- rv_aov$params
       if (nrow(df) > 1) rv_aov$params <- df[-nrow(df), , drop = FALSE]
-    })
+     })
 
     observe({
       facts <- rv$factors$name
@@ -384,36 +384,33 @@ mod_optim_aov_server <- function(id){
       )
       updateCheckboxGroupInput(
         session, "inter_effects",
-        choices  = inters,
+         choices  = inters,
         selected = inters
       )
     })
 
-    # Map user-facing factor names → canonical Factor1, Factor2, …
-    canonical_name_map <- reactive({
+      canonical_name_map <- reactive({
       setNames(
         paste0("Factor", seq_len(nrow(rv$factors))),
         rv$factors$name
       )
     })
 
-    remap_effects <- function(effects, name_map) {
+     remap_effects <- function(effects, name_map) {
       vapply(effects, function(e) {
         parts <- strsplit(e, ":")[[1]]
         paste(name_map[parts], collapse = ":")
       }, character(1), USE.NAMES = FALSE)
     }
 
-    # build formula
     formula_reactive <- reactive({
       sel <- c(input$main_effects, input$inter_effects)
       req(sel)
       nm  <- canonical_name_map()
       sel_canonical <- remap_effects(sel, nm)
-      rhs <- paste(sel_canonical, collapse = " + ")
+       rhs <- paste(sel_canonical, collapse = " + ")
       if (rhs == "") return(NULL)
 
-      # Append Error() term for within-subjects factors
       within_canonical <- nm[rv$factors$type == "within"]
       if (length(within_canonical) > 0) {
         error_term <- paste0("Error(ID/", paste(within_canonical, collapse = "*"), ")")
@@ -429,15 +426,15 @@ mod_optim_aov_server <- function(id){
       )
     })
 
-    for(btn in c("run", "plot_error","get_rmse",
-                 "plot_summary","plot_cooling",
+    for(btn in c("run", "plot_convergence","get_rmse",
+                 "plot_fit","plot_cooling",
                  "display_data","download", "dataset_selector")) {
       shinyjs::disable(btn)
     }
 
     observe({
       df_sub <- rv$subgroups
-      ok1 <- !is.null(df_sub) &&
+       ok1 <- !is.null(df_sub) &&
         nrow(df_sub) > 0 &&
         all(!is.na(df_sub$Mean), !is.na(df_sub$Size))
       df_aov <- rv_aov$params
@@ -453,27 +450,32 @@ mod_optim_aov_server <- function(id){
     })
 
     observeEvent(input$run, {
-      shinyjs::show("processing_msg")
+       shinyjs::show("processing_msg")
       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
+
+      ff <- rv$factors
+      if (anyNA(ff$levels) || any(ff$levels < 2) ||
+           !all(ff$name %in% names(rv$subgroups)) ||
+          nrow(rv$subgroups) != prod(ff$levels)) {
+        showNotification(
+          "Each factor needs a whole number of levels (>= 2), and the subgroup table must match the factors.",
+          type = "error"
+        )
+        return()
+      }
 
       levels_int         <- as.integer(rv$factors$levels)
       target_group_means <- rv$subgroups$Mean
       factor_type        <- rv$factors$type
 
-      # Build subgroup_sizes: only for between-subject factors
-      # The Size column gives per-cell sizes; for between factors we need
-      # unique subject counts per between-group combination
       has_between <- any(factor_type == "between")
       if (has_between) {
-        between_names <- rv$factors$name[factor_type == "between"]
+         between_names <- rv$factors$name[factor_type == "between"]
         sg <- rv$subgroups
-        # Get unique between-group combinations and their sizes
         within_names <- rv$factors$name[factor_type == "within"]
         if (length(within_names) > 0) {
-          # For mixed designs, sizes should be unique per between-group combo
-          # Take the first row per between-group combination
           bg_cols <- sg[, between_names, drop = FALSE]
-          bg_key  <- apply(bg_cols, 1, paste0, collapse = "_")
+           bg_key  <- apply(bg_cols, 1, paste0, collapse = "_")
           first_of_each <- !duplicated(bg_key)
           subgroup_sizes <- sg$Size[first_of_each]
         } else {
@@ -485,7 +487,7 @@ mod_optim_aov_server <- function(id){
 
       S <- input$N
 
-      aov_df             <- hot_to_r(input$anova_table)
+       aov_df             <- hot_to_r(input$anova_table)
       nm                 <- canonical_name_map()
       target_f_list      <- list(
         effect          = remap_effects(aov_df$effect, nm),
@@ -496,12 +498,11 @@ mod_optim_aov_server <- function(id){
       formula            <- formula_reactive()
       thresh          <- input$thresh
       max_iter           <- input$max_iter
-      init_temp          <- input$init_temp
+       init_temp          <- input$init_temp
       cooling_rate       <- input$cooling_rate
       max_starts         <- input$max_starts
       n_datasets         <- input$n_datasets
 
-      # Input validation
       input.check <- check_aov_inputs(
         N                  = S,
         levels             = levels_int,
@@ -515,17 +516,16 @@ mod_optim_aov_server <- function(id){
       )
       if (!input.check) {return()}
 
-      # Disable all inputs during run
       lapply(c(  "factor_table", "add_factor", "remove_factor",
                  "subgroup_table",
                  "anova_table", "add_effect", "remove_effect",
                  "main_effects", "inter_effects",
                  "range", "integer",
                  "thresh", "max_iter", "init_temp",
-                 "cooling_rate", "max_starts",
+                  "cooling_rate", "max_starts",
                  "n_datasets",
-                 "run","plot_error","get_rmse",
-                 "plot_summary","plot_cooling",
+                 "run","plot_convergence","get_rmse",
+                 "plot_fit","plot_cooling",
                  "display_data","download","dataset_selector"), shinyjs::disable)
       for (tbl in c("factor_table","subgroup_table","anova_table")) {
         shinyjs::runjs(
@@ -534,10 +534,12 @@ mod_optim_aov_server <- function(id){
         )
       }
       rv$status <- "running"
+      rv$result <- NULL
+      rv$dirty  <- TRUE
 
+      tryCatch({
       withProgress(message = "Running optimization...", value = 0, {
         if (n_datasets > 1) {
-          # Sequential multi-dataset runs (no parallel)
           results_list <- vector("list", n_datasets)
           for (ds in seq_len(n_datasets)) {
             incProgress(1 / n_datasets,
@@ -546,7 +548,7 @@ mod_optim_aov_server <- function(id){
               S                  = S,
               levels             = levels_int,
               target_group_means = target_group_means,
-              target_f_list      = target_f_list,
+               target_f_list      = target_f_list,
               integer            = integer,
               range              = range_val,
               formula            = formula,
@@ -572,7 +574,7 @@ mod_optim_aov_server <- function(id){
             formula            = formula,
             factor_type        = factor_type,
             subgroup_sizes     = subgroup_sizes,
-            thresh          = thresh,
+             thresh          = thresh,
             max_iter           = max_iter,
             init_temp          = init_temp,
             cooling_rate       = cooling_rate,
@@ -581,6 +583,30 @@ mod_optim_aov_server <- function(id){
           )
         }
       })
+      }, error = function(e) {
+        showNotification(
+          paste("Optimization failed:", conditionMessage(e)),
+          type = "error", duration = 10
+        )
+      })
+      if (is.null(rv$result)) {
+        for (btn in c("run", "factor_table", "add_factor", "remove_factor",
+                      "subgroup_table",
+                      "anova_table", "add_effect", "remove_effect",
+                      "main_effects", "inter_effects",
+                      "range", "integer",
+                       "thresh", "max_iter", "init_temp",
+                      "cooling_rate", "max_starts", "n_datasets")) {
+          shinyjs::enable(btn)
+        }
+        for (tbl in c("factor_table","subgroup_table","anova_table")) {
+          shinyjs::runjs(
+            sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
+                    ns(tbl))
+          )
+        }
+        return()
+      }
 
       is_multi <- n_datasets > 1
       rv$status <- "done"
@@ -590,11 +616,11 @@ mod_optim_aov_server <- function(id){
                     "subgroup_table",
                     "anova_table", "add_effect", "remove_effect",
                     "main_effects", "inter_effects",
-                    "range", "integer",
+                     "range", "integer",
                     "thresh", "max_iter", "init_temp",
                     "cooling_rate", "max_starts",
-                    "n_datasets","plot_error",
-                    "get_rmse","plot_summary","plot_cooling",
+                    "n_datasets","plot_convergence",
+                    "get_rmse","plot_fit","plot_cooling",
                     "display_data","download")) {
         shinyjs::enable(btn)
       }
@@ -605,7 +631,7 @@ mod_optim_aov_server <- function(id){
       } else {
         updateSelectInput(session, "dataset_selector", choices = 1, selected = 1)
         shinyjs::disable("dataset_selector")
-      }
+       }
       for (tbl in c("factor_table","subgroup_table","anova_table")) {
         shinyjs::runjs(
           sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
@@ -619,12 +645,12 @@ mod_optim_aov_server <- function(id){
       if (rv$status == "running") "Optimization is running..." else ""
     })
 
-    output$best_error <- renderTable({
+    output$best_objective <- renderTable({
       if (rv$dirty) return(NULL)
       ds <- selected_dataset()
       req(ds)
-      bes <- ds$best_error
-      is_conv <- (bes == 0) | (bes <= input$thresh)
+      bes <- ds$best_objective
+       is_conv <- (bes == 0) | (bes <= input$thresh)
       disp <- ifelse(is_conv, "converged", format(bes))
       data.frame(
         ANOVA = disp,
@@ -635,10 +661,10 @@ mod_optim_aov_server <- function(id){
     colnames = FALSE)
 
     last_action <- reactiveVal(NULL)
-    observeEvent(input$plot_error, last_action("plot_error"))
+    observeEvent(input$plot_convergence, last_action("plot_convergence"))
     observeEvent(input$get_rmse,       last_action("get_rmse"))
-    observeEvent(input$plot_summary,    last_action("plot_summary"))
-    observeEvent(input$plot_cooling,    last_action("plot_cooling"))
+    observeEvent(input$plot_fit,    last_action("plot_fit"))
+     observeEvent(input$plot_cooling,    last_action("plot_cooling"))
     observeEvent(input$display_data,    last_action("display_data"))
     observeEvent(input$download, {
       showModal(modalDialog(
@@ -649,22 +675,24 @@ mod_optim_aov_server <- function(id){
       ))
     })
 
-    output$plot_error <- renderPlot({
+    output$error_plot <- renderPlot({
       if (rv$dirty) return(NULL)
-      plot_error(selected_dataset(),
-                 first_iter = as.integer(input$iter_select)
+      req(input$iter_select)
+      n_it <- length(selected_dataset()$track_objective)
+      plot_convergence(selected_dataset(),
+                 first_iter = min(max(0L, as.integer(input$iter_select) - 1L), n_it - 1L)
       ) })
-    output$get_rmse    <- renderPrint({
+    output$rmse_out    <- renderPrint({
       if (rv$dirty) return(NULL)
       get_rmse(selected_dataset()) })
-    output$plot_summary <- renderPlot({
+    output$summary_plot <- renderPlot({
       if (rv$dirty) return(NULL)
-      plot_summary(selected_dataset(),
-                   standardised = input$std) })
-    output$plot_cooling<- renderPlot({
+      plot_fit(selected_dataset(),
+                   standardised = input$std %||% TRUE) })
+    output$cooling_plot<- renderPlot({
       if (rv$dirty) return(NULL)
       plot_cooling(selected_dataset()) })
-    output$display_data <- renderTable({
+    output$data_preview <- renderTable({
       if (rv$dirty) return(NULL)
       ds <- selected_dataset()
       if (!is.list(ds)) {
@@ -672,7 +700,7 @@ mod_optim_aov_server <- function(id){
       }
       if (is.null(ds$data)) {
         return(data.frame(Message = "No data available."))
-      }
+       }
       utils::head(as.data.frame(ds$data), min(nrow(ds$data),15))
     })
 
@@ -680,9 +708,9 @@ mod_optim_aov_server <- function(id){
       if (rv$dirty) return(NULL)
       req(last_action())
       switch(last_action(),
-             "plot_error"         = tagList(
-               plotOutput(ns("plot_error"), width = "600px", height = "400px"),
-               fluidRow(
+             "plot_convergence"         = tagList(
+               plotOutput(ns("error_plot"), width = "600px", height = "400px"),
+                fluidRow(
                  column(
                    width = 6,
                    numericInput(
@@ -693,38 +721,38 @@ mod_optim_aov_server <- function(id){
                      ),
                      value = isolate(input$iter_select %||% 1),
                      min   = 1,
-                     max   = length(selected_dataset()$track_error),
+                     max   = length(selected_dataset()$track_objective),
                      step  = 100,
-                     width = "100px"
+                      width = "100px"
                    )
                  )
                )
              ),
-             "get_rmse"           = verbatimTextOutput(ns("get_rmse")),
-             "plot_summary"       = tagList(
-               plotOutput(ns("plot_summary"), width = "600px", height = "400px"),
+             "get_rmse"           = verbatimTextOutput(ns("rmse_out")),
+             "plot_fit"       = tagList(
+               plotOutput(ns("summary_plot"), width = "600px", height = "400px"),
                fluidRow(
                  column(
                    width = 6,
                    checkboxInput(
                      ns("std"),
                      name_with_info(
-                       "standardised",
+                        "standardised",
                        "Select whether the differences between simulated and target values are standardised."
                      ),
                      TRUE,
                      width = "100%"
                    ),
                  ))),
-             "plot_cooling"       = plotOutput(ns("plot_cooling"),   width = "600px", height = "400px"),
-             "display_data"       = tableOutput(ns("display_data"))
+             "plot_cooling"       = plotOutput(ns("cooling_plot"),   width = "600px", height = "400px"),
+             "display_data"       = tableOutput(ns("data_preview"))
       )
     })
 
     selected_dataset <- reactive({
       if (rv$dirty) return(NULL)
       if (is.list(rv$result) && !inherits(rv$result, "stats2data_aov") &&
-          input$n_datasets > 1) {
+           input$n_datasets > 1) {
         rv$result[[as.integer(input$dataset_selector)]]
       } else rv$result
     })
@@ -732,7 +760,7 @@ mod_optim_aov_server <- function(id){
     output$dl_object <- downloadHandler(
       filename = "stats2data_object.rds",
       content  = function(file) {
-        req(!rv$dirty)
+         req(!rv$dirty)
         ds <- selected_dataset()
         saveRDS(ds, file)
       }

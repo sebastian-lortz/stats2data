@@ -57,32 +57,32 @@ test_that("plot.stats2data_parallel drops all-NA metrics", {
   expect_s3_class(suppressMessages(quiet_plot(plot(fx_parallel("aov")))), "ggplot")
 })
 
-test_that("plot_summary.stats2data_parallel builds the lollipop chart", {
-  p <- quiet_plot(plot_summary(fx_parallel("vec")))
+test_that("plot_fit.stats2data_parallel builds the lollipop chart", {
+  p <- quiet_plot(plot_fit(fx_parallel("vec")))
   expect_s3_class(p, "ggplot")
   expect_true(all(c("Lower", "Upper", "Centered") %in% names(p$data)))
-  expect_s3_class(quiet_plot(plot_summary(fx_parallel("vec"), error_type = "sd")),
+  expect_s3_class(quiet_plot(plot_fit(fx_parallel("vec"), error_type = "sd")),
                   "ggplot")
-  expect_s3_class(quiet_plot(plot_summary(fx_parallel("vec"), standardised = FALSE)),
+  expect_s3_class(quiet_plot(plot_fit(fx_parallel("vec"), standardised = FALSE)),
                   "ggplot")
 })
 
-test_that("plot_summary.stats2data_parallel supports mlr and aov", {
-  expect_s3_class(quiet_plot(plot_summary(fx_parallel("mlr"))), "ggplot")
-  expect_s3_class(quiet_plot(plot_summary(fx_parallel("mlr", se = FALSE))), "ggplot")
+test_that("plot_fit.stats2data_parallel supports mlr and aov", {
+  expect_s3_class(quiet_plot(plot_fit(fx_parallel("mlr"))), "ggplot")
+  expect_s3_class(quiet_plot(plot_fit(fx_parallel("mlr", se = FALSE))), "ggplot")
   skip_if_not_installed("afex")
-  expect_s3_class(suppressMessages(quiet_plot(plot_summary(fx_parallel("aov")))),
+  expect_s3_class(suppressMessages(quiet_plot(plot_fit(fx_parallel("aov")))),
                   "ggplot")
 })
 
-test_that("plot_summary.stats2data_parallel validates its arguments", {
+test_that("plot_fit.stats2data_parallel validates its arguments", {
   x <- fx_parallel("vec")
-  expect_error(plot_summary(x, standardised = "yes"), "single logical")
-  expect_error(plot_summary(x, eps = "a"), "single numeric")
-  expect_error(plot_summary(x, error_type = "iqr"), "arg")
+  expect_error(plot_fit(x, standardised = "yes"), "single logical")
+  expect_error(plot_fit(x, eps = "a"), "single numeric")
+  expect_error(plot_fit(x, error_type = "iqr"), "arg")
   y <- x
   y$module <- "zzz"
-  expect_error(plot_summary(y), "Unrecognised module")
+  expect_error(plot_fit(y), "Unrecognised module")
 })
 
 test_that(".parallel_sim_block coerces non-finite summaries to NA", {

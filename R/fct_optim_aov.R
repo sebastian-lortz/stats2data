@@ -18,19 +18,15 @@
 #'   (must sum to \code{N}).
 #' @param thresh Numeric. Convergence threshold. Default \code{1e-2}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e3}.
-#' @param init_temp Numeric or \code{NULL}. Initial SA temperature.
-#'   If \code{NULL} (default) and \code{integer = TRUE}, the temperature is
-#'   set adaptively from the empirical distribution of single-move
-#'   |delta-objective| values. If \code{NULL} and \code{integer = FALSE},
-#'   falls back to \code{1e-3}.
+#' @param init_temp Numeric. Initial SA temperature. Default \code{1e-3}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
 #' @param max_starts Integer. Number of restarts. Default \code{1}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{stats2data.object} list with components \code{best_error},
+#' @return A \code{stats2data.object} list with components \code{best_objective},
 #'   \code{data}, \code{inputs}, \code{adjusted_targets}, and
-#'   \code{track_error}.
+#'   \code{track_objective}.
 #'
 #' @export
 optim_aov <- function(
@@ -44,8 +40,8 @@ optim_aov <- function(
     factor_type,
     subgroup_sizes = NULL,
     thresh = 5e-3,
-    max_iter = 1e4,
-    init_temp = NULL,
+    max_iter = 3e4,
+    init_temp = 1e-3,
     cooling_rate = NULL,
     max_starts = 3,
     progress_mode = "console"
@@ -68,23 +64,24 @@ optim_aov <- function(
   if (any(target_group_means < range[1] | target_group_means > range[2]))
     stop("All `target_group_means` must lie within `range`.")
   if (!is.list(target_f_list) ||
-      !is.numeric(target_f_list$F_value) || length(target_f_list$F_value) < 1)
+       !is.numeric(target_f_list$F_value) || length(target_f_list$F_value) < 1)
     stop("`target_f_list` must be a list with a numeric vector `F_value`.")
   if (!is.character(target_f_list$effect) ||
       length(target_f_list$effect) != length(target_f_list$F_value))
     stop("`target_f_list$effect` must match length of `target_f_list$F_value`.")
-  if (is.character(formula) && length(formula) == 1) {
+  if (any(!is.finite(target_f_list$F_value)) || any(target_f_list$F_value < 0))
+    stop("`target_f_list$F_value` must be finite and non-negative.")
+ if (is.character(formula) && length(formula) == 1) {
     formula <- stats::as.formula(formula)
   } else if (!inherits(formula, "formula")) {
     stop("`formula` must be a formula or single character string.")
   }
-  # Always extract RHS only — outcome is named 'outcome' internally
   if (length(formula) == 3L) {
     formula <- stats::as.formula(paste("~", deparse(formula[[3]])))
   }
   if (!is.character(factor_type) ||
       length(factor_type) != length(levels) ||
-      !all(factor_type %in% c("between", "within")))
+       !all(factor_type %in% c("between", "within")))
     stop("`factor_type` must be 'between'/'within' matching length of `levels`.")
   n_between <- prod(levels[factor_type == "between"])
   if (!is.null(subgroup_sizes)) {
@@ -95,20 +92,20 @@ optim_aov <- function(
   }
   if (!is.numeric(thresh) || length(thresh) != 1 || thresh < 0)
     stop("`thresh` must be a single non-negative number.")
-  if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
+   if (!is.numeric(max_iter) || length(max_iter) != 1 || max_iter <= 0)
     stop("`max_iter` must be a single positive number.")
-  if (!is.null(init_temp) && (!is.numeric(init_temp) || length(init_temp) != 1 || init_temp <= 0))
-    stop("`init_temp` must be a single positive number or NULL.")
+  if (!is.numeric(init_temp) || length(init_temp) != 1 || !is.finite(init_temp) || init_temp <= 0)
+    stop("`init_temp` must be a single positive finite number.")
   if (!((is.numeric(cooling_rate) && length(cooling_rate) == 1 &&
          cooling_rate > 0 && cooling_rate < 1) || is.null(cooling_rate)))
     stop("`cooling_rate` must be in (0,1) or NULL.")
   if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1)
     stop("`max_starts` must be a single positive integer.")
   if (!is.character(progress_mode) || length(progress_mode) != 1 ||
-      !progress_mode %in% c("console", "shiny", "off"))
+       !progress_mode %in% c("console", "shiny", "off"))
     stop('`progress_mode` must be "console", "shiny", or "off".')
 
-  # configure contrasts
+  # safeguard contrasts
   old_con <- options(contrasts = c(unordered = "contr.sum", ordered = "contr.poly"))
   on.exit(options(old_con), add = TRUE)
 
@@ -117,28 +114,75 @@ optim_aov <- function(
   factor_mat  <- structure$df[, -1, drop = FALSE]
   ID          <- structure$df$ID
   group_ids   <- apply(factor_mat, 1, paste0, collapse = "")
-  group_idx   <- split(seq_along(group_ids), group_ids)
+   group_idx   <- split(seq_along(group_ids), group_ids)
   group_sizes <- vapply(group_idx, length, integer(1))
   target_F    <- target_f_list$F_value
   formula_internal <- stats::as.formula(paste("outcome ~", deparse(formula[[2]])))
 
   # consistent means and F
+  if (integer) range <- c(ceiling(range[1]), floor(range[2]))
+
   targets <- aov_targets(target_group_means, target_F, group_sizes,
                          effect_names = target_f_list$effect, levels, factor_type,
                          integer, thresh,
-                         ID, factor_mat, group_idx, structure, formula_internal)
+                          ID, factor_mat, group_idx, structure, formula_internal,
+                         range = range)
   adjusted_group_means <- targets$adjusted_means
   target_F     <- targets$adjusted_F
   numerator_MS <- targets$numerator_MS
+  if (sum(numerator_MS * target_F) <= 0)
+    stop("The F targets carry no information on the within-cell variance ",
+         "(every effect has F = 0 or equal cell means); nothing to optimise.")
 
   # candidate initialization
-  init_fn <- if (integer) sprite_start_vector else sprite_start_vector_cont
+  # ballpark within-cell SD
+  init_sd <- sqrt(sum(numerator_MS^2) / sum(numerator_MS * target_F))
+
+  vec_cell <- function(j) {
+    n_j  <- group_sizes[j]
+    mu_j <- adjusted_group_means[j]
+     S_j  <- round(n_j * mu_j)
+    sd_range_int <- sd_range_integer(S_j, n_j, x_min = range[1], x_max = range[2],
+                                     sample_sd = TRUE)
+
+    if (integer) {
+      if (sd_range_int[2] == 0) return(rep(mu_j, n_j))
+      sd_j <- min(init_sd, sd_range_int[2])
+      sd_j <- max(sd_j, sd_range_int[1])
+
+      m_prec <- max(2L, floor(log10(n_j)) + 1L)
+      mu_in  <- round(mu_j, m_prec)
+
+      #     precision that rsprite2 accepts for this pair
+      for (sd_prec in 1:10) {
+        ok <- !inherits(try(rsprite2::set_parameters(
+          mean = mu_in, sd = round(sd_j, sd_prec), n_obs = n_j,
+          min_val = range[1], max_val = range[2],
+          m_prec = m_prec, sd_prec = sd_prec, dont_test = TRUE),
+          silent = TRUE), "try-error")
+        if (ok) break
+      }
+
+      vec_args <- list(target_mean = c(y = mu_in),
+                       target_sd   = c(y = round(sd_j, sd_prec)),
+                       sprite_prec = c(m_prec, sd_prec))
+    } else {
+      # continuous
+      vec_args <- list(target_mean = c(y = mu_j),
+                       target_sd   = c(y = init_sd),
+                       thresh      = 1e-12,
+                       max_iter    = 1000)
+    }
+    x <- do.call(optim_vec, c(
+      list(N = n_j, range = range, integer = integer, init_temp = 1e-3,
+           cooling_rate = NULL, max_starts = 1, progress_mode = "off"),
+      vec_args))$data$y
+    x[sample.int(n_j)] # permute
+  }
+
   current_candidate <- numeric(length(group_ids))
   for (j in seq_along(group_idx)) {
-    current_candidate[group_idx[[j]]] <- init_fn(
-      adjusted_group_means[j], group_sizes[j], range,
-      thresh = if (integer) 1 / (2 * group_sizes[j]) else 1e-12
-    )
+    current_candidate[group_idx[[j]]] <- vec_cell(j)
   }
 
   # objective function
@@ -155,11 +199,13 @@ optim_aov <- function(
       fit <- suppressMessages(
         afex::aov_car(formula = formula_internal,
                       data =  cbind(structure$df, outcome = x)))
-      sqrt(mean((fit$anova_table$F - target_F)^2))
+      tab   <- fit$anova_table
+      F_obs <- tab$F[match(target_f_list$effect, trimws(rownames(tab)))]
+      sqrt(mean((F_obs - target_F)^2))
     }
   }
 
-  # Move directives: one per error stratum.
+  # Move directives
   move_directives <- list()
   if (structure$has_between) {
     move_directives[[length(move_directives) + 1L]] <- list(type = "between")
@@ -180,37 +226,16 @@ optim_aov <- function(
   best_candidate <- current_candidate
   current_error  <- objective(current_candidate)
   if (!is.finite(current_error)) current_error <- Inf
-  best_error     <- current_error
-  track_error    <- numeric(max_iter * max_starts)
+   best_objective     <- current_error
+  track_objective    <- numeric(max_iter * max_starts)
   global_iter    <- 0L
   n_within_factors <- sum(factor_type == "within")
   needs_within_interaction <- n_within_factors >= 2 && any(grepl(":", target_f_list$effect))
 
-  # Adaptive init temperature for the integer landscape (mirrors optim_mlr).
-  # The continuous landscape is smooth and the existing scalar default suffices.
-  if (integer && is.null(init_temp)) {
-    deltas <- replicate(100, {
-      mv <- move_directives[[sample.int(n_moves, 1L)]]
-      cand <- if (mv$type == "between") {
-        move_between(current_candidate, integer, structure, range)
-      } else {
-        move_within_stratum(current_candidate, mv$W, integer, structure, range)
-      }
-      abs(objective(cand) - current_error)
-    })
-    deltas <- deltas[is.finite(deltas) & deltas > 0]
-    init_temp <- if (length(deltas) > 0L) {
-      -stats::median(deltas) / log(0.5)
-    } else {
-      1e-3  # fallback if every sampled move was a no-op or non-finite
-    }
-  }
-  if (is.null(init_temp)) init_temp <- 1e-3  # continuous default, unchanged
-  #cat("Initial temperature:", init_temp, "\n")
   temp <- init_temp
 
   # progress handler
-  handler <- switch(progress_mode,
+   handler <- switch(progress_mode,
                     console = list(progressr::handler_txtprogressbar()),
                     shiny   = list(progressr::handler_shiny()),
                     off     = list(progressr::handler_void())
@@ -224,7 +249,7 @@ optim_aov <- function(
       for (i in seq_len(max_iter)) {
         candidate <- current_candidate
         # candidate modification
-        mv <- move_directives[[sample.int(n_moves, 1L)]]
+         mv <- move_directives[[sample.int(n_moves, 1L)]]
         candidate <- if (mv$type == "between") {
           move_between(current_candidate, integer, structure, range)
         } else {
@@ -235,58 +260,60 @@ optim_aov <- function(
         if (!is.finite(cand_error)) next
         prob <- exp((current_error - cand_error) / temp)
         if (cand_error < current_error || stats::runif(1) < prob) {
-          current_candidate <- candidate
+           current_candidate <- candidate
           current_error     <- cand_error
-          if (cand_error < best_error) {
-            best_error     <- cand_error
+          if (cand_error < best_objective) {
+            best_objective     <- cand_error
             best_candidate <- candidate
           }
         }
-        # Within-cell permutation escape
-        if (integer && i %% 100L == 0L) {
-          esc_candidate <- current_candidate
-            j <- sample(seq_along(group_idx), 1L)
-            idx <- group_idx[[j]]
-            n_j <- length(idx)
-            n_perm <- 2
-            sel <- sample(idx, n_perm)
-            esc_candidate[sel] <- sample(esc_candidate[sel])
-          esc_error <- objective(esc_candidate)
-          if (is.finite(esc_error)) {
-            current_candidate <- esc_candidate
-            current_error     <- esc_error
-            if (esc_error < best_error) {
-              best_error     <- esc_error
-              best_candidate <- esc_candidate
+        # escape (integer, within/mixed designs only)
+        if (integer && structure$has_within && i %% 100L == 0L) {
+          idx <- group_idx[[sample.int(length(group_idx), 1L)]]
+          if (length(idx) >= 2L) {
+            sel <- idx[sample.int(length(idx), 2L)]
+            if (current_candidate[sel[1]] != current_candidate[sel[2]]) {
+               esc_candidate <- current_candidate
+              esc_candidate[sel] <- esc_candidate[rev(sel)]
+              esc_error <- objective(esc_candidate)
+              if (is.finite(esc_error)) {
+                current_candidate <- esc_candidate
+                current_error     <- esc_error
+                if (esc_error < best_objective) {
+                  best_objective <- esc_error
+                  best_candidate <- esc_candidate
+                }
+              }
             }
           }
         }
 
         temp <- temp * cooling_rate
         global_iter <- global_iter + 1L
-        track_error[global_iter] <- best_error
+        track_objective[global_iter] <- best_objective
         if (global_iter %% pb_interval == 0) p()
-        if (is.finite(best_error) && best_error < thresh) break
+        if (is.finite(best_objective) && best_objective < thresh) break
       }
       current_candidate <- best_candidate
-      if (is.finite(best_error) && best_error < thresh) break
+      current_error <- best_objective
+      if (is.finite(best_objective) && best_objective < thresh) break
       temp <- init_temp
     }
   }, handlers = handler)
 
-  track_error <- track_error[seq_len(global_iter)]
+  track_objective <- track_objective[seq_len(global_iter)]
 
   # assemble output
   out_data <- data.frame(ID = ID, factor_mat, outcome = best_candidate)
 
   # return
   new_s2d_aov(
-    best_error       = best_error,
+    best_objective       = best_objective,
     data             = out_data,
     inputs           = list(
       N = N, levels = levels,
       target_group_means = target_group_means,
-      target_f_list = target_f_list,
+       target_f_list = target_f_list,
       integer = integer, range = range,
       formula = formula, factor_type = factor_type,
       subgroup_sizes = subgroup_sizes,
@@ -298,6 +325,6 @@ optim_aov <- function(
       group_means = adjusted_group_means,
       F_values    = target_F
     ),
-    track_error      = track_error
+    track_objective      = track_objective
   )
 }

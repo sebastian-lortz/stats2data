@@ -31,7 +31,7 @@ or \code{\link{optim_aov}}.}
 seed is generated per run. Default \code{NULL}.}
 
 \item{stop_conv}{Logical. If \code{TRUE}, stop launching further runs as
-soon as one run has converged, i.e. its \code{best_error} is below the
+soon as one run has converged, i.e. its \code{best_objective} is below the
 convergence threshold. Default \code{FALSE}.}
 
 \item{progress_mode}{Character: \code{"console"}, \code{"shiny"}, or
@@ -44,7 +44,7 @@ An object of class \code{stats2data_parallel} — a list with:
   \item{results}{List of completed runs. Each element is the object
     returned by \code{FUN} (class \code{stats2data_vec},
     \code{stats2data_mlr}, or \code{stats2data_aov}).}
-  \item{best}{The single result with the lowest \code{best_error}.}
+  \item{best}{The single result with the lowest \code{best_objective}.}
   \item{module}{Character. One of \code{"vec"}, \code{"mlr"}, or
     \code{"aov"}, inferred from the class of the first result.}
   \item{runs}{Integer. Number of runs actually completed.}
@@ -69,8 +69,8 @@ Up to \code{cores - 1} runs may therefore complete after the first
 converged run; they are kept in \code{results}. With
 \code{stop_conv = FALSE} all runs are dispatched in a single call, as before.
 
-Convergence of a single run is judged as \code{best_error < thresh}. For
-\code{stats2data_vec} results, where \code{best_error} is a list of
+Convergence of a single run is judged as \code{best_objective < thresh}. For
+\code{stats2data_vec} results, where \code{best_objective} is a list of
 per-variable errors, every component must be below \code{thresh}.
 }
 \examples{

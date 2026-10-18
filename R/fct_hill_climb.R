@@ -1,7 +1,7 @@
 #' Perform hill-climbing optimization
 #'
 #' Executes a hill-climbing algorithm to iteratively improve a candidate data set
-#' by minimizing a supplied error function. Supports the LM module.
+#' by minimizing a supplied error function. Supports the MLR module.
 #'
 #' @param current_candidate Matrix. The predictor matrix to be optimised.
 #' @param error_function Function. Objective function that takes a candidate and
@@ -21,7 +21,7 @@
 #' @return A list with components:
 #' \describe{
 #'   \item{best_candidate}{The optimised candidate matrix achieving lowest error.}
-#'   \item{best_error}{Numeric. The minimum objective function value found.}
+#'   \item{best_objective}{Numeric. The minimum objective function value found.}
 #' }
 #'
 #' @examples
@@ -49,7 +49,7 @@ hill_climb <- function(current_candidate, error_function, N,
   if (!is.function(error_function)) {
     stop("`error_function` must be a function returning a list with element `$total_error`.")
   }
-  if (!is.numeric(N) || length(N) != 1 || N <= 0 || N != as.integer(N)) {
+   if (!is.numeric(N) || length(N) != 1 || N <= 0 || N != as.integer(N)) {
     stop("`N` must be a single positive integer indicating the number of observations.")
   }
   if (!(
@@ -58,7 +58,7 @@ hill_climb <- function(current_candidate, error_function, N,
      hill_climbs > 0 && hill_climbs == as.integer(hill_climbs))
   )) {
     stop("`hill_climbs` must be NULL or a single positive integer.")
-  }
+   }
   if (!is.numeric(num_preds) || length(num_preds) != 1 || num_preds < 1) {
     stop("`num_preds` must be a single positive integer.")
   }
@@ -68,7 +68,7 @@ hill_climb <- function(current_candidate, error_function, N,
   }
   if (!is.character(progress_mode) || length(progress_mode) != 1 ||
       !progress_mode %in% c("console", "shiny", "off")) {
-    stop('`progress_mode` must be "console", "shiny", or "off".')
+     stop('`progress_mode` must be "console", "shiny", or "off".')
   }
 
   # initial error and best
@@ -76,21 +76,21 @@ hill_climb <- function(current_candidate, error_function, N,
   best_cand <- current_candidate
   best_err  <- curr_err
 
-  # progress interval
-  if (is.null(pb_interval)) {
+  # progress
+   if (is.null(pb_interval)) {
     pb_interval <- max(floor(hill_climbs / 100), 1)
   }
 
   # main loop
   for (i in seq_len(hill_climbs)) {
     loc_cand <- current_candidate
-    loc_err  <- curr_err
+     loc_err  <- curr_err
 
     # generate neighborhood
     for (j in seq_len(neighborhood_size)) {
       cand <- current_candidate
       col  <- sample(seq_len(num_preds), 1)
-      idx  <- sample(N, 2)
+       idx  <- sample(N, 2)
       cand[idx, col] <- cand[rev(idx), col]
 
       # evaluate
@@ -104,7 +104,7 @@ hill_climb <- function(current_candidate, error_function, N,
     # accept if improved
     if (loc_err < curr_err) {
       current_candidate <- loc_cand
-      curr_err  <- loc_err
+       curr_err  <- loc_err
       best_cand <- loc_cand
       best_err  <- loc_err
     }
@@ -112,14 +112,14 @@ hill_climb <- function(current_candidate, error_function, N,
     # update progress
     if (!is.null(progressor) && (i %% pb_interval == 0)) {
       progressor()
-    }
+     }
 
     if (is.finite(best_err) && best_err < .Machine$double.eps) break
   }
 
   if (progress_mode == "console") {
-    cat("\nHill climbing best error:", best_err, "\n")
+    cat("\nHill climbing best objective:", best_err, "\n")
   }
 
-  list(best_candidate = best_cand, best_error = best_err)
+  list(best_candidate = best_cand, best_objective = best_err)
 }

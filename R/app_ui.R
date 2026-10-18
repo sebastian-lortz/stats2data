@@ -21,7 +21,7 @@ app_ui <- function(request) {
         id = "main",
         windowTitle = "stats2data",
 
-        # Home
+        # home
         tabPanel(
           title = "Home",
           fluidRow(
@@ -33,7 +33,7 @@ app_ui <- function(request) {
                       )),
                    h3("Modular Structure"),
                    p("The package is composed of two main simulation modules, ANOVA and multiple linear regression (LM), with a Descriptives sub-module. The modules are tailored to different data structures and statistical models, each following a similar high-level workflow. The ANOVA and LM modules produce datasets as a matrix, while the Descriptives sub-module generates a single variable. The modules can operate independently or sequentially, depending on the specific requirements of the optimization context."),
-                   br(),
+                    br(),
                    tags$a(
                      href   = "https://example.com/research_article.pdf",
                      target = "_blank",
@@ -43,7 +43,7 @@ app_ui <- function(request) {
             )
           )
         ),
-        # High Level Workflow
+        # workflow
         tabPanel(
           title = "High Level Workflow",
           fluidRow(
@@ -52,7 +52,7 @@ app_ui <- function(request) {
                    p("The algorithmic framework simulates and adjusts data until its  summary statistics closely match the reported targets. The process (see Figure) begins with the candidate initialization, that is, the creation of an initial simulated dataset. The algorithm then iteratively refines the candidate by optimizing an objective function f that quantifies the discrepancy between the summary statistics of the candidate and the reported targets. At each iteration, the following two steps are performed. Candidate Modification: Modifications to the data are produced through different types of moves (i.e., adjustments of the data) within the search space. Candidate Evaluation: Each candidate is evaluated by f and accepted based on a stochastic optimization criterion, ensuring that modifications progressively reduce the  value of f."),
                    h4("Convergence"),
                    p("The algorithm is deemed to have met the convergence criteria as soon as the best objective function value f_best falls below the user-specified thresh. If convergence is not reached within the iteration limit, the algorithm restarts from the best candidate found so far (with updated optimization settings). Only when all allowed iterations and restarts have been exhausted without achieving the thresh does the routine stop due to iteration limits rather than discrepancy criteria.")
-            ),
+             ),
             column(width = 6,
                    tags$img(
                      src   = "www/workflow.png",
@@ -63,14 +63,14 @@ app_ui <- function(request) {
             )
           )
         ),
-        # Modules Dropdown
+        # Dropdown
         navbarMenu(
           title = "Modules",
           tabPanel(title = "Descriptives", mod_optim_vec_ui("optim_vec")),
           tabPanel(title = "ANOVA", mod_optim_aov_ui("optim_aov")),
-          tabPanel(title = "Linear Regression", mod_optim_lm_ui("optim_lm")),
+          tabPanel(title = "Linear Regression", mod_optim_mlr_ui("optim_mlr")),
         ),
-        # About
+         # about
         tabPanel("About",
                 includeMarkdown(app_sys("app/www/about.md"))
         )

@@ -15,7 +15,7 @@ run_app <- function(
   ...
 ) {
   Sys.setlocale("LC_NUMERIC", "C")
-  options(OutDec = ".")
+  options(OutDec = ".", progressr.enable = TRUE)
   with_golem_options(
     app = shinyApp(
       ui = app_ui,

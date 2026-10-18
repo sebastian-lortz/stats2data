@@ -12,7 +12,7 @@ test_that("print.stats2data_vec reports the design and the errors", {
 
 test_that("print.stats2data_vec tolerates non-finite errors", {
   x <- fx_vec()
-  x$best_error <- list(Inf, "a")
+  x$best_objective <- list(Inf, "a")
   expect_output(print(x), "NA")
 })
 

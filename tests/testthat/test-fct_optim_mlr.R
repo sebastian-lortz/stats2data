@@ -49,9 +49,9 @@ test_that("optim_mlr returns a stats2data_mlr object", {
   expect_equal(dim(res$data), c(12L, 3L))
   expect_named(res$data, c("X1", "X2", "Y"))
   expect_s3_class(res$optim_vec, "stats2data_vec")
-  expect_gt(length(res$track_error), 0)
-  expect_lte(length(res$track_error), 20)
-  expect_equal(length(res$track_error_ratio), length(res$track_error))
+  expect_gt(length(res$track_objective), 0)
+  expect_lte(length(res$track_objective), 20)
+  expect_equal(length(res$track_objective_ratio), length(res$track_objective))
   expect_equal(res$inputs$weight, c(0.5, 0.5))
 })
 

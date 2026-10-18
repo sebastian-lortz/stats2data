@@ -1,26 +1,19 @@
-# --------------------------------------------------------------------------
 # stats2data: S3 class for Descriptives module results
-# --------------------------------------------------------------------------
 
-# ---- Constructor ---------------------------------------------------------
 
 #' Create a stats2data Descriptives result object
 #'
-#' Low-level constructor for objects of class \code{stats2data_vec}. Not intended to
-#' be called directly by end users; called internally by
-#' \code{\link{optim_vec}}.
-#'
-#' @param best_error List of per-variable best objective errors.
+#' @param best_objective List of per-variable best objective errors.
 #' @param data Data frame of optimised variable columns.
 #' @param inputs List of all input parameters used in the optimization.
-#' @param track_error List of per-variable numeric vectors tracking the best
+#' @param track_objective List of per-variable numeric vectors tracking the best
 #'   error at each iteration.
 #'
 #' @return An object of class \code{stats2data_vec}.
 #'
 #' @keywords internal
 #' @noRd
-new_s2d_vec <- function(best_error, data, inputs, track_error) {
+new_s2d_vec <- function(best_objective, data, inputs, track_objective) {
   if (!is.data.frame(data)) {
     stop("`data` must be a data.frame.", call. = FALSE)
   }
@@ -29,17 +22,15 @@ new_s2d_vec <- function(best_error, data, inputs, track_error) {
   }
   structure(
     list(
-      best_error  = best_error,
-      data        = data,
+      best_objective  = best_objective,
+       data        = data,
       inputs      = inputs,
-      track_error = track_error
+      track_objective = track_objective
     ),
     class = "stats2data_vec"
   )
 }
 
-
-# ---- print ---------------------------------------------------------------
 
 #' Print a stats2data Descriptives result
 #'
@@ -55,12 +46,12 @@ print.stats2data_vec <- function(x, ...) {
   cat("  Variables:", n_var, "\n")
   cat("  N:        ", nrow(x$data), "\n")
 
-  errs <- vapply(x$best_error, function(e) {
+   errs <- vapply(x$best_objective, function(e) {
     if (is.numeric(e) && length(e) == 1L && is.finite(e)) e else NA_real_
   }, numeric(1))
   names(errs) <- colnames(x$data)
 
-  cat("  Best error per variable:\n")
+  cat("  Best objective per variable:\n")
   for (nm in names(errs)) {
     cat("    ", nm, ": ", format(errs[nm], digits = 4), "\n", sep = "")
   }
@@ -68,26 +59,22 @@ print.stats2data_vec <- function(x, ...) {
 }
 
 
-# ---- get_stats -----------------------------------------------------------
-
 #' @rdname get_stats
 #' @export
 get_stats.stats2data_vec <- function(result, ...) {
   d <- result$data
-  list(
+    list(
     mean = vapply(d, mean, numeric(1)),
     sd   = vapply(d, stats::sd, numeric(1))
   )
 }
 
 
-# ---- get_rmse ------------------------------------------------------------
-
 #' @rdname get_rmse
 #' @export
 get_rmse.stats2data_vec <- function(result, ...) {
   s   <- get_stats(result)
-  tm  <- result$inputs$target_mean
+   tm  <- result$inputs$target_mean
   tsd <- result$inputs$target_sd
 
   list(
@@ -96,7 +83,6 @@ get_rmse.stats2data_vec <- function(result, ...) {
   )
 }
 
-# ---- summary -------------------------------------------------------------
 
 #' Summarize a stats2data Descriptives result
 #'
@@ -118,7 +104,7 @@ summary.stats2data_vec <- function(object, ...) {
   comparison <- data.frame(
     variable    = names(s$mean),
     target_mean = as.numeric(inp$target_mean),
-    sim_mean = as.numeric(s$mean),
+     sim_mean = as.numeric(s$mean),
     target_sd   = as.numeric(inp$target_sd),
     sim_sd = as.numeric(s$sd),
     row.names   = NULL
@@ -127,7 +113,7 @@ summary.stats2data_vec <- function(object, ...) {
   out <- list(
     comparison = comparison,
     rmse       = rmse,
-    best_error = object$best_error,
+     best_objective = object$best_objective,
     N          = nrow(object$data),
     n_var      = ncol(object$data)
   )
@@ -150,10 +136,10 @@ print.summary.stats2data_vec <- function(x, ...) {
   cat("-----------------------------------------------\n")
   cat("N:", x$N, " | Variables:", x$n_var, "\n\n")
 
-  errs <- vapply(x$best_error, function(e) {
+  errs <- vapply(x$best_objective, function(e) {
     if (is.numeric(e) && length(e) == 1L && is.finite(e)) e else NA_real_
   }, numeric(1))
-  cat("Best error per variable:\n")
+   cat("Best objective per variable:\n")
   for (i in seq_along(errs)) {
     cat("  ", x$comparison$variable[i], ": ",
         format(errs[i], digits = 4), "\n", sep = "")
@@ -163,7 +149,7 @@ print.summary.stats2data_vec <- function(x, ...) {
   cat("  Means:", format(x$rmse$rmse_mean, digits = 4), "\n")
   cat("  SDs:  ", format(x$rmse$rmse_sd, digits = 4), "\n")
 
-  cat("\nTarget vs. Simulated:\n")
+   cat("\nTarget vs. Simulated:\n")
   print.data.frame(x$comparison, row.names = FALSE, digits = 4)
 
   invisible(x)

@@ -1,5 +1,5 @@
 fake_vec <- function(progress_mode = "off", thresh = 0.5) fx_vec()
-fake_bad <- function(progress_mode = "off") list(best_error = 1)
+fake_bad <- function(progress_mode = "off") list(best_objective = 1)
 fake_no_thresh <- function(progress_mode = "off") fx_vec()
 
 test_that("parallel_optim validates its arguments", {
@@ -75,8 +75,8 @@ test_that("parallel_optim runs on multiple cores", {
   skip_if_not_installed("future.apply")
   res <- parallel_optim(
     FUN = function(progress_mode = "off") {
-      structure(list(best_error = 0.1, data = data.frame(x = 1),
-                     inputs = list(), track_error = 1),
+      structure(list(best_objective = 0.1, data = data.frame(x = 1),
+                     inputs = list(), track_objective = 1),
                 class = "stats2data_vec")
     },
     args = list(), runs = 2, cores = 2, progress_mode = "off"
@@ -94,5 +94,5 @@ test_that("print.stats2data_parallel reports the runs and errors", {
   res$runs <- 1L
   expect_output(print(res), "Converged")
   expect_output(print(res), "stopped early")
-  expect_output(print(fx_parallel("mlr")), "Best error")
+  expect_output(print(fx_parallel("mlr")), "Best objective")
 })

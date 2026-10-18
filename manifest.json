@@ -5366,10 +5366,10 @@
     "docs/reference/plot_cooling.html": {
       "checksum": "92b78077f2a5a9eccc322d1219a168cb"
     },
-    "docs/reference/plot_error_ratio.html": {
+    "docs/reference/plot_convergence_ratio.html": {
       "checksum": "39b55f667c00a73e1ef1b27ddee30917"
     },
-    "docs/reference/plot_error.html": {
+    "docs/reference/plot_convergence.html": {
       "checksum": "98f938dc2131f42d2ec14944095de2c2"
     },
     "docs/reference/plot_histogram.html": {
@@ -5381,7 +5381,7 @@
     "docs/reference/plot_rmse.html": {
       "checksum": "fed230bd68e1662d9992b561b778f4d5"
     },
-    "docs/reference/plot_summary.html": {
+    "docs/reference/plot_fit.html": {
       "checksum": "29c6806cea994802ca496612426d270b"
     },
     "docs/reference/print.summary.stats2data.object.html": {
@@ -5525,16 +5525,16 @@
     "R/fct_plot_cooling.R": {
       "checksum": "8d287897ddcc136e2037d6d56f064558"
     },
-    "R/fct_plot_error_ratio.R": {
+    "R/fct_plot_convergence_ratio.R": {
       "checksum": "b5770ad77b71448e7052efe3c1098023"
     },
-    "R/fct_plot_error.R": {
+    "R/fct_plot_convergence.R": {
       "checksum": "5630926417e12f22f07bcc52ae735edd"
     },
     "R/fct_plot_rmse.R": {
       "checksum": "298ee1479fbc6a0ef25290d0f43f9626"
     },
-    "R/fct_plot_summary.R": {
+    "R/fct_plot_fit.R": {
       "checksum": "cb67dd1c4fb8779558cda588433e3db0"
     },
     "R/fct_print.R": {

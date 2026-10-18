@@ -1,8 +1,5 @@
-# --------------------------------------------------------------------------
 # stats2data: S3 methods for stats2data_parallel results
-# --------------------------------------------------------------------------
 
-# ---- get_stats -----------------------------------------------------------
 
 #' @rdname get_stats
 #'
@@ -19,18 +16,16 @@ get_stats.stats2data_parallel <- function(result, ...) {
 
   stats_list <- lapply(result$results, get_stats)
 
-  # identify numeric components (vectors/scalars) worth aggregating
   first <- stats_list[[1L]]
-  numeric_comps <- names(first)[vapply(first, function(x) {
+   numeric_comps <- names(first)[vapply(first, function(x) {
     is.numeric(x) && !inherits(x, "lm")
   }, logical(1L))]
 
   stats::setNames(lapply(numeric_comps, function(comp) {
-    # stack each run's vector into a matrix (rows = elements, cols = runs)
     vals <- lapply(stats_list, `[[`, comp)
     mat  <- do.call(cbind, vals)
 
-    data.frame(
+     data.frame(
       mean   = rowMeans(mat, na.rm = TRUE),
       median = apply(mat, 1, stats::median, na.rm = TRUE),
       sd     = apply(mat, 1, stats::sd,     na.rm = TRUE),
@@ -41,8 +36,6 @@ get_stats.stats2data_parallel <- function(result, ...) {
   }), numeric_comps)
 }
 
-
-# ---- get_rmse ------------------------------------------------------------
 
 #' @rdname get_rmse
 #'
@@ -71,8 +64,6 @@ get_rmse.stats2data_parallel <- function(result, ...) {
 }
 
 
-# ---- Internal: RMSE helpers ---------------------------------------------
-
 #' Summarise a named list of numeric vectors into a data frame
 #' @noRd
 .summarise_rmse <- function(rmse_list) {
@@ -86,7 +77,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   }
   data.frame(
     metric = names(rmse_list),
-    mean   = vapply(rmse_list, mean,      numeric(1L), na.rm = TRUE),
+     mean   = vapply(rmse_list, mean,      numeric(1L), na.rm = TRUE),
     sd     = vapply(rmse_list, stats::sd, numeric(1L), na.rm = TRUE),
     min    = vapply(rmse_list, min,       numeric(1L), na.rm = TRUE),
     max    = vapply(rmse_list, max,       numeric(1L), na.rm = TRUE),
@@ -95,8 +86,6 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   )
 }
 
-
-# ---- vec module ----------------------------------------------------------
 
 #' @noRd
 .rmse_parallel_vec <- function(result) {
@@ -111,7 +100,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
          sd   = s$sd)
   })
 
-  n_runs       <- length(combined)
+   n_runs       <- length(combined)
   overall_mean <- Reduce("+", lapply(combined, `[[`, "mean")) / n_runs
   overall_sd   <- Reduce("+", lapply(combined, `[[`, "sd"))   / n_runs
 
@@ -123,7 +112,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
 
   # target
   target_rmse_mean <- vapply(combined, function(r)
-    sqrt(mean((r$mean - target_mean)^2)), numeric(1L))
+     sqrt(mean((r$mean - target_mean)^2)), numeric(1L))
   target_rmse_sd   <- vapply(combined, function(r)
     sqrt(mean((r$sd   - target_sd)^2)),   numeric(1L))
 
@@ -132,13 +121,11 @@ get_rmse.stats2data_parallel <- function(result, ...) {
 
   list(
     between_rmse = .summarise_rmse(between_raw),
-    target_rmse  = .summarise_rmse(target_raw),
+     target_rmse  = .summarise_rmse(target_raw),
     raw          = list(between = between_raw, target = target_raw)
   )
 }
 
-
-# ---- mlr module ----------------------------------------------------------
 
 #' @noRd
 .rmse_parallel_mlr <- function(result) {
@@ -146,7 +133,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   stats_list <- lapply(result$results, get_stats)
   inp        <- result$results[[1L]]$inputs
   target_cor <- inp$target_cor
-  target_reg <- inp$target_reg
+   target_reg <- inp$target_reg
   target_se  <- inp$target_se
 
   combined <- lapply(stats_list, function(s) {
@@ -160,7 +147,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   n_runs      <- length(combined)
   overall_cor <- Reduce("+", lapply(combined, `[[`, "cor")) / n_runs
   overall_reg <- Reduce("+", lapply(combined, `[[`, "reg")) / n_runs
-  overall_se  <- if (!is.null(target_se)) {
+   overall_se  <- if (!is.null(target_se)) {
     Reduce("+", lapply(combined, `[[`, "se")) / n_runs
   } else {
     NULL
@@ -173,7 +160,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   # between-run
   b_cor <- vapply(combined, function(r) {
     d <- r$cor[!na_cor] - overall_cor[!na_cor]
-    sqrt(mean(d^2, na.rm = TRUE))
+     sqrt(mean(d^2, na.rm = TRUE))
   }, numeric(1L))
 
   b_reg <- vapply(combined, function(r) {
@@ -191,7 +178,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   }
 
   # target
-  t_cor <- vapply(combined, function(r) {
+   t_cor <- vapply(combined, function(r) {
     d <- r$cor[!na_cor] - target_cor[!na_cor]
     sqrt(mean(d^2, na.rm = TRUE))
   }, numeric(1L))
@@ -206,7 +193,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
       d <- r$se[!na_se] - target_se[!na_se]
       sqrt(mean(d^2, na.rm = TRUE))
     }, numeric(1L))
-  } else {
+   } else {
     rep(NA_real_, n_runs)
   }
 
@@ -215,13 +202,11 @@ get_rmse.stats2data_parallel <- function(result, ...) {
 
   list(
     between_rmse = .summarise_rmse(between_raw),
-    target_rmse  = .summarise_rmse(target_raw),
+     target_rmse  = .summarise_rmse(target_raw),
     raw          = list(between = between_raw, target = target_raw)
   )
 }
 
-
-# ---- aov module ----------------------------------------------------------
 
 #' @noRd
 .rmse_parallel_aov <- function(result) {
@@ -234,7 +219,7 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   overall_F <- colMeans(F_mat, na.rm = TRUE)
 
   # between-run
-  between_F <- apply(F_mat, 1, function(row)
+   between_F <- apply(F_mat, 1, function(row)
     sqrt(mean((row - overall_F)^2, na.rm = TRUE)))
 
   # target
@@ -245,14 +230,12 @@ get_rmse.stats2data_parallel <- function(result, ...) {
   target_raw  <- list(rmse_F = target_rmse_F)
 
   list(
-    between_rmse = .summarise_rmse(between_raw),
+     between_rmse = .summarise_rmse(between_raw),
     target_rmse  = .summarise_rmse(target_raw),
     raw          = list(between = between_raw, target = target_raw)
   )
 }
 
-
-# ---- summary -------------------------------------------------------------
 
 #' Summarize a stats2data parallel result
 #'
@@ -269,9 +252,9 @@ summary.stats2data_parallel <- function(object, ...) {
   rmse      <- get_rmse(object)
 
   errors <- vapply(object$results, function(r) {
-    e <- r$best_error
+    e <- r$best_objective
     if (is.list(e)) {
-      mean(vapply(e, function(v) {
+       mean(vapply(e, function(v) {
         if (is.numeric(v) && length(v) == 1L && is.finite(v)) v else NA_real_
       }, numeric(1L)), na.rm = TRUE)
     } else {
@@ -282,7 +265,7 @@ summary.stats2data_parallel <- function(object, ...) {
   out <- list(
     module     = object$module,
     runs       = object$runs,
-    errors     = errors,
+     errors     = errors,
     agg_stats  = agg_stats,
     rmse       = rmse
   )
@@ -306,11 +289,11 @@ print.summary.stats2data_parallel <- function(x, ...) {
   cat("stats2data Parallel Summary\n")
   cat("-----------------------------------------------\n")
   cat("Module:", x$module, " | Runs:", x$runs, "\n")
-  cat("Best error: ", format(min(x$errors, na.rm = TRUE), digits = 6), "\n")
+  cat("Best objective: ", format(min(x$errors, na.rm = TRUE), digits = 6), "\n")
   cat("Mean error: ", format(mean(x$errors, na.rm = TRUE), digits = 6), "\n")
   cat("SD error:   ", format(stats::sd(x$errors, na.rm = TRUE), digits = 6), "\n")
 
-  cat("\nTarget RMSE (across runs):\n")
+   cat("\nTarget RMSE (across runs):\n")
   print.data.frame(x$rmse$target_rmse, row.names = FALSE, digits = 4)
 
   cat("\nBetween-run RMSE:\n")
@@ -318,7 +301,7 @@ print.summary.stats2data_parallel <- function(x, ...) {
 
   cat("\nAggregated Statistics:\n")
   for (nm in names(x$agg_stats)) {
-    cat("  ", nm, ":\n", sep = "")
+     cat("  ", nm, ":\n", sep = "")
     print.data.frame(x$agg_stats[[nm]], digits = 4)
     cat("\n")
   }
@@ -327,45 +310,35 @@ print.summary.stats2data_parallel <- function(x, ...) {
 }
 
 
-# ---- plot ----------------------------------------------------------------
-
-#' Plot RMSE distributions for a parallel result
-#'
-#' Visualises between-run variability and deviation-from-target RMSE
-#' distributions as box-and-jitter plots, faceted by metric.
-#'
-#' @param x An object of class \code{stats2data_parallel}.
-#' @param ... Currently unused.
-#'
-#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#' @describeIn plot_stability Method for parallel results
+#'   (\code{stats2data_parallel}). Box-and-jitter distributions of run-to-run
+#'   and against-target RMSE, faceted by metric.
 #'
 #' @examples
 #' \dontrun{
 #' res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
-#' plot(res)
+#' plot_stability(res)
 #' }
 #'
 #' @importFrom rlang .data
 #' @export
-plot.stats2data_parallel <- function(x, ...) {
+plot_stability.stats2data_parallel <- function(x, ...) {
 
   rmse_obj <- get_rmse(x)
   raw      <- rmse_obj$raw
 
-  # ---- assemble long data frame ------------------------------------------
   metrics <- names(raw$between)
 
   rmse_data <- do.call(rbind, lapply(metrics, function(metric) {
-    between_vals <- raw$between[[metric]]
+     between_vals <- raw$between[[metric]]
     target_vals  <- raw$target[[metric]]
 
-    # drop all-NA metrics (e.g. rmse_se when target_se is NULL)
     if (all(is.na(between_vals)) && all(is.na(target_vals))) return(NULL)
 
     rbind(
-      data.frame(Metric = metric, Type = "Between Runs",
+       data.frame(Metric = metric, Type = "Run-to-run",
                  RMSE = between_vals, stringsAsFactors = FALSE),
-      data.frame(Metric = metric, Type = "vs. Target",
+      data.frame(Metric = metric, Type = "To target",
                  RMSE = target_vals,  stringsAsFactors = FALSE)
     )
   }))
@@ -375,20 +348,11 @@ plot.stats2data_parallel <- function(x, ...) {
     stop("No RMSE data available to plot.", call. = FALSE)
   }
 
-  # prettify metric labels
   rmse_data$Metric <- gsub("^rmse_", "", rmse_data$Metric)
-  rmse_data$Metric <- toupper(rmse_data$Metric)
+   rmse_data$Metric <- toupper(rmse_data$Metric)
   rmse_data$Metric <- factor(rmse_data$Metric,
                              levels = unique(rmse_data$Metric))
 
-  # ---- module title suffix -----------------------------------------------
-  module_label <- switch(x$module,
-                         vec = "Descriptives",
-                         mlr = "MLR",
-                         aov = "ANOVA",
-                         x$module)
-
-  # ---- build plot --------------------------------------------------------
   p <- ggplot2::ggplot(rmse_data, ggplot2::aes(
     x = .data$Type, y = .data$RMSE
   )) +
@@ -399,7 +363,7 @@ plot.stats2data_parallel <- function(x, ...) {
       width = 0.5, alpha = 0.15, fill = "gray80",
       outlier.shape = NA, color = "gray40"
     ) +
-    ggplot2::geom_jitter(
+     ggplot2::geom_jitter(
       color = "steelblue", width = 0.12, height = 0,
       alpha = 0.7, size = 2
     ) +
@@ -407,14 +371,12 @@ plot.stats2data_parallel <- function(x, ...) {
       ~ .data$Metric, scales = "free_y"
     ) +
     ggplot2::labs(
-      title = paste0("RMSE Distribution - ", module_label, " Module"),
       x     = NULL,
       y     = "RMSE"
     ) +
-    theme_stats2data() +
+     theme_stats2data() +
     ggplot2::theme(
       legend.position    = "none",
-      strip.background   = ggplot2::element_rect(fill = "gray90", color = "gray50"),
       strip.text         = ggplot2::element_text(face = "bold"),
       panel.grid.major.x = ggplot2::element_blank(),
       axis.text.x        = ggplot2::element_text(face = "bold")
@@ -425,9 +387,7 @@ plot.stats2data_parallel <- function(x, ...) {
 }
 
 
-# ---- plot_summary --------------------------------------------------------
-
-#' @describeIn plot_summary Method for parallel results
+#' @describeIn plot_fit Method for parallel results
 #'   (\code{stats2data_parallel}). Aggregates each simulated parameter as the
 #'   across-run mean (rounded to the target's reported precision) and overlays
 #'   an error bar showing the across-run min/max
@@ -443,6 +403,14 @@ plot.stats2data_parallel <- function(x, ...) {
 #'   for standardization. Default \code{1e-12}.
 #' @param error_type Character; \code{"range"} (default) draws across-run
 #'   min/max error bars, \code{"sd"} draws \code{mean +/- SD} across runs.
+#' @param order Character; \code{"input"} (default) keeps the supplied
+#'   parameter order, \code{"fit"} sorts by absolute difference, worst fit
+#'   first.
+#' @param thresh Numeric or \code{NULL}; convergence threshold used to shade
+#'   the region within \code{+/- thresh} of the target. Defaults to the
+#'   threshold of the first run, \code{x$results[[1]]$inputs$thresh}, which
+#'   assumes every run used the same setting. \code{NULL} suppresses the
+#'   shading.
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
@@ -450,17 +418,20 @@ plot.stats2data_parallel <- function(x, ...) {
 #' @examples
 #' \dontrun{
 #' res <- parallel_optim(FUN = optim_mlr, args = list(...), runs = 20)
-#' plot_summary(res)
-#' plot_summary(res, standardised = FALSE, error_type = "sd")
+#' plot_fit(res)
+#' plot_fit(res, standardised = FALSE, error_type = "sd")
 #' }
 #'
 #' @importFrom rlang .data
 #' @export
-plot_summary.stats2data_parallel <- function(x,
-                                             standardised = TRUE,
-                                             eps          = 1e-12,
-                                             error_type   = c("range", "sd"),
-                                             ...) {
+plot_fit.stats2data_parallel <- function(x,
+                                         standardised = TRUE,
+                                         eps          = 1e-12,
+                                         error_type   = c("range", "sd"),
+                                         order        = c("input", "fit"),
+                                         thresh       =
+                                           x$results[[1L]]$inputs$thresh,
+                                         ...) {
   if (!is.logical(standardised) || length(standardised) != 1L) {
     stop("`standardised` must be a single logical value.", call. = FALSE)
   }
@@ -468,42 +439,39 @@ plot_summary.stats2data_parallel <- function(x,
     stop("`eps` must be a single numeric value.", call. = FALSE)
   }
   error_type <- match.arg(error_type)
+  order      <- match.arg(order)
 
   module <- x$module
-  built  <- switch(
+   built  <- switch(
     module,
-    vec = .plot_summary_parallel_vec(x, standardised, eps, error_type),
-    mlr = .plot_summary_parallel_mlr(x, standardised, eps, error_type),
-    aov = .plot_summary_parallel_aov(x, standardised, eps, error_type),
+    vec = .plot_fit_parallel_vec(x, standardised, eps, error_type),
+    mlr = .plot_fit_parallel_mlr(x, standardised, eps, error_type),
+    aov = .plot_fit_parallel_aov(x, standardised, eps, error_type),
     stop("Unrecognised module: ", module, call. = FALSE)
   )
 
-  module_label <- switch(module,
-                         vec = "Descriptives Module (parallel)",
-                         mlr = "MLR Module (parallel)",
-                         aov = "ANOVA Module (parallel)")
-
-  p <- .plot_summary_engine(
+  p <- .plot_fit_engine(
     built$df, standardised,
-    x_lab        = built$x_lab,
-    title_module = module_label
+     var_lab = built$var_lab,
+    order   = order,
+    thresh  = thresh
   )
 
   err_label <- switch(error_type,
                       range = "across-run min/max",
                       sd    = "mean +/- SD across runs")
 
-  # ---- per-run cloud, on the same Centered scale as the lollipop --------
   jitter_df <- .parallel_jitter_df(x, built$df, standardised, eps)
+  jitter_df <- .match_raw_panel(jitter_df, built$df)
 
   p <- p +
     ggplot2::geom_jitter(
       data        = jitter_df,
-      mapping     = ggplot2::aes(x = .data$Variable, y = .data$Centered),
+      mapping     = ggplot2::aes(x = .data$Centered, y = .data$Variable),
       inherit.aes = FALSE,
       color       = "steelblue",
-      width       = 0.12,
-      height      = 0,
+      width       = 0,
+       height      = 0.12,
       alpha       = 0.6,
       size        = 1.6,
       na.rm       = TRUE
@@ -513,7 +481,6 @@ plot_summary.stats2data_parallel <- function(x,
   invisible(p)
 }
 
-# ---- Internal: parallel plot_summary helpers ----------------------------
 
 #' Aggregate a per-parameter matrix (rows = parameters, cols = runs) into
 #' the across-run point estimate plus low/high bounds on the simulated scale.
@@ -532,9 +499,8 @@ plot_summary.stats2data_parallel <- function(x,
     hi <- sim + s
   }
 
-  # rowMeans / min / max return Inf or NaN for all-NA rows; coerce to NA
   sim[!is.finite(sim)] <- NA_real_
-  lo[!is.finite(lo)]   <- NA_real_
+   lo[!is.finite(lo)]   <- NA_real_
   hi[!is.finite(hi)]   <- NA_real_
 
   list(sim = sim, lo = lo, hi = hi)
@@ -542,19 +508,14 @@ plot_summary.stats2data_parallel <- function(x,
 
 #' Long per-run frame on the lollipop's Centered scale.
 #'
-#' Returns columns Measure, Variable, Centered with one row per
-#' (parameter x run). The Variable factor reuses the levels from
-#' `agg_df$Variable` so the jitter columns align with the lollipop
-#' dots.
 #'
 #' @noRd
 .parallel_jitter_df <- function(x, agg_df, standardised, eps) {
 
   module     <- x$module
   inp        <- x$results[[1L]]$inputs
-  stats_list <- lapply(x$results, get_stats)
+   stats_list <- lapply(x$results, get_stats)
 
-  # ---- collect (matrix, target, measure label, var names) per measure ---
   blocks <- list()
 
   add_block <- function(mat, target, measure, var_names) {
@@ -567,7 +528,7 @@ plot_summary.stats2data_parallel <- function(x,
   if (module == "vec") {
     vars <- names(inp$target_mean)
     if (is.null(vars)) vars <- colnames(x$results[[1L]]$data)
-    add_block(do.call(cbind, lapply(stats_list, `[[`, "mean")),
+     add_block(do.call(cbind, lapply(stats_list, `[[`, "mean")),
               inp$target_mean, "Mean", vars)
     add_block(do.call(cbind, lapply(stats_list, `[[`, "sd")),
               inp$target_sd,   "SD",   vars)
@@ -581,7 +542,7 @@ plot_summary.stats2data_parallel <- function(x,
               inp$target_cor, "Correlation", var_cor)
     if (!is.null(inp$target_se)) {
       var_se <- if (!is.null(names(inp$target_se))) names(inp$target_se) else
-        names(inp$target_reg)[seq_along(inp$target_se)]
+         names(inp$target_reg)[seq_along(inp$target_se)]
       add_block(do.call(cbind, lapply(stats_list, `[[`, "se")),
                 inp$target_se, "Standard Error", var_se)
     }
@@ -591,21 +552,19 @@ plot_summary.stats2data_parallel <- function(x,
               inp$target_f_list$F_value, "F", eff)
   }
 
-  # ---- to long frame, centered the same way as the lollipop -------------
   out <- do.call(rbind, lapply(blocks, function(b) {
     centered <- apply(b$mat, 2, .compute_centered,
                       target       = b$target,
                       standardised = standardised,
                       eps          = eps)
     data.frame(
-      Measure  = b$measure,
+       Measure  = b$measure,
       Variable = rep(b$vars, ncol(b$mat)),
       Centered = as.numeric(centered),
       stringsAsFactors = FALSE
     )
   }))
 
-  # reuse the aggregated frame's factor levels so x-positions align
   out$Variable <- factor(out$Variable, levels = levels(agg_df$Variable))
   out
 }
@@ -618,13 +577,13 @@ plot_summary.stats2data_parallel <- function(x,
 #' @noRd
 .centered_bounds <- function(sim_lo, sim_hi, target, standardised, eps) {
   c_lo <- .compute_centered(sim_lo, target, standardised, eps)
-  c_hi <- .compute_centered(sim_hi, target, standardised, eps)
+   c_hi <- .compute_centered(sim_hi, target, standardised, eps)
   list(Lower = pmin(c_lo, c_hi), Upper = pmax(c_lo, c_hi))
 }
 
 
 #' @noRd
-.plot_summary_parallel_vec <- function(x, standardised, eps, error_type) {
+.plot_fit_parallel_vec <- function(x, standardised, eps, error_type) {
 
   inp         <- x$results[[1L]]$inputs
   target_mean <- inp$target_mean
@@ -633,7 +592,7 @@ plot_summary.stats2data_parallel <- function(x,
   if (is.null(vars)) vars <- colnames(x$results[[1L]]$data)
 
   stats_list <- lapply(x$results, get_stats)
-  mat_mean   <- do.call(cbind, lapply(stats_list, `[[`, "mean"))
+   mat_mean   <- do.call(cbind, lapply(stats_list, `[[`, "mean"))
   mat_sd     <- do.call(cbind, lapply(stats_list, `[[`, "sd"))
 
   mb <- .parallel_sim_block(mat_mean, error_type)
@@ -647,7 +606,7 @@ plot_summary.stats2data_parallel <- function(x,
   df <- data.frame(
     Variable  = rep(vars, 2L),
     Measure   = rep(c("Mean", "SD"), each = length(vars)),
-    Simulated = c(as.numeric(mb$sim), as.numeric(sb$sim)),
+     Simulated = c(as.numeric(mb$sim), as.numeric(sb$sim)),
     Target    = c(as.numeric(target_mean), as.numeric(target_sd)),
     Centered  = c(cm, cs),
     Lower     = c(bm$Lower, bs$Lower),
@@ -658,22 +617,22 @@ plot_summary.stats2data_parallel <- function(x,
 
   df <- df %>%
     dplyr::group_by(.data$Measure) %>%
-    dplyr::mutate(
+     dplyr::mutate(
       Variable = factor(.data$Variable, levels = unique(.data$Variable))
     ) %>%
     dplyr::ungroup()
 
-  list(df = df, x_lab = "Variable")
+  list(df = df, var_lab = "Variable")
 }
 
 
 #' @noRd
-.plot_summary_parallel_mlr <- function(x, standardised, eps, error_type) {
+.plot_fit_parallel_mlr <- function(x, standardised, eps, error_type) {
 
   inp        <- x$results[[1L]]$inputs
   target_reg <- inp$target_reg
   target_cor <- inp$target_cor
-  target_se  <- inp$target_se
+   target_se  <- inp$target_se
 
   stats_list <- lapply(x$results, get_stats)
   mat_reg    <- do.call(cbind, lapply(stats_list, `[[`, "reg"))
@@ -682,14 +641,13 @@ plot_summary.stats2data_parallel <- function(x,
   rb <- .parallel_sim_block(mat_reg, error_type)
   cb <- .parallel_sim_block(mat_cor, error_type)
 
-  # regression coefficients ------------------------------------------------
   cr  <- .compute_centered(rb$sim, target_reg, standardised, eps)
   brb <- .centered_bounds(rb$lo, rb$hi, target_reg, standardised, eps)
   df_reg <- data.frame(
     Measure   = "Regression Coefficient",
     Variable  = names(target_reg),
     Simulated = as.numeric(rb$sim),
-    Target    = as.numeric(target_reg),
+     Target    = as.numeric(target_reg),
     Centered  = cr,
     Lower     = brb$Lower,
     Upper     = brb$Upper,
@@ -697,7 +655,6 @@ plot_summary.stats2data_parallel <- function(x,
   )
   df_reg <- .tag_sim_type(df_reg, standardised, eps)
 
-  # correlations -----------------------------------------------------------
   var_names_cor <- names(target_cor)
   if (is.null(var_names_cor)) {
     var_names_cor <- paste0("Cor", seq_along(target_cor))
@@ -707,7 +664,7 @@ plot_summary.stats2data_parallel <- function(x,
   df_cor <- data.frame(
     Measure   = "Correlation",
     Variable  = var_names_cor,
-    Simulated = as.numeric(cb$sim),
+     Simulated = as.numeric(cb$sim),
     Target    = as.numeric(target_cor),
     Centered  = cc,
     Lower     = bcb$Lower,
@@ -732,7 +689,7 @@ plot_summary.stats2data_parallel <- function(x,
       Measure   = "Standard Error",
       Variable  = var_names_se,
       Simulated = as.numeric(sb$sim),
-      Target    = as.numeric(target_se),
+       Target    = as.numeric(target_se),
       Centered  = cs,
       Lower     = bsb$Lower,
       Upper     = bsb$Upper,
@@ -748,12 +705,12 @@ plot_summary.stats2data_parallel <- function(x,
     ) %>%
     dplyr::ungroup()
 
-  list(df = df_all, x_lab = "Parameter")
+  list(df = df_all, var_lab = "Parameter")
 }
 
 
 #' @noRd
-.plot_summary_parallel_aov <- function(x, standardised, eps, error_type) {
+.plot_fit_parallel_aov <- function(x, standardised, eps, error_type) {
 
   inp      <- x$results[[1L]]$inputs
   target_F <- inp$target_f_list$F_value
@@ -761,7 +718,7 @@ plot_summary.stats2data_parallel <- function(x,
   stats_list <- lapply(x$results, get_stats)
   mat_F      <- do.call(cbind, lapply(stats_list, `[[`, "F_value"))
 
-  fb  <- .parallel_sim_block(mat_F, error_type)
+   fb  <- .parallel_sim_block(mat_F, error_type)
   cf  <- .compute_centered(fb$sim, target_F, standardised, eps)
   bfb <- .centered_bounds(fb$lo, fb$hi, target_F, standardised, eps)
 
@@ -776,7 +733,7 @@ plot_summary.stats2data_parallel <- function(x,
     Variable  = effect_names,
     Simulated = as.numeric(fb$sim),
     Target    = as.numeric(target_F),
-    Centered  = cf,
+     Centered  = cf,
     Lower     = bfb$Lower,
     Upper     = bfb$Upper,
     stringsAsFactors = FALSE
@@ -784,6 +741,5 @@ plot_summary.stats2data_parallel <- function(x,
   df <- .tag_sim_type(df, standardised, eps)
   df$Variable <- factor(df$Variable, levels = effect_names)
 
-  list(df = df, x_lab = "Effect")
+  list(df = df, var_lab = "Effect")
 }
-

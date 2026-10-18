@@ -1,67 +1,74 @@
 cullen_frey_template <- function(discrete = FALSE,
                                  xmax = 4,
                                  kurtmax = 10,
-                                 base_size = 12) {
+                                 base_size = 12,
+                                 background = NULL) {
   if (!requireNamespace("ggplot2", quietly = TRUE)) {
     stop("Package 'ggplot2' is required.")
   }
 
-  # Small padding so symbols at x = 0 are fully visible
   xpad <- 0.06 * xmax
 
-  # Helper: clip a curve branch at xmax and interpolate endpoint exactly at xmax
+  # helper
   clip_branch_at_xmax <- function(x, y, xmax) {
     ok <- is.finite(x) & is.finite(y)
     x <- x[ok]
     y <- y[ok]
 
     ord <- order(x)
-    x <- x[ord]
+  x <- x[ord]
     y <- y[ord]
 
-    keep <- x <= xmax
-    x_keep <- x[keep]
-    y_keep <- y[keep]
+  keep <- x <= xmax
+   x_keep <- x[keep]
+   y_keep <- y[keep]
 
     if (length(x_keep) > 0 && max(x_keep) < xmax && any(x > xmax)) {
       idx_left <- max(which(x < xmax))
-      idx_right <- min(which(x > xmax))
+     idx_right <- min(which(x > xmax))
 
       if (length(idx_left) > 0 && length(idx_right) > 0 &&
           is.finite(idx_left) && is.finite(idx_right)) {
-        y_xmax <- stats::approx(
+      y_xmax <- stats::approx(
           x = x[c(idx_left, idx_right)],
-          y = y[c(idx_left, idx_right)],
-          xout = xmax
+        y = y[c(idx_left, idx_right)],
+        xout = xmax
         )$y
-
-        x_keep <- c(x_keep, xmax)
+      x_keep <- c(x_keep, xmax)
         y_keep <- c(y_keep, y_xmax)
       }
     }
 
-    data.frame(
+ data.frame(
       skewness2 = x_keep,
       kurtosis = y_keep
     )
   }
 
+  draw_key_frame <- function(data, params, size) {
+    if (is.na(data$fill)) return(grid::nullGrob())
+   grid::rectGrob(
+      width  = grid::unit(0.8, "npc"),
+     height = grid::unit(0.8, "npc"),
+      gp     = grid::gpar(col = data$colour, fill = NA,
+                          lwd = data$linewidth * ggplot2::.pt)
+    )
+  }
+
   p <- ggplot2::ggplot()
+ if (!is.null(background)) p <- p + background
 
   if (!discrete) {
 
-    # -----------------------------------------------------------------------
-    # Beta distribution region
-    # -----------------------------------------------------------------------
+    # beta
     p_beta <- exp(-100)
-    lq <- seq(-100, 100, by = 0.1)
+   lq <- seq(-100, 100, by = 0.1)
     q <- exp(lq)
 
     beta_s2_a <- (4 * (q - p_beta)^2 * (p_beta + q + 1)) /
       ((p_beta + q + 2)^2 * p_beta * q)
-
     beta_kurt_a <- 3 * (p_beta + q + 1) *
-      (p_beta * q * (p_beta + q - 6) + 2 * (p_beta + q)^2) /
+     (p_beta * q * (p_beta + q - 6) + 2 * (p_beta + q)^2) /
       (p_beta * q * (p_beta + q + 2) * (p_beta + q + 3))
 
     p_beta <- exp(100)
@@ -71,14 +78,14 @@ cullen_frey_template <- function(discrete = FALSE,
       ((p_beta + q + 2)^2 * p_beta * q)
 
     beta_kurt_b <- 3 * (p_beta + q + 1) *
-      (p_beta * q * (p_beta + q - 6) + 2 * (p_beta + q)^2) /
+   (p_beta * q * (p_beta + q - 6) + 2 * (p_beta + q)^2) /
       (p_beta * q * (p_beta + q + 2) * (p_beta + q + 3))
 
     beta_a <- clip_branch_at_xmax(beta_s2_a, beta_kurt_a, xmax)
-    beta_b <- clip_branch_at_xmax(beta_s2_b, beta_kurt_b, xmax)
+  beta_b <- clip_branch_at_xmax(beta_s2_b, beta_kurt_b, xmax)
 
     beta_a <- beta_a[beta_a$kurtosis <= kurtmax, , drop = FALSE]
-    beta_b <- beta_b[beta_b$kurtosis <= kurtmax, , drop = FALSE]
+   beta_b <- beta_b[beta_b$kurtosis <= kurtmax, , drop = FALSE]
 
     beta_df <- rbind(
       beta_a,
@@ -86,69 +93,67 @@ cullen_frey_template <- function(discrete = FALSE,
     )
     beta_df$distribution <- "beta"
 
-    # -----------------------------------------------------------------------
-    # Gamma distribution curve
-    # -----------------------------------------------------------------------
+    # gamma
     lshape <- seq(-100, 100, by = 0.1)
     shape <- exp(lshape)
 
-    gamma_df <- data.frame(
+  gamma_df <- data.frame(
       skewness2 = 4 / shape,
       kurtosis = 3 + 6 / shape,
       distribution = "gamma"
     )
-    gamma_df <- gamma_df[
+  gamma_df <- gamma_df[
       is.finite(gamma_df$skewness2) &
         is.finite(gamma_df$kurtosis) &
         gamma_df$skewness2 <= xmax &
         gamma_df$kurtosis <= kurtmax,
     ]
 
-    # -----------------------------------------------------------------------
-    # Lognormal distribution curve
-    # -----------------------------------------------------------------------
+    # log-normal
     lshape <- seq(-100, 100, by = 0.1)
     shape <- exp(lshape)
-    es2 <- exp(shape^2)
+   es2 <- exp(shape^2)
 
     lognormal_df <- data.frame(
-      skewness2 = (es2 + 2)^2 * (es2 - 1),
+   skewness2 = (es2 + 2)^2 * (es2 - 1),
       kurtosis = es2^4 + 2 * es2^3 + 3 * es2^2 - 3,
       distribution = "lognormal"
     )
     lognormal_df <- lognormal_df[
-      is.finite(lognormal_df$skewness2) &
+    is.finite(lognormal_df$skewness2) &
         is.finite(lognormal_df$kurtosis) &
-        lognormal_df$skewness2 <= xmax &
+       lognormal_df$skewness2 <= xmax &
         lognormal_df$kurtosis <= kurtmax,
     ]
 
     line_df <- rbind(gamma_df, lognormal_df)
 
-    # -----------------------------------------------------------------------
-    # Theoretical reference points
-    # -----------------------------------------------------------------------
+    # ref points
     point_df <- data.frame(
       skewness2 = c(0, 0, 4, 0),
-      kurtosis = c(3, 9 / 5, 9, 4.2),
+    kurtosis = c(3, 9 / 5, 9, 4.2),
       distribution = c("normal", "uniform", "exponential", "logistic")
     )
 
+    # legend order: region, curves, symbols
+    lvl <- c("beta", "lognormal", "gamma",
+             "normal", "uniform", "exponential", "logistic")
+
     p <- p +
-      # background first
       ggplot2::geom_polygon(
         data = beta_df,
-        ggplot2::aes(
+    ggplot2::aes(
           x = skewness2,
           y = kurtosis,
           fill = distribution
         ),
-        alpha = 0.55,
-        colour = NA
+        colour = "grey50",
+        linewidth = 0.4,
+     alpha = 0,
+        key_glyph = draw_key_frame
       ) +
-      # curves next
       ggplot2::geom_path(
-        data = line_df,
+       data = line_df,
         ggplot2::aes(
           x = skewness2,
           y = kurtosis,
@@ -156,10 +161,9 @@ cullen_frey_template <- function(discrete = FALSE,
         ),
         linewidth = 0.7
       ) +
-      # symbols on top
       ggplot2::geom_point(
         data = point_df,
-        ggplot2::aes(
+       ggplot2::aes(
           x = skewness2,
           y = kurtosis,
           shape = distribution
@@ -168,47 +172,42 @@ cullen_frey_template <- function(discrete = FALSE,
         stroke = 1.2
       ) +
       ggplot2::scale_fill_manual(
-        name = "Theoretical",
-        values = c("beta" = "grey80"),
-        breaks = c("beta")
+        name = "Theoretical", limits = lvl, breaks = lvl,
+     values = c("beta" = "white", "lognormal" = NA, "gamma" = NA,
+                   "normal" = NA, "uniform" = NA, "exponential" = NA,
+                   "logistic" = NA),
+        na.value = NA
       ) +
       ggplot2::scale_linetype_manual(
-        name = "Theoretical",
-        values = c(
-          "gamma" = "dashed",
-          "lognormal" = "dotted"
-        ),
-        breaks = c("lognormal", "gamma")
+        name = "Theoretical", limits = lvl, breaks = lvl,
+   values = c("beta" = "blank", "lognormal" = "dotted", "gamma" = "dashed",
+                   "normal" = "blank", "uniform" = "blank",
+                   "exponential" = "blank", "logistic" = "blank")
       ) +
       ggplot2::scale_shape_manual(
-        name = "Theoretical",
-        values = c(
-          "normal" = 8,
-          "uniform" = 2,
-          "exponential" = 7,
-          "logistic" = 3
-        ),
-        breaks = c("normal", "uniform", "exponential", "logistic")
+        name = "Theoretical", limits = lvl, breaks = lvl,
+       values = c("beta" = NA, "lognormal" = NA, "gamma" = NA,
+                   "normal" = 8, "uniform" = 2, "exponential" = 7,
+                   "logistic" = 3),
+       na.value = NA
       )
 
   } else {
 
-    # -----------------------------------------------------------------------
-    # Negative binomial region
-    # -----------------------------------------------------------------------
+    # neg binomial
     p_nb <- exp(-10)
     lr <- seq(-100, 100, by = 0.1)
-    r <- exp(lr)
+  r <- exp(lr)
 
     nb_s2_a <- (2 - p_nb)^2 / (r * (1 - p_nb))
     nb_kurt_a <- 3 + 6 / r + p_nb^2 / (r * (1 - p_nb))
 
     p_nb <- 1 - exp(-10)
     lr <- seq(100, -100, by = -0.1)
-    r <- exp(lr)
+   r <- exp(lr)
 
     nb_s2_b <- (2 - p_nb)^2 / (r * (1 - p_nb))
-    nb_kurt_b <- 3 + 6 / r + p_nb^2 / (r * (1 - p_nb))
+  nb_kurt_b <- 3 + 6 / r + p_nb^2 / (r * (1 - p_nb))
 
     nb_a <- clip_branch_at_xmax(nb_s2_a, nb_kurt_a, xmax)
     nb_b <- clip_branch_at_xmax(nb_s2_b, nb_kurt_b, xmax)
@@ -216,16 +215,14 @@ cullen_frey_template <- function(discrete = FALSE,
     nb_a <- nb_a[nb_a$kurtosis <= kurtmax, , drop = FALSE]
     nb_b <- nb_b[nb_b$kurtosis <= kurtmax, , drop = FALSE]
 
-    nb_df <- rbind(
+  nb_df <- rbind(
       nb_a,
       nb_b[nrow(nb_b):1, , drop = FALSE]
     )
     nb_df$distribution <- "negative binomial"
 
-    # -----------------------------------------------------------------------
-    # Poisson distribution curve
-    # -----------------------------------------------------------------------
-    llambda <- seq(-100, 100, by = 0.1)
+    # possion
+ llambda <- seq(-100, 100, by = 0.1)
     lambda <- exp(llambda)
 
     poisson_df <- data.frame(
@@ -236,21 +233,20 @@ cullen_frey_template <- function(discrete = FALSE,
     poisson_df <- poisson_df[
       is.finite(poisson_df$skewness2) &
         is.finite(poisson_df$kurtosis) &
-        poisson_df$skewness2 <= xmax &
+      poisson_df$skewness2 <= xmax &
         poisson_df$kurtosis <= kurtmax,
     ]
 
-    # -----------------------------------------------------------------------
-    # Theoretical reference point
-    # -----------------------------------------------------------------------
+    # ref points
     point_df <- data.frame(
-      skewness2 = 0,
+    skewness2 = 0,
       kurtosis = 3,
       distribution = "normal"
     )
 
+    lvl <- c("negative binomial", "Poisson", "normal")
+
     p <- p +
-      # background first
       ggplot2::geom_polygon(
         data = nb_df,
         ggplot2::aes(
@@ -258,23 +254,23 @@ cullen_frey_template <- function(discrete = FALSE,
           y = kurtosis,
           fill = distribution
         ),
-        alpha = 0.55,
-        colour = NA
+        colour = "grey50",
+        linewidth = 0.4,
+     alpha = 0,
+        key_glyph = draw_key_frame
       ) +
-      # curve next
       ggplot2::geom_path(
         data = poisson_df,
-        ggplot2::aes(
+       ggplot2::aes(
           x = skewness2,
           y = kurtosis,
           linetype = distribution
         ),
         linewidth = 0.7
       ) +
-      # symbol on top
       ggplot2::geom_point(
         data = point_df,
-        ggplot2::aes(
+       ggplot2::aes(
           x = skewness2,
           y = kurtosis,
           shape = distribution
@@ -283,25 +279,25 @@ cullen_frey_template <- function(discrete = FALSE,
         stroke = 1.2
       ) +
       ggplot2::scale_fill_manual(
-        name = "Theoretical",
-        values = c("negative binomial" = "grey80"),
-        breaks = c("negative binomial")
+     name = "Theoretical", limits = lvl, breaks = lvl,
+        values = c("negative binomial" = "white", "Poisson" = NA, "normal" = NA),
+        na.value = NA
       ) +
       ggplot2::scale_linetype_manual(
-        name = "Theoretical",
-        values = c("Poisson" = "dashed"),
-        breaks = c("Poisson")
+        name = "Theoretical", limits = lvl, breaks = lvl,
+        values = c("negative binomial" = "blank", "Poisson" = "dashed",
+                   "normal" = "blank")
       ) +
       ggplot2::scale_shape_manual(
-        name = "Theoretical",
-        values = c("normal" = 8),
-        breaks = c("normal")
+        name = "Theoretical", limits = lvl, breaks = lvl,
+        values = c("negative binomial" = NA, "Poisson" = NA, "normal" = 8),
+        na.value = NA
       )
   }
 
   p +
     ggplot2::scale_x_continuous(
-      limits = c(-xpad, xmax),
+   limits = c(-xpad, xmax),
       breaks = seq(0, floor(xmax), by = 1),
       expand = ggplot2::expansion(mult = c(0, 0.02))
     ) +
@@ -310,19 +306,19 @@ cullen_frey_template <- function(discrete = FALSE,
       breaks = seq(1, kurtmax, by = 1),
       expand = ggplot2::expansion(mult = c(0.02, 0.02))
     ) +
-    ggplot2::labs(
+  ggplot2::labs(
       title = "",
       x = "square of skewness",
       y = "kurtosis"
     ) +
-    ggplot2::coord_cartesian(
+  ggplot2::coord_cartesian(
       xlim = c(-xpad, xmax),
       ylim = c(kurtmax, 1),
       clip = "off"
     ) +
     ggplot2::theme_classic(base_size = base_size) +
     ggplot2::theme(
-      legend.position = c(0.76, 0.72),
+    legend.position = c(0.76, 0.72),
       legend.background = ggplot2::element_blank(),
       legend.key = ggplot2::element_blank(),
       legend.title = ggplot2::element_text(size = base_size * 0.8),
