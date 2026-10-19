@@ -20,7 +20,10 @@
 #' @param sprite_prec Integer vector of length 2. Decimal precision for mean
 #'   and SD when using SPRITE for integer data. Default \code{c(2, 2)}.
 #' @param target_cor Numeric vector. Target upper-triangular (excluding
-#'   diagonal) correlation values for predictor and outcome variables.
+#'   diagonal) correlation values of all variables in \code{target_mean},
+#'   ordered as \code{upper.tri()} of the correlation matrix with rows and
+#'   columns in the order of \code{target_mean}; \code{NA} for unreported
+#'   correlations.
 #' @param target_reg Numeric vector. Target regression coefficients including
 #'   intercept, matching terms in \code{reg_equation}.
 #' @param reg_equation Character. Regression model formula
@@ -28,26 +31,33 @@
 #' @param target_se Numeric vector or NULL. Target standard errors for
 #'   regression coefficients (same length as \code{target_reg}).
 #'   Default \code{NULL}.
-#' @param weight Numeric vector of length 2. Weights for correlation vs.
-#'   regression error in the objective function. Default \code{c(1, 1)}.
-#' @param thresh Numeric. Convergence threshold. Default \code{1e-6}.
+#' @param weight Numeric in [0, 1]. Weight of the correlation error in the
+#'   objective function; the regression error is weighted by
+#'   \code{1 - weight}. Default \code{0.5}.
+#' @param thresh Numeric. Convergence threshold. Default \code{5e-3}.
 #' @param max_iter Integer. Iterations per restart. Default \code{1e5}.
-#' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
+#' @param init_temp Numeric or \code{NULL}. Initial SA temperature; if
+#'   \code{NULL}, it is set such that the median objective change of 500
+#'   random swaps is accepted with probability 0.5. Default \code{NULL}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto).
 #'   Default \code{NULL}.
-#' @param max_starts Integer. Number of restarts. Default \code{1}.
+#' @param max_starts Integer. Number of restarts. Default \code{3}.
 #' @param hill_climbs Integer or NULL. Number of hill-climbing iterations for
-#'   optional local refinement; if NULL, skips refinement. Default \code{NULL}.
+#'   optional local refinement; if NULL or 0, skips refinement.
+#'   Default \code{1e4}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{stats2data.object} list with components:
+#' @return An object of class \code{stats2data_mlr}, a list with components:
 #' \describe{
 #'   \item{best_objective}{Numeric. Minimum objective error achieved.}
 #'   \item{data}{Data frame of optimised predictor and outcome values.}
-#'   \item{optim_vec}{The \code{stats2data.object} returned by the internal
+#'   \item{optim_vec}{The \code{stats2data_vec} object returned by the internal
 #'     \code{optim_vec} call (marginal optimization results).}
-#'   \item{inputs}{List of all input parameters for reproducibility.}
+#'   \item{inputs}{List of the input parameters as used internally:
+#'     \code{weight} as \code{c(weight, 1 - weight)}, \code{target_cor}
+#'     reordered to (predictors, outcome), and the set
+#'     \code{init_temp} and \code{cooling_rate}.}
 #'   \item{track_objective}{Numeric vector of best objective value at each iteration.}
 #'   \item{track_objective_ratio}{Numeric vector of error ratios (cor vs. reg)
 #'     per iteration.}

@@ -12,7 +12,7 @@ optim_vec(
   integer,
   thresh = 0.005,
   sprite_prec = c(2, 2),
-  max_iter = 5e+05,
+  max_iter = 500000,
   init_temp = 0.001,
   cooling_rate = NULL,
   max_starts = 3,
@@ -33,24 +33,24 @@ matrix matching \code{target_mean}.}
 \item{integer}{Logical or logical vector. If TRUE, optimize integer values;
 length 1 or same length as \code{target_mean}.}
 
-\item{thresh}{Numeric. Convergence threshold. Default \code{1e-3}.}
+\item{thresh}{Numeric. Convergence threshold. Default \code{5e-3}.}
 
 \item{sprite_prec}{Integer vector of length 2. Decimal precision for mean
 and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
 
-\item{max_iter}{Integer. Iterations per restart. Default \code{1e4}.}
+\item{max_iter}{Integer. Iterations per restart. Default \code{5e5}.}
 
-\item{init_temp}{Numeric. Initial SA temperature. Default \code{1}.}
+\item{init_temp}{Numeric. Initial SA temperature. Default \code{1e-3}.}
 
 \item{cooling_rate}{Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.}
 
-\item{max_starts}{Integer. Number of restarts. Default \code{1}.}
+\item{max_starts}{Integer. Number of restarts. Default \code{3}.}
 
 \item{progress_mode}{Character: \code{"console"}, \code{"shiny"}, or
 \code{"off"}. Default \code{"console"}.}
 }
 \value{
-A \code{stats2data.object} list with components \code{best_objective},
+An object of class \code{stats2data_vec}, a list with components \code{best_objective},
   \code{data}, \code{inputs}, \code{track_objective}, and \code{error_msgs}.
 }
 \description{

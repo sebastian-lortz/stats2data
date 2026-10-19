@@ -11,7 +11,7 @@
   x,
   run = 1L,
   show_best = TRUE,
-  first_iter = 1L,
+  first_iter = 0L,
   log_y = FALSE,
   thresh = x$inputs$thresh,
   ...
@@ -21,7 +21,7 @@
   x,
   run = 1L,
   show_best = TRUE,
-  first_iter = 1L,
+  first_iter = 0L,
   ratio = FALSE,
   show_mean = TRUE,
   show_median = TRUE,
@@ -35,7 +35,7 @@
   x,
   run = 1L,
   show_best = TRUE,
-  first_iter = 1L,
+  first_iter = 0L,
   log_y = FALSE,
   thresh = x$inputs$thresh,
   ...
@@ -52,7 +52,7 @@ plot_convergence(x, ...)
 \item{show_best}{Logical. If \code{TRUE} (default), marks the minimum
 objective value.}
 
-\item{first_iter}{Integer. Iterations to skip; default \code{1}.}
+\item{first_iter}{Integer. Iterations to skip; default \code{0}.}
 
 \item{log_y}{Logical. If \code{TRUE}, the y axis uses a base-10
 logarithmic scale; non-positive objective values are dropped with a warning.

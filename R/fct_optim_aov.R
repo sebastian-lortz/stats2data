@@ -8,25 +8,44 @@
 #' @param target_group_means Numeric vector of length \code{prod(levels)}.
 #'   Target cell means in lexicographic sort order: Factor1 slowest, Factor2 fastest, i.e. 11, 12, 21, 22 for a 2x2.
 #' @param target_f_list List with components \code{effect} (character) and
-#'   \code{F} (numeric) of equal length.
+#'   \code{F_value} (numeric) of equal length.
 #' @param integer Logical. Generate integer-valued data?
 #' @param range Numeric vector of length 2. Bounds for individual observations.
 #' @param formula Formula or character. ANOVA model formula.
 #' @param factor_type Character vector (\code{"between"}/\code{"within"})
 #'   matching length of \code{levels}.
 #' @param subgroup_sizes Optional numeric vector of between-group sizes
-#'   (must sum to \code{N}).
-#' @param thresh Numeric. Convergence threshold. Default \code{1e-2}.
-#' @param max_iter Integer. Iterations per restart. Default \code{1e3}.
+#'   (must sum to \code{S}).
+#' @param thresh Numeric. Convergence threshold. Default \code{5e-3}.
+#' @param max_iter Integer. Iterations per restart. Default \code{3e4}.
 #' @param init_temp Numeric. Initial SA temperature. Default \code{1e-3}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
-#' @param max_starts Integer. Number of restarts. Default \code{1}.
+#' @param max_starts Integer. Number of restarts. Default \code{3}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{stats2data.object} list with components \code{best_objective},
+#' @return An object of class \code{stats2data_aov}, a list with components \code{best_objective},
 #'   \code{data}, \code{inputs}, \code{adjusted_targets}, and
 #'   \code{track_objective}.
+#'
+#' @examples
+#' \donttest{
+#' # 2 x 2 between-subjects design, 10 subjects per cell
+#' res <- optim_aov(
+#'   S                  = 40,
+#'   levels             = c(2, 2),
+#'   target_group_means = c(5.1, 4.2, 6.3, 5.0),
+#'   target_f_list      = list(effect  = c("Factor1", "Factor2", "Factor1:Factor2"),
+#'                             F_value = c(5.0, 6.05, 0.2)),
+#'   integer            = FALSE,
+#'   range              = c(0, 10),
+#'   formula            = "outcome ~ Factor1 * Factor2",
+#'   factor_type        = c("between", "between"),
+#'   progress_mode      = "off"
+#' )
+#' summary(res)
+#' plot_fit(res, standardised = FALSE)
+#' }
 #'
 #' @export
 optim_aov <- function(

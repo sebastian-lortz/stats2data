@@ -1,0 +1,816 @@
+---
+title: "stats2data_application"
+output:
+  rmarkdown::html_vignette:
+    df_print: default
+    toc: true
+vignette: >
+  %\VignetteIndexEntry{stats2data_application}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  echo       = TRUE,
+  message    = FALSE,
+  warning    = FALSE,
+  collapse   = TRUE,
+  comment    = "#>",
+  fig.width  = 6,
+  fig.height = 4,
+  fig.align  = "left",
+  dpi        = 100,
+  fig.path   = "figures/",
+  fig.cap    = ""         # no default "plot of chunk" captions when precomputing
+)
+
+# helpers for numbers reported in the text
+num <- function(x, digits = 3) {
+  format(signif(as.numeric(x), digits), scientific = FALSE, trim = TRUE)
+}
+dec <- function(x, digits = 3) formatC(as.numeric(x), digits = digits, format = "f")
+below <- function(x, thresh) {
+  if (all(is.finite(unlist(x))) && all(unlist(x) < thresh)) "below" else "not below"
+}
+```
+
+# Overview
+
+`stats2data` simulates raw datasets whose summary statistics match reported
+summary statistics (the *targets*). Each module defines an objective, the
+discrepancy between the summary statistics of a candidate dataset and the
+targets, and minimizes it with simulated annealing. A run stops once the best
+objective value falls below the convergence threshold `thresh` or once the
+iteration budget is spent. In this vignette, a run whose best objective value
+is below `thresh` is called *converged*.
+
+Convergence is a statement about the optimization only: the simulated
+summary statistics reproduce the targets to within `thresh`. Many different
+datasets share the same summary statistics, and a simulated dataset is one of
+them. The results below are therefore described in terms of the optimization
+(objective values, target-vs-simulated differences, run-to-run variability),
+not in terms of how closely the simulated data resemble the unobserved
+original data.
+
+The vignette works through four examples:
+
+1. the **Descriptives module** (`optim_vec()`), using the reported marginal
+   statistics of Bardwell et al. (2007);
+2. the **MLR module** (`optim_mlr()`), using the reported correlations and
+   regression estimates of the same study;
+3. the **ANOVA module** (`optim_aov()`), using the reported cell means and
+   F-statistics of Reynolds and Besner (2008), as in the accompanying
+   manuscript;
+4. the **parallel workflow** (`parallel_optim()`), using the ANOVA example.
+
+Across the examples, the following functions are demonstrated:
+
+* the optimization functions `optim_vec()`, `optim_mlr()`, `optim_aov()`, and
+  `parallel_optim()`;
+* the GRIM check `check_grim()`;
+* the inspection methods `print()`, `summary()`, `get_stats()`, `get_rmse()`,
+  and `coef()`;
+* the plotting functions `plot_convergence()`, `plot_cooling()`, `plot_fit()`,
+  `plot_stability()`, and the `plot()` methods;
+* the Shiny interface `run_app()`.
+
+## Installation
+
+```{r install, eval = FALSE}
+if (!requireNamespace("devtools", quietly = TRUE)) install.packages("devtools")
+devtools::install_github("sebastian-lortz/stats2data")
+```
+
+## Shiny interface
+
+All three modules and the parallel workflow are also available in a
+point-and-click interface:
+
+```{r app, eval = FALSE}
+library(stats2data)
+run_app()
+```
+
+The tabs *Descriptives*, *ANOVA*, and *Linear Regression* correspond to
+`optim_vec()`, `optim_aov()`, and `optim_mlr()`. The inputs of each tab
+correspond to the arguments of the function (the info icon of each input
+names the argument), and setting *Number of Runs* above one calls
+`parallel_optim()`. The results panel offers the plots and summaries shown in
+this vignette. The *Download* button exports the result object, the simulated
+data, and the R code of the function call, which reproduces the result in R.
+
+## Setup
+
+```{r load}
+library(stats2data)
+library(ggplot2)
+```
+
+# 1. Descriptives module: Bardwell et al. (2007)
+
+Bardwell et al. (2007, <https://doi.org/10.1016/j.jad.2006.06.013>) examined
+whether depressive symptoms or apnea severity better predict fatigue in
+patients with obstructive sleep apnea. The raw data are not publicly
+available. The study reports means and standard deviations of four variables
+for `N = 60` patients, rounded to one decimal. `optim_vec()` simulates one
+vector per variable that reproduces its target mean and SD.
+
+## 1.1 Encoding the targets
+
+```{r vec-targets}
+N           <- 60
+target_mean <- c(Apnea.1 = 48.8, Apnea.2 = 17.3, Depression = 12.6, Fatigue = 10.8)
+target_sd   <- c(Apnea.1 = 27.1, Apnea.2 = 20.1, Depression = 11.3, Fatigue = 7.3)
+integer     <- c(FALSE, FALSE, TRUE, TRUE)
+range       <- matrix(
+  c( 15,    0,  0,  0,    # lower bounds
+    111, 80.9, 49, 28),   # upper bounds
+  nrow = 2, byrow = TRUE
+)
+```
+
+`Apnea.1` and `Apnea.2` are treated as continuous, `Depression` and `Fatigue`
+as integer-valued sum scores. `range` holds one column of lower and upper
+bounds per variable.
+
+## 1.2 GRIM check
+
+For integer-valued data, not every mean is attainable: the sum of `N`
+integers divided by `N` can only take values on a grid of width `1 / N`. The
+GRIM test (Brown & Heathers, 2017) checks whether a reported mean, rounded to
+`decimals`, lies on that grid:
+
+```{r vec-grim}
+check_grim(n = N, target_mean = target_mean[["Depression"]], decimals = 1)
+check_grim(n = N, target_mean = target_mean[["Fatigue"]],    decimals = 1)
+```
+
+With `N = 60` and one decimal, the grid width (`1 / 60`) is smaller than the
+rounding unit (`0.1`), so every mean passes. The check is informative for
+small samples or more decimals; for a mean that fails, `grim_mean` returns
+the nearest attainable mean (hypothetical values):
+
+```{r vec-grim-fail}
+check_grim(n = 7, target_mean = 3.45, decimals = 2)
+```
+
+## 1.3 Running the optimizer
+
+For continuous variables, `optim_vec()` starts from a vector whose mean lies
+within `thresh` of the target mean and anneals the values toward the target
+SD; the moves keep the mean fixed. For integer variables, it draws a
+distribution from SPRITE (Heathers et al., 2018) via `rsprite2` whose mean and
+SD match the targets at the number of decimals given by `sprite_prec`. The
+objective of each variable is the absolute difference between its simulated
+and target SD.
+
+Both statistics are reported to one decimal, so `sprite_prec = c(1, 1)`, and
+`thresh = 0.05` is set to half a unit of the last reported decimal. All other
+arguments are at their defaults (`max_iter = 5e5`, `init_temp = 1e-3`,
+`cooling_rate = NULL`, i.e. `(max_iter - 10) / max_iter`, `max_starts = 3`).
+
+```{r vec-run, results = "hide"}
+set.seed(2026)
+result_vec <- optim_vec(
+  N           = N,
+  target_mean = target_mean,
+  target_sd   = target_sd,
+  range       = range,
+  integer     = integer,
+  sprite_prec = c(1, 1),
+  thresh      = 0.05
+)
+```
+
+## 1.4 Inspecting the result
+
+`print()` shows the sample size and the best objective value per variable:
+
+```{r vec-print}
+result_vec
+```
+
+The best objective values are
+`r below(result_vec$best_objective, 0.05)` `thresh = 0.05` for all four
+variables. `summary()` adds the target and simulated means and SDs and their
+RMSEs; the largest absolute difference between a simulated and a target mean
+is `r num(max(abs(get_stats(result_vec)$mean - target_mean)))`:
+
+```{r vec-summary}
+summary(result_vec)
+```
+
+`get_stats()` returns the simulated statistics and `get_rmse()` the RMSEs
+between simulated and target statistics:
+
+```{r vec-stats}
+get_stats(result_vec)
+get_rmse(result_vec)
+```
+
+If SPRITE finds no distribution for an integer variable, the reason is stored
+per variable in `error_msgs` (`NULL` when SPRITE succeeded):
+
+```{r vec-msgs}
+result_vec$error_msgs
+```
+
+## 1.5 Diagnostics
+
+`plot_convergence()` shows the best objective value across iterations. For a
+`stats2data_vec` result, `run` selects the variable; `Apnea.2` is the second
+variable. `log_y = TRUE` uses a logarithmic y axis, and the shaded band marks
+the region below `thresh`.
+
+```{r vec-convergence, fig.alt = "Objective trajectory of the Apnea.2 variable."}
+plot_convergence(result_vec, run = 2, log_y = TRUE)
+```
+
+The trajectory has `r length(result_vec$track_objective[[2]])` iterations.
+Integer variables are drawn by SPRITE without annealing, so their trajectory
+consists of a single value.
+
+`plot_cooling()` shows the temperature schedule implied by `init_temp`,
+`cooling_rate`, and `max_iter`:
+
+```{r vec-cooling, fig.alt = "Cooling schedule of the descriptives optimization."}
+plot_cooling(result_vec)
+```
+
+## 1.6 Target vs. simulated statistics
+
+`plot_fit()` plots the difference between simulated and target statistics.
+With `standardised = FALSE`, the differences are on the original scale; the
+shaded band marks `+/- thresh`. `order = "fit"` sorts the statistics by
+absolute difference.
+
+```{r vec-fit, fig.alt = "Simulated minus target means and SDs."}
+plot_fit(result_vec, standardised = FALSE, order = "fit")
+```
+
+The same plots are available through `plot()`, with `which` selecting the
+panel:
+
+```{r vec-plot, eval = FALSE}
+plot(result_vec)                    # plot_convergence()
+plot(result_vec, which = "cooling") # plot_cooling()
+plot(result_vec, which = "fit")     # plot_fit()
+```
+
+## 1.7 Simulated data
+
+The simulated data are stored in `result_vec$data`, one column per variable:
+
+```{r vec-data, fig.width = 7, fig.height = 5, fig.alt = "Distributions of the four simulated variables."}
+data_vec <- result_vec$data
+head(data_vec)
+
+data_long <- data.frame(
+  variable = factor(rep(names(data_vec), each = nrow(data_vec)), levels = names(data_vec)),
+  value    = unlist(data_vec, use.names = FALSE)
+)
+ggplot(data_long, aes(x = value)) +
+  geom_histogram(bins = 15, fill = "grey60", colour = "grey20") +
+  facet_wrap(~ variable, scales = "free") +
+  labs(x = NULL, y = "Count") +
+  theme_minimal()
+```
+
+# 2. MLR module: Bardwell et al. (2007)
+
+Bardwell et al. (2007) also report a multiple linear regression of `Fatigue`
+on the two apnea indices and `Depression`, with coefficients, standard
+errors, and the correlations of each predictor with `Fatigue`. `optim_mlr()`
+simulates data that reproduce these targets together with the marginal
+statistics from Section 1.
+
+## 2.1 Encoding the targets
+
+```{r mlr-targets}
+reg_equation <- "Fatigue ~ Apnea.1 + Apnea.2 + Depression"
+target_reg   <- c("(Intercept)" = 4.020, Apnea.1 = 0.023, Apnea.2 = 0.008, Depression = 0.438)
+target_se    <- c(NA, 0.034, 0.048, 0.066)
+target_cor   <- c(NA, NA, NA, 0.11, 0.20, 0.68)
+```
+
+`target_reg` and `target_se` follow the terms of `reg_equation`, intercept
+first. `target_cor` holds the upper triangle of the correlation matrix of all
+variables in `target_mean`, filled column by column in the order of
+`target_mean`: `Apnea.1-Apnea.2`, `Apnea.1-Depression`, `Apnea.2-Depression`,
+`Apnea.1-Fatigue`, `Apnea.2-Fatigue`, `Depression-Fatigue`. `NA` marks
+statistics that were not reported; they are excluded from the objective.
+
+## 2.2 Running the optimizer
+
+`optim_mlr()` first calls `optim_vec()` to simulate the marginals and then
+reorders the values of the predictors with simulated annealing, followed by
+hill climbing (`hill_climbs`). The objective is
+`weight * correlation error + (1 - weight) * regression error`, where the
+regression error includes the standard errors when `target_se` is given.
+
+The call uses `thresh = 0.001`, `sprite_prec = c(1, 1)` as in Section 1, and
+the defaults otherwise (`weight = 0.5`, `max_iter = 1e5`, `max_starts = 3`,
+`hill_climbs = 1e4`; `init_temp = NULL` is calibrated from the objective
+changes of random swaps, `cooling_rate = NULL` is `(max_iter - 10) / max_iter`).
+
+```{r mlr-run, results = "hide"}
+set.seed(2026)
+result_mlr <- optim_mlr(
+  N            = N,
+  target_mean  = target_mean,
+  target_sd    = target_sd,
+  range        = range,
+  integer      = integer,
+  sprite_prec  = c(1, 1),
+  reg_equation = reg_equation,
+  target_cor   = target_cor,
+  target_reg   = target_reg,
+  target_se    = target_se,
+  thresh       = 0.001
+)
+```
+
+## 2.3 Inspecting the result
+
+```{r mlr-print}
+result_mlr
+```
+
+The best objective value is `r num(result_mlr$best_objective)`, which is
+`r below(result_mlr$best_objective, 0.001)` `thresh = 0.001`.
+
+```{r mlr-summary}
+summary(result_mlr)
+```
+
+`get_stats()` returns the fitted `lm` object, the coefficients, standard
+errors, correlations (upper triangle in the order predictors, outcome), means,
+and SDs of the simulated data. `coef()` refits the regression and returns the
+coefficients:
+
+```{r mlr-stats}
+stats_mlr <- get_stats(result_mlr)
+names(stats_mlr)
+summary(stats_mlr$model)
+coef(result_mlr)
+get_rmse(result_mlr)
+```
+
+The marginal result of the internal `optim_vec()` call is stored in
+`result_mlr$optim_vec` and supports the methods of Section 1:
+
+```{r mlr-vec}
+get_rmse(result_mlr$optim_vec)
+```
+
+## 2.4 Diagnostics
+
+`plot_convergence()` shows the best objective value across the annealing
+iterations; `first_iter` skips leading iterations, here the first 10%:
+
+```{r mlr-convergence, fig.alt = "Objective trajectory of the MLR optimization."}
+n_iter_mlr <- length(result_mlr$track_objective)
+plot_convergence(result_mlr, log_y = TRUE, first_iter = floor(n_iter_mlr / 10))
+```
+
+With `ratio = TRUE`, the plot shows the ratio of the correlation error to the
+regression error of the best candidate, with lines at its mean, median, and
+final value (`show_mean`, `show_median`, `show_final`). A ratio above 1 means
+that the correlation component is the larger of the two.
+
+```{r mlr-ratio, fig.alt = "Ratio of correlation to regression error across iterations."}
+plot_convergence(result_mlr, ratio = TRUE)
+```
+
+The final ratio is `r num(tail(result_mlr$track_objective_ratio, 1))`.
+
+`plot_cooling()` uses the stored `init_temp` and `cooling_rate`, i.e. the
+values calibrated during the run:
+
+```{r mlr-cooling, fig.alt = "Cooling schedule of the MLR optimization."}
+result_mlr$inputs$init_temp
+plot_cooling(result_mlr)
+```
+
+## 2.5 Balancing the objective with `weight`
+
+`weight` sets how much the correlation and the regression components
+contribute to the objective. Objective values obtained with different
+weights are on different scales and are not compared directly; the
+unweighted RMSEs of `get_rmse()` are. The optimization is repeated with
+`weight = 0.1`:
+
+```{r mlr-weight, results = "hide"}
+set.seed(2026)
+result_mlr_w01 <- optim_mlr(
+  N            = N,
+  target_mean  = target_mean,
+  target_sd    = target_sd,
+  range        = range,
+  integer      = integer,
+  sprite_prec  = c(1, 1),
+  reg_equation = reg_equation,
+  target_cor   = target_cor,
+  target_reg   = target_reg,
+  target_se    = target_se,
+  thresh       = 0.001,
+  weight       = 0.1
+)
+```
+
+```{r mlr-weight-compare}
+rbind(
+  "weight = 0.5" = unlist(get_rmse(result_mlr)),
+  "weight = 0.1" = unlist(get_rmse(result_mlr_w01))
+)
+```
+
+The table shows how the RMSEs of the correlations, coefficients, and standard
+errors change with `weight` in this example. Which balance is preferable
+depends on which targets matter most for the intended use of the data. The
+remainder of this section continues with the `weight = 0.5` result.
+
+## 2.6 Target vs. simulated statistics
+
+```{r mlr-fit, fig.width = 7, fig.height = 5, fig.alt = "Simulated minus target coefficients, standard errors, and correlations."}
+plot_fit(result_mlr, standardised = FALSE)
+```
+
+With the default `standardised = TRUE`, the differences are divided by the
+target values (for targets of zero, the unstandardised difference is shown).
+The `plot()` method offers the same panels, including `which = "ratio"`:
+
+```{r mlr-plot, eval = FALSE}
+plot(result_mlr, which = "fit")
+plot(result_mlr, which = "ratio")
+```
+
+## 2.7 Simulated data
+
+```{r mlr-data}
+data_mlr <- result_mlr$data
+head(data_mlr)
+round(cor(data_mlr), 2)
+```
+
+# 3. ANOVA module: Reynolds and Besner (2008)
+
+This section follows the empirical example of the accompanying manuscript.
+Reynolds and Besner (2008, Experiment 5) examined how contextual
+predictability affects response times in word and nonword naming; the study
+was among those replicated by the Open Science Collaboration (2015). To our
+knowledge, the raw data are not publicly available.
+
+## 3.1 Reported summary statistics
+
+The study reports a 2 x 2 within-subjects design (`S = 16`) with four cell
+means, indexed by stimulus type (`Factor1`) and switch condition (`Factor2`):
+543, 536, 614, and 618 ms. It reports `MSE = 3070` for the `Factor1` effect,
+`F(1, 15) = 30.5` (partial eta squared .670) for `Factor1`, and `F < 1` for
+`Factor2` (.002) and the interaction (.015).
+
+The code of this section is the code of the empirical example in the
+manuscript, so it reproduces the results reported there.
+
+```{r aov-targets}
+S   <- 16
+mse <- 3070
+target_group_means <- c(543, 536, 614, 618)
+eta2   <- c(0.002, 0.015)  # Factor2, Factor1:Factor2
+df_err <- S - 1
+```
+
+The numerator mean squares implied by the cell means of the balanced 2 x 2
+within-subjects design are:
+
+```{r aov-ms}
+m_cell  <- matrix(target_group_means, nrow = 2, byrow = TRUE)  # rows: Factor1, cols: Factor2
+m_grand <- mean(m_cell)
+ms_f1   <- S * 2 * sum((rowMeans(m_cell) - m_grand)^2)
+ms_f2   <- S * 2 * sum((colMeans(m_cell) - m_grand)^2)
+ms_int  <- S * sum((m_cell - outer(rowMeans(m_cell), colMeans(m_cell), "+") + m_grand)^2)
+c(ms_f1 = ms_f1, ms_f2 = ms_f2, ms_int = ms_int)
+```
+
+The reported `Factor1` statistics are consistent with each other: the implied
+mean square divided by the reported `MSE` gives `F = 30.5`, and
+`F / (F + df_error)` gives the reported partial eta squared of .670.
+
+```{r aov-checks}
+stopifnot(round(ms_f1 / mse, 1) == 30.5)
+stopifnot(round(30.5 / (30.5 + df_err), 3) == 0.670)
+```
+
+For the two effects reported as `F < 1`, the F-statistics are set from the
+reported partial eta squared via `F = eta^2 * df_error / (1 - eta^2)` (one
+numerator degree of freedom). The modules require bounds for the outcome,
+which the study does not report; the range of the reported cell means is
+extended by four times `sqrt(MSE)`, the residual SD implied by the MSE, and
+rounded outward. The summary statistics are encoded in one list of
+`optim_aov()` arguments:
+
+```{r aov-sumstats}
+F_value_derived <- c(round(ms_f1 / mse, 1), round(eta2 * df_err / (1 - eta2), 3))
+
+sumstats <- list(
+  S                  = S,
+  levels             = c(2, 2),
+  factor_type        = c("within", "within"),
+  formula            = "outcome ~ Factor1 * Factor2 + Error(ID / (Factor1 * Factor2))",
+  integer            = FALSE,
+  target_f_list      = list(
+    effect  = c("Factor1", "Factor2", "Factor1:Factor2"),
+    F_value = F_value_derived
+  ),
+  target_group_means = target_group_means,
+  range              = c(floor(min(target_group_means) - 4 * sqrt(mse)),
+                         ceiling(max(target_group_means) + 4 * sqrt(mse)))
+)
+sumstats$target_f_list$F_value
+sumstats$range
+```
+
+`target_group_means` lists the cells with `Factor1` varying slowest (11, 12,
+21, 22).
+
+## 3.2 Simulating a dataset
+
+`optim_aov()` is called with its default hyperparameters (`max_iter = 3e4`,
+`thresh = 0.005`, `max_starts = 3`, `init_temp = 1e-3`, `cooling_rate = NULL`,
+i.e. `(max_iter - 10) / max_iter`). The objective is the RMSE between the
+simulated and target F-statistics.
+
+```{r aov-run, results = "hide"}
+set.seed(2026)
+result_aov <- do.call(optim_aov, sumstats)
+```
+
+## 3.3 Inspecting the output
+
+```{r aov-print}
+result_aov
+```
+
+```{r aov-numbers, include = FALSE}
+first_below <- which(result_aov$track_objective < result_aov$inputs$thresh)[1]
+```
+
+The best objective value is `r num(result_aov$best_objective)`, which is
+`r below(result_aov$best_objective, 0.005)` `thresh = 0.005`. The best
+objective value first fell below `thresh` at iteration `r first_below`:
+
+```{r aov-first}
+which(result_aov$track_objective < result_aov$inputs$thresh)[1]
+```
+
+```{r aov-summary}
+summary(result_aov)
+```
+
+```{r aov-stats, include = FALSE}
+stats_aov <- get_stats(result_aov)
+rmse_aov  <- get_rmse(result_aov)
+```
+
+The simulated F-statistics are
+`r paste(dec(stats_aov$F_value), collapse = ", ")` for `Factor1`,
+`Factor2`, and `Factor1:Factor2` (targets 30.5, 0.030, 0.228); the F-statistic
+RMSE is `r dec(rmse_aov$rmse_F)` and the cell-mean RMSE
+`r num(rmse_aov$rmse_mean)`.
+
+Before the annealing, `optim_aov()` may shift the target cell means by less
+than `thresh` so that the means and F-statistics can be matched jointly. The
+values used are stored in `adjusted_targets`:
+
+```{r aov-adjusted}
+result_aov$adjusted_targets
+```
+
+`get_stats()` returns the ANOVA table of the simulated data (fitted with
+`afex`), the F-statistics, and the cell means; `get_rmse()` returns the two
+RMSEs:
+
+```{r aov-get}
+get_stats(result_aov)
+get_rmse(result_aov)
+```
+
+## 3.4 Diagnostic plots
+
+The two panels of the manuscript figure are obtained with (`first_iter = 1`
+skips the first iteration):
+
+```{r aov-convergence, fig.alt = "Objective trajectory of the ANOVA optimization on a log scale."}
+plot_convergence(result_aov, first_iter = 1, log_y = TRUE)
+```
+
+```{r aov-fit, fig.alt = "Simulated minus target F-statistics."}
+plot_fit(result_aov, standardised = FALSE)
+```
+
+`show_best = FALSE` removes the marker of the best value and `thresh = NULL`
+the shaded band:
+
+```{r aov-convergence-plain, eval = FALSE}
+plot_convergence(result_aov, show_best = FALSE, thresh = NULL)
+```
+
+`plot_cooling()` shows the temperature schedule:
+
+```{r aov-cooling, fig.alt = "Cooling schedule of the ANOVA optimization."}
+plot_cooling(result_aov)
+```
+
+## 3.5 Simulated data
+
+The data are stored in long format, one row per subject and cell. The
+simulated observations lie within `range`; the second line checks whether any
+observation equals one of the bounds:
+
+```{r aov-data, fig.alt = "Simulated observations per cell with cell means."}
+range(result_aov$data$outcome)
+any(result_aov$data$outcome %in% sumstats$range)
+
+data_aov <- result_aov$data
+head(data_aov)
+aggregate(outcome ~ Factor1 + Factor2, data = data_aov, FUN = mean)
+
+ggplot(data_aov, aes(x = interaction(Factor1, Factor2, sep = "-"), y = outcome)) +
+  geom_jitter(width = 0.1, colour = "grey40") +
+  stat_summary(fun = mean, geom = "point", shape = 4, size = 4) +
+  labs(x = "Cell (Factor1-Factor2)", y = "Outcome") +
+  theme_minimal()
+```
+
+Crosses mark the simulated cell means.
+
+# 4. Parallel workflow: Reynolds and Besner (2008)
+
+Each run of an optimizer is subject to randomness, and many datasets share
+the same summary statistics, so repeated runs return different datasets.
+`parallel_optim()` repeats the optimization with the same arguments and
+collects the runs. As in the manuscript, the ANOVA optimization is repeated
+100 times on 6 parallel workers using `future::multisession` (Bengtsson,
+2021); `seed` gives each run its own reproducible random-number stream.
+
+```{r par-run, results = "hide"}
+result_parallel_aov <- parallel_optim(
+  FUN   = optim_aov, # ANOVA module
+  args  = sumstats,  # reported summary statistics
+  runs  = 100,       # number of optimization runs
+  cores = 6,         # number of parallel workers
+  seed  = 2026,      # future.seed for parallel workers
+  stop_conv = FALSE  # whether to stop once a run converges
+)
+```
+
+`cores = 1` (the default) runs the replications sequentially; `cores > 1`
+requires the packages `future` and `future.apply`. Because every run has its
+own random-number stream derived from `seed`, the results do not depend on
+`cores`.
+
+```{r par-verify, include = FALSE}
+# precompute only: compare with the object saved by the manuscript script
+saved <- file.path("..", "data-raw", "results", "out_parallel_aov.rds")
+if (file.exists(saved)) {
+  out_saved <- readRDS(saved)
+  same <- isTRUE(all.equal(lapply(result_parallel_aov$results, `[[`, "data"),
+                           lapply(out_saved$results, `[[`, "data")))
+  if (!same) stop("The parallel runs differ from ", saved, ".")
+}
+```
+
+## 4.1 Inspecting the parallel output
+
+```{r par-print}
+result_parallel_aov
+```
+
+```{r par-numbers, include = FALSE}
+par_obj    <- vapply(result_parallel_aov$results, function(r) r$best_objective, numeric(1))
+par_thresh <- result_parallel_aov$results[[1]]$inputs$thresh
+par_rmse   <- get_rmse(result_parallel_aov)
+par_range  <- range(unlist(lapply(result_parallel_aov$results, function(r) r$data$outcome)))
+```
+
+`r sum(par_obj < par_thresh)` of `r length(par_obj)` runs have a best
+objective value below `thresh` = `r par_thresh`. Across runs, the best
+objective values range from `r num(min(par_obj))` to `r num(max(par_obj))`,
+and the simulated observations of all runs range from
+`r dec(min(par_range), 1)` to `r dec(max(par_range), 1)`:
+
+```{r par-checks}
+max(sapply(result_parallel_aov$results, function(x) x$best_objective)) < .005
+sum(vapply(result_parallel_aov$results,
+           function(r) r$best_objective < r$inputs$thresh, logical(1)))
+range(unlist(lapply(result_parallel_aov$results, function(r) r$data$outcome)))
+```
+
+`summary()` lists the best and mean objective values, the RMSE against the
+targets and between runs, and the target statistics aggregated across runs:
+
+```{r par-summary}
+summary(result_parallel_aov)
+```
+
+`get_stats()` aggregates each statistic across runs (mean, median, SD,
+minimum, maximum):
+
+```{r par-stats}
+get_stats(result_parallel_aov)
+```
+
+`get_rmse()` returns two RMSEs per run and metric: `target_rmse`, against
+the targets, and `between_rmse`, against the across-run mean of the simulated
+statistics. The per-run values are in `raw`:
+
+```{r par-rmse}
+par_rmse$target_rmse
+par_rmse$between_rmse
+```
+
+The mean F-statistic RMSE against the targets is
+`r num(par_rmse$target_rmse$mean[1])` (maximum
+`r num(par_rmse$target_rmse$max[1])`); the mean run-to-run RMSE is
+`r num(par_rmse$between_rmse$mean[1])`. The run-to-run RMSE quantifies how
+much the simulated F-statistics vary between runs; it does not compare the
+runs with the original data.
+
+## 4.2 Stability and fit across runs
+
+The two panels of the manuscript figure are `plot()`, which draws
+`plot_stability()`, and `plot_fit()`. `plot_stability()` shows the
+distributions of both RMSEs across runs, faceted by metric:
+
+```{r par-stability, fig.alt = "Run-to-run and to-target RMSE distributions across parallel runs."}
+plot_stability(result_parallel_aov)
+```
+
+`plot_fit()` shows the across-run mean difference per statistic, with error
+bars for the across-run range (`error_type = "range"`, default) or
+`mean +/- SD` (`error_type = "sd"`); dots mark the individual runs.
+
+```{r par-fit, fig.alt = "Across-run differences between simulated and target F-statistics."}
+plot_fit(
+  result_parallel_aov,
+  standardised = FALSE
+)
+```
+
+```{r par-fit-sd, fig.alt = "Across-run differences with mean plus or minus SD error bars."}
+plot_fit(result_parallel_aov, standardised = FALSE, error_type = "sd")
+```
+
+`plot()` draws `plot_stability()` by default (as in the manuscript script)
+and `plot_fit()` with `which = "fit"`:
+
+```{r par-plot, eval = FALSE}
+plot(result_parallel_aov)
+plot(result_parallel_aov, which = "fit", standardised = FALSE)
+```
+
+## 4.3 Individual runs
+
+The run with the lowest best objective value is stored in `best`; all runs
+are in `results`. Both are ordinary `stats2data_aov` objects and support the
+methods of Section 3:
+
+```{r par-best}
+result_parallel_aov$best
+get_rmse(result_parallel_aov$best)
+head(result_parallel_aov$results[[2]]$data)
+```
+
+## 4.4 Stopping at the first converged run
+
+With `stop_conv = TRUE`, `parallel_optim()` stops launching runs once a run
+has converged. With `cores > 1`, runs are dispatched in batches of `cores`,
+so a whole batch completes before the check:
+
+```{r par-stop, results = "hide"}
+result_first_aov <- parallel_optim(
+  FUN       = optim_aov,
+  args      = sumstats,
+  runs      = 12,
+  cores     = 6,
+  seed      = 2026,
+  stop_conv = TRUE
+)
+```
+
+```{r par-stop-print}
+result_first_aov
+```
+
+`r result_first_aov$runs` of `r result_first_aov$runs_requested` requested
+runs were completed.
+
+# References
+
+- Bardwell, W. A., Ancoli-Israel, S., & Dimsdale, J. E. (2007). Comparison of the effects of depressive symptoms and apnea severity on fatigue in patients with obstructive sleep apnea: A replication study. *Journal of Affective Disorders, 97*(1-3), 181-186. https://doi.org/10.1016/j.jad.2006.06.013
+- Bengtsson, H. (2021). A unifying framework for parallel and distributed processing in R using futures. *The R Journal, 13*(2), 208-227. https://doi.org/10.32614/RJ-2021-048
+- Brown, N. J. L., & Heathers, J. A. J. (2017). The GRIM test: A simple technique detects numerous anomalies in the reporting of results in psychology. *Social Psychological and Personality Science, 8*(4), 363-369. https://doi.org/10.1177/1948550616673876
+- Heathers, J. A., Anaya, J., van der Zee, T., & Brown, N. J. L. (2018). Recovering data from summary statistics: Sample Parameter Reconstruction via Iterative TEchniques (SPRITE). *PeerJ Preprints, 6*, e26968v1. https://doi.org/10.7287/peerj.preprints.26968v1
+- Open Science Collaboration. (2015). Estimating the reproducibility of psychological science. *Science, 349*(6251), aac4716. https://doi.org/10.1126/science.aac4716
+- Reynolds, M., & Besner, D. (2008). Contextual effects on reading aloud: Evidence for pathway control. *Journal of Experimental Psychology: Learning, Memory, and Cognition, 34*(1), 50-64. https://doi.org/10.1037/0278-7393.34.1.50

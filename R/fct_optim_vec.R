@@ -12,17 +12,17 @@
 #'   matrix matching \code{target_mean}.
 #' @param integer Logical or logical vector. If TRUE, optimize integer values;
 #'   length 1 or same length as \code{target_mean}.
-#' @param thresh Numeric. Convergence threshold. Default \code{1e-3}.
+#' @param thresh Numeric. Convergence threshold. Default \code{5e-3}.
 #' @param sprite_prec Integer vector of length 2. Decimal precision for mean
 #'   and SD when using SPRITE for integer data. Default \code{c(2, 2)}.
-#' @param max_iter Integer. Iterations per restart. Default \code{1e4}.
-#' @param init_temp Numeric. Initial SA temperature. Default \code{1}.
+#' @param max_iter Integer. Iterations per restart. Default \code{5e5}.
+#' @param init_temp Numeric. Initial SA temperature. Default \code{1e-3}.
 #' @param cooling_rate Numeric in (0,1) or \code{NULL} (auto). Default \code{NULL}.
-#' @param max_starts Integer. Number of restarts. Default \code{1}.
+#' @param max_starts Integer. Number of restarts. Default \code{3}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
 #'   \code{"off"}. Default \code{"console"}.
 #'
-#' @return A \code{stats2data.object} list with components \code{best_objective},
+#' @return An object of class \code{stats2data_vec}, a list with components \code{best_objective},
 #'   \code{data}, \code{inputs}, \code{track_objective}, and \code{error_msgs}.
 #'
 #' @examples
@@ -123,7 +123,7 @@ optim_vec <- function(N,
       solution_matrix[, v] <- res$data
       best_objective_vec[[v]]  <- res$best_objective
       track_objective_all[[v]] <- res$track_objective
-      error_msgs[[v]]      <- res$error_msg
+      error_msgs[v] <- list(res$error_msg)
        p()
     }
   }, handlers = handler)

@@ -1,490 +1,154 @@
 #' optim_vec UI Function
 #'
-#' @description A shiny Module.
+#' @description A shiny Module for \code{optim_vec()}.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
 #' @import shiny
-#' @importFrom shinyjs useShinyjs disable enable
+#' @importFrom shinyjs useShinyjs
 #' @importFrom rhandsontable rhandsontable rHandsontableOutput renderRHandsontable hot_to_r hot_col hot_table
 #' @noRd
-NULL
-
 mod_optim_vec_ui <- function(id) {
   ns <- NS(id)
   tagList(
     shinyjs::useShinyjs(),
-    tags$head(
-      tags$style(HTML("
-    .rhandsontable .ht_master .wtHolder,
-    .rhandsontable .ht_master .handsontable {
-      overflow: visible !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu,
-    .rhandsontable .ht_master .htContextMenu {
-      z-index: 9999 !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu .dropdown-menu {
-      max-height: none !important;
-      white-space: normal !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu table {
-      width: auto !important;
-    }
-    .selectize-dropdown,
-    .selectize-dropdown-content {
-      overflow: visible !important;
-      z-index: 9999 !important;
-      max-height: none !important;
-      white-space: normal !important;
-    }
-  "))
-    ),
-    div(style = "white-space: nowrap;",
-        div(
-          style = "display:inline-block; vertical-align:top; margin-right:10px;",
-          wellPanel(
-            h4("Reported Summary Statistics"),
-            numericInput(ns("N"),  name_with_info(
-              "Sample Size",
-              "The length of the target vectors.")
-              , 864, min = 5, step = 1),
-            p(name_with_info(
-              "Descriptive Statistics",
-              "The variables' name, mean, SD, minimum, maximum, and if integer/continuous")),
-            div(style = "width:100%; overflow-x:auto;",
-                rHandsontableOutput(ns("param_table"), width = "100%")
+    s2d_css(),
+    div(class = "s2d-module",
+        div(id = ns("inputs"), class = "s2d-inputs",
+            div(class = "s2d-col",
+                wellPanel(
+                  h4("Targets"),
+                  numericInput(ns("N"), arg_label(
+                    "Sample Size", "Number of observations per variable.", "N"),
+                    value = 864, min = 10, step = 1),
+                  tags$label(arg_label(
+                    "Variables",
+                    paste("One row per variable: its name, reported mean and SD, lower (Min)",
+                          "and upper (Max) bound, and whether it is integer-valued."),
+                    "target_mean, target_sd, range, integer")),
+                   rHandsontableOutput(ns("targets")),
+                  fluidRow(
+                    column(6, actionButton(ns("add_variable"),    "Add Variable",    class = "btn-sm btn-block")),
+                    column(6, actionButton(ns("remove_variable"), "Remove Variable", class = "btn-sm btn-block"))
+                  ),
+                  br(),
+                  s2d_sprite_prec_input(ns)
+                )
             ),
-            fluidRow(
-              column(6, actionButton(ns("add_row"),    "Add row",    class = "btn-sm btn-block")),
-              column(6, actionButton(ns("remove_row"), "Remove row", class = "btn-sm btn-block"))
+            div(class = "s2d-col s2d-settings",
+                wellPanel(
+                  h4("Settings"),
+                  s2d_settings_inputs(ns, thresh = 1e-2, max_iter = 1e5, max_starts = 3,
+                                       init_temp_default = "0.001"),
+                  s2d_run_inputs(ns)
+                )
             )
-          )
         ),
-        div(
-           style = "display:inline-block; vertical-align:top; margin-right:20px;",
-          wellPanel(
-            h4("Algorithm Hyperparameters"),
-            numericInput(
-              ns("thresh"),
-              name_with_info(
-                "thresh",
-                "The threshold for the objective function value below which the optimization will stop."),
-              value = 1e-2,
-              min   = 0,
-              step  = 1e-3,
-              width = "100%"
-            ),
-            numericInput(ns("max_iter"), name_with_info(
-              "Max Iterations",
-               "The maximum number of iterations the algorithm will run each time it restarts and for each variable."), 1e5,   min = 1,    step = 1000),
-            numericInput(ns("init_temp"), name_with_info(
-              "Initial Temperature",
-              "The starting temperature for the simulated annealing, which sets the initial likelihood of accepting worse solutions in the first start."),
-              1e-3,  min = 0, max = 1,   step = 0.001),
-            numericInput(ns("cooling_rate"), name_with_info(
-              "Cooling Rate",
-              "The factor by which the temperature is multiplied after each iteration, governing how quickly the algorithm reduces its acceptance of worse solutions."),
-              (1e5-10)/1e5, min = 0, max = 1, step = 0.0001),
-            numericInput(ns("max_starts"), name_with_info(
-              "Max Starts",
-              "The maximum number of times the optimization algorithm will restart from the current best solution using reduced initial temperatures."),     3,     min = 1,    step = 1)
-          ),
-        ),
-        div(style = "display:inline-block; vertical-align:top; margin-left:20px;",
-            h4("Optimization Output"),
-            fluidRow(
-              column(
-                width = 12,
-                div(style = "display:inline-block;",
-                    actionButton(ns("run"),       "Run Optimization", class = "btn-primary")
-                 )
-              )
-            ),
-            div(
-              id    = ns("processing_msg"),
-               style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
-              "Processing, please wait ..."
-            ),
-            textOutput(ns("status_text")),
-
-            h5(name_with_info(
-              "Objective Function Value",
-              "The minimum value of the objective function attained by the optimization.")),
-            tableOutput(ns("best_objectives")),
-            fluidRow( style = "margin-bottom: 10px;",
-                      column(12,
-                             actionButton(ns("plot_fit"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                              actionButton(ns("plot_convergence"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
-                             actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
-                             actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute RMSE"), class = "btn-sm"),
-                             actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
-                             actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
-                      )
-            ),
-
-            div(style = "overflow:visible; margin-top:20px;", uiOutput(ns("main_output")))
+        div(class = "s2d-col s2d-results",
+            h4("Results"),
+            actionButton(ns("run"), name_with_info(
+              "Run Optimization",
+               "Simulate one vector per variable that matches its target mean and SD (optim_vec())."),
+              class = "btn-primary"),
+            br(), br(),
+            mod_results_ui(ns("results"))
         )
     )
   )
 }
 
+
+#' optim_vec Server Functions
+#'
+#' @noRd
 mod_optim_vec_server <- function(id) {
   moduleServer(id, function(input, output, session) {
-    ns <- session$ns
 
-    rv <- reactiveValues(
-      params = data.frame(
-        Variable = paste0("V", 1:5),
-        Mean     = c(10.53, 0.27, 2.49, -0.64, 0.03),
-        SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
-        Min      = c( 0,     0,  -24,  -3,    -3),
-        Max      = c(36,     1,   24,   3,     3),
-         Integer  = rep(TRUE, 5),
-        stringsAsFactors = FALSE
-      ),
-      result = NULL,
-      status = "ready",
-      last   = NULL,
-      dirty  = TRUE
-    )
+    targets <- reactiveVal(data.frame(
+      variable    = paste0("V", 1:5),
+      target_mean = c(10.53, 0.27, 2.49, -0.64, 0.03),
+       target_sd   = c( 7.82, 0.45, 11.68, 1.85, 2.05),
+      range_min   = c( 0,    0,   -24,   -3,   -3),
+      range_max   = c(36,    1,    24,    3,    3),
+      integer     = rep(TRUE, 5),
+      stringsAsFactors = FALSE
+    ))
+    redraw <- reactiveVal(0)
+     output$targets <- renderRHandsontable({
+      redraw()
+      s2d_targets_table(isolate(targets()))
+    })
+    observeEvent(input$targets, targets(hot_to_r(input$targets)))
 
-    observeEvent({
-      list(
-        input$N,
-        input$param_table,
-        input$add_row,
-         input$remove_row,
-        input$thresh,
-        input$max_iter,
-        input$init_temp,
-        input$cooling_rate,
-        input$max_starts)
-    }, {
-      rv$dirty <- TRUE
-      rv$last <- NULL
-      for (btn in c(
-        "plot_convergence","get_rmse",
-         "plot_fit","plot_cooling",
-        "display_data","download"
-      )) {
-        shinyjs::disable(btn)
-      }
+    observeEvent(input$add_variable, {
+      tg <- targets()
+      targets(rbind(tg, data.frame(
+        variable = paste0("V", nrow(tg) + 1), target_mean = 4, target_sd = 1,
+         range_min = 0, range_max = 9, integer = TRUE, stringsAsFactors = FALSE)))
+      redraw(redraw() + 1)
+    })
+    observeEvent(input$remove_variable, {
+      tg <- targets()
+      if (nrow(tg) > 1) targets(tg[-nrow(tg), , drop = FALSE])
+      redraw(redraw() + 1)
     })
 
-    output$param_table <- renderRHandsontable({
-      tbl <- rhandsontable(rv$params, rowHeaders = NULL)
-      hot_col(tbl, "Integer", type = "checkbox")
-    })
-    observeEvent(input$param_table, {
-      rv$params <- hot_to_r(input$param_table)
-    })
+    result    <- reactiveVal(NULL)
+     call_code <- reactiveVal(NULL)
+    observeEvent(list(input$N, targets(), input$sprite_prec_mean, input$sprite_prec_sd,
+                      input$thresh, input$max_iter, input$init_temp, input$cooling_rate,
+                      input$max_starts, input$runs, input$seed),
+                 result(NULL), ignoreInit = TRUE)
 
-    observeEvent(input$add_row, {
-      n <- nrow(rv$params) + 1
-       rv$params <- rbind(rv$params, data.frame(
-        Variable = paste0("V", n),
-        Mean     = 4,
-        SD       = 1,
-        Min      = 0,
-        Max      = 9,
-        Integer  = TRUE,
-        stringsAsFactors = FALSE
-      ))
-    })
-    observeEvent(input$remove_row, {
-      if (nrow(rv$params) > 1)
-        rv$params <- rv$params[-nrow(rv$params), ]
-    })
+    observeEvent(input$max_iter, s2d_cooling_placeholder(session, input$max_iter))
 
-     observeEvent(input$max_iter, {
-      updateNumericInput(session, "cooling_rate",
-                         value = max(0, min(1, (input$max_iter - 10)/input$max_iter))
-      )
-    })
-
-    shinyjs::disable("run")
-    lapply(c("plot_convergence","get_rmse","plot_fit","plot_cooling","display_data","download"),
-           shinyjs::disable
-    )
-
-    observe({
-      df <- rv$params
-      ok <- all(
-        nzchar(df$Variable),
-        !is.na(df$Mean), !is.na(df$SD),
-        !is.na(df$Min),  !is.na(df$Max)
-      )
-      if (ok) shinyjs::enable("run") else shinyjs::disable("run")
-    })
-
-    observeEvent(input$run, {
-      shinyjs::show("processing_msg")
-      on.exit(shinyjs::hide("processing_msg"), add = TRUE)
-      rv$status <- "running"
-      df  <- rv$params
-       N            <- input$N
-      thresh    <- input$thresh
-      max_iter     <- input$max_iter
-      init_temp    <- input$init_temp
-      cooling_rate <- input$cooling_rate
-      max_starts   <- input$max_starts
-      target_mean  <- stats::setNames(df$Mean, df$Variable)
-      range        <- rbind(df$Min, df$Max)
-      input.check <- check_vec_inputs(
-        N = N,
-        target_mean = target_mean,
-        range = range,
-        thresh = thresh,
-        max_iter = max_iter,
-        init_temp = init_temp,
-        cooling_rate = cooling_rate,
-         max_starts = max_starts
-      )
-      if (!input.check) {return()}
-      for (tbl in c("param_table")) {
-        shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"none","opacity":0.5});',
-                  ns(tbl))
-        )
-      }
-      shinyjs::disable("run")
-      lapply(c("N", "param_table", "add_row", "remove_row",
-               "thresh", "max_iter", "init_temp", "cooling_rate",
-               "max_starts",
-                "plot_convergence","get_rmse","plot_fit","plot_cooling",
-               "display_data","download"),
-             shinyjs::disable
-      )
-      # drop the previous result so a failed run cannot show it as current
-      rv$result <- NULL
-      rv$dirty  <- TRUE
-      tryCatch({
-        withProgress(message = "Running optimization...", value = 0, {
-          rv$result <- optim_vec(
-            N             = N,
-            target_mean   = target_mean,
-            target_sd     = stats::setNames(df$SD, df$Variable),
-            range         = range,
-            integer       = df$Integer,
-            thresh     = thresh,
-             sprite_prec   = c(2, 2),
-            max_iter      = max_iter,
-            init_temp     = init_temp,
-            cooling_rate  = cooling_rate,
-            max_starts    = max_starts,
-            progress_mode = "shiny"
-          )
-        })
-      }, error = function(e) {
-        showNotification(
-          paste("Optimization failed:", conditionMessage(e)),
-          type = "error", duration = 10
-        )
-        return()
-      })
-      if (is.null(rv$result)) {
-         shinyjs::enable("run")
-        lapply(c("N", "param_table", "add_row", "remove_row",
-                 "thresh", "max_iter", "init_temp", "cooling_rate",
-                 "max_starts"),
-               shinyjs::enable)
-        for (tbl in c("param_table")) {
-          shinyjs::runjs(
-            sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                    ns(tbl)))
-        }
+     observeEvent(input$run, {
+      if (!s2d_filled(list("Sample Size" = input$N, "Convergence Threshold" = input$thresh,
+                           "Max Iterations" = input$max_iter, "Max Restarts" = input$max_starts,
+                           "Reported Decimals (Mean)" = input$sprite_prec_mean,
+                           "Reported Decimals (SD)" = input$sprite_prec_sd))) return()
+      tg <- targets()
+      if (nrow(tg) < 1 || any(!nzchar(tg$variable)) || anyDuplicated(tg$variable) ||
+          anyNA(tg[, c("target_mean", "target_sd", "range_min", "range_max")])) {
+        s2d_notify("Each variable needs a unique name, Mean, SD, Min and Max.")
         return()
       }
-        if (!is.null(rv$result$error_msgs)) {
-        for (v in seq_along(rv$result$error_msgs)) {
-          msg <- rv$result$error_msgs[[v]]
-          if (!is.null(msg)) {
-            var_name <- rv$params$Variable[v]
-            showNotification(
-              paste0("Variable '", var_name, "': ", msg,
-                     " Consider adjusting the SD, range, or switching to continuous."),
-              type = "warning", duration = 15
-            )
-          }
-        }
-      }
-      rv$status <- "done"
-      rv$dirty <- FALSE
-       shinyjs::enable("run")
-      lapply(c("N", "param_table", "add_row", "remove_row",
-               "thresh", "max_iter", "init_temp", "cooling_rate",
-               "max_starts",
-               "plot_convergence","get_rmse","plot_fit","plot_cooling",
-               "display_data","download"),
-             shinyjs::enable
+      args <- list(
+        N            = input$N,
+        target_mean  = stats::setNames(tg$target_mean, tg$variable),
+        target_sd    = stats::setNames(tg$target_sd,   tg$variable),
+        range        = rbind(tg$range_min, tg$range_max),
+        integer      = as.logical(tg$integer),
+         thresh       = input$thresh,
+        sprite_prec  = c(input$sprite_prec_mean, input$sprite_prec_sd),
+        max_iter     = input$max_iter,
+        init_temp    = na_null(input$init_temp) %||% 1e-3,  # empty: function default
+        cooling_rate = na_null(input$cooling_rate),
+        max_starts   = input$max_starts
       )
-      for (tbl in c("param_table")) {
-        shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                  ns(tbl))
-        )
-      }
-    })
-
-     output$status_text <- renderText({
-      if (rv$dirty) return(NULL)
-      if (rv$status == "running") "Optimization is running..." else ""
-    })
-
-    output$best_objectives <- renderTable({
-      if (rv$dirty) return(NULL)
-      vars <- rv$params$Variable
-      if (rv$status != "done") {
-        df <- as.data.frame(as.list(rep("hold", length(vars))), stringsAsFactors = FALSE)
-        colnames(df) <- vars
-        return(df)
-      }
-      bes  <- unlist(rv$result$best_objective)
-      disp <- ifelse(bes < input$thresh, "converged", format(bes))
-      df <- as.data.frame(as.list(disp), stringsAsFactors = FALSE)
-      colnames(df) <- rv$params$Variable[seq_along(disp)]
-      df
-    }, rownames = FALSE)
-
-    observeEvent(input$plot_convergence, rv$last <- reactive("traj"))
-    observeEvent(input$get_rmse,       rv$last <- reactive("rmse"))
-    observeEvent(input$plot_fit,    rv$last <- reactive("summary"))
-     observeEvent(input$plot_cooling,    rv$last <- reactive("cooling"))
-    observeEvent(input$display_data,    rv$last <- reactive("data"))
-    observeEvent(input$download, {
-      showModal(modalDialog(
-        title = "Download",
-        downloadButton(ns("dl_object"), "Full object"),
-        downloadButton(ns("dl_data"),   "Data CSV"),
-        easyClose = TRUE
-      ))
-    })
-
-    observeEvent(rv$params$Variable, {
-      if (!is.null(input$run_select)) {
-        vars <- rv$params$Variable
-         sel  <- input$run_select
-        if (is.null(sel) || !(sel %in% vars)) {
-          sel <- vars[1]
-        }
-        updateSelectizeInput(
-          session,
-          "run_select",
-          choices  = vars,
-          selected = sel,
-          options  = list(dropdownParent = "body")
-        )
-      }
-    })
-
-    output$main_output <- renderUI({
-      if (rv$dirty) return(NULL)
-      req(rv$last)
-      vars <- rv$params$Variable
-      old     <- isolate(input$run_select)
-       run_id  <- if (!is.null(old) && old %in% vars) old else vars[1]
-      idx     <- match(run_id, vars)
-
-      all_runs <- seq_along(rv$result$track_objective)
-      idx      <- match(run_id, vars, nomatch = 1)
-      if (!(idx %in% all_runs)) idx <- all_runs[1]
-
-      n_iters <- length(rv$result$track_objective[[idx]])
-      max_it  <- if (n_iters >= 1) n_iters else 1
-
-      switch(
-        rv$last(),
-        traj = tagList(
-          plotOutput(ns("error_plot"), width = "600px", height = "400px"),
-          fluidRow(
-            column(
-               width = 3,
-              selectizeInput(
-                ns("run_select"),
-                name_with_info("Variable", "Select which variable's (i.e. run's) error trajectory to plot."),
-                choices = vars,
-                selected = run_id,
-                options = list(dropdownParent = 'body'),
-                width = "100px"
-              ),
-            ),
-            column(
-              width = 3,
-              numericInput(
-                ns("iter_select"),
-                name_with_info(
-                  "Start Iteration",
-                  "Plot errors beginning at this iteration."
-                ),
-                value = isolate(input$iter_select %||% 1),
-                min   = 1,
-                 max   = max_it,
-                step  = 100,
-                width = "100px"
-              )
-            )
-          )
-        ),
-        rmse    = verbatimTextOutput(ns("rmse_out")),
-        summary = tagList(
-          plotOutput(ns("summary_plot"), width = "600px", height = "400px"),
-          fluidRow(
-            column(
-              width = 6,
-              checkboxInput(
-                ns("std"),
-                name_with_info(
-                  "standardised",
-                  "Select whether the differences between simulated and target values are standardised."
-                 ),
-                TRUE,
-                width = "100%"
-              ),
-            ))),
-        cooling = plotOutput(ns("cooling_plot"), width = "600px", height = "400px"),
-        data    = tableOutput(ns("data_preview"))
+      ok <- check_vec_inputs(
+        N = args$N, target_mean = args$target_mean, range = args$range,
+        thresh = args$thresh, max_iter = args$max_iter, init_temp = args$init_temp,
+        cooling_rate = args$cooling_rate, max_starts = args$max_starts
       )
+      if (!ok) return()
+
+      res <- s2d_execute("optim_vec", args, runs = input$runs, seed = input$seed,
+                         result = result, call_code = call_code)
+
+       runs <- if (inherits(res, "stats2data_parallel")) res$results else if (!is.null(res)) list(res)
+      msgs <- unique(unlist(lapply(runs, function(r) {
+        m  <- r$error_msgs
+        ok <- !vapply(m, is.null, logical(1))
+        if (any(ok)) paste0("Variable '", tg$variable[ok], "': ", unlist(m[ok]))
+      })))
+      for (m in msgs) {
+        showNotification(paste(m, "Consider adjusting the SD, range, or switching to continuous."),
+                          type = "warning", duration = 15)
+      }
     })
 
-    output$error_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-      req(input$run_select, input$iter_select)
-       run  <- match(input$run_select, rv$params$Variable)
-      n_it <- length(rv$result$track_objective[[run]])
-      plot_convergence(
-        rv$result,
-        run        = run,
-        first_iter = min(max(0L, as.integer(input$iter_select) - 1L), n_it - 1L)
-      )
-    })
-    output$rmse_out     <- renderPrint({
-      if (rv$dirty) return(NULL)
-      get_rmse(rv$result) })
-    output$summary_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_fit(rv$result,
-                   standardised = input$std %||% TRUE) })
-    output$cooling_plot <- renderPlot({
-       if (rv$dirty) return(NULL)
-      plot_cooling(rv$result) })
-    output$data_preview <- renderTable({
-      if (rv$dirty) return(NULL)
-      utils::head(as.data.frame(rv$result$data), min(nrow(rv$result$data),15))
-    }, rownames = TRUE)
-    output$dl_object <- downloadHandler(
-      filename = "stats2data_object.rds",
-      content  = function(file) {
-        req(!rv$dirty)
-        saveRDS(rv$result, file)
-      }
-    )
-     output$dl_data <- downloadHandler(
-      filename = "optimised_data.csv",
-      content  = function(file) {
-        req(!rv$dirty)
-        utils::write.csv(as.data.frame(rv$result$data), file, row.names = FALSE)
-      }
-    )
+    mod_results_server("results", result = result, call_code = call_code,
+                       file_stub = "optim_vec")
   })
 }

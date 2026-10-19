@@ -11,11 +11,11 @@ output: html_document
 
 ## About the Project
 
-We introduce the stats2data framework: Nonparametric Data Simulation from Summary Statistics. stats2data is available as R package and shiny app via Github page: <https://sebastian-lortz.github.io/stats2data/>
+We introduce a new method: Non-parametric Data Simulation from Summary Statistics. The method is implemented as a compiled R package stats2data available at the Comprehensive R Archive Network (CRAN), and as a ShinyApp. For detalis see the Github page: <https://sebastian-lortz.github.io/stats2data/>
 
 ### Publications
 
-The method is introduced in the research project titled '...'.
+The method is introduced in the research project titled 'Simulating Raw Data from Reported Summary Statistics: A Non-parametric Approach', authored by Sebastian A. J. Lortz, Marieke E. Timmerman, Don van Ravenzwaaij.
 
 ### Contributors
 

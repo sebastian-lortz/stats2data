@@ -26,3 +26,5 @@
 ^doc$
 ^Meta$
 ^manifest\.json$
+^vignettes/.*\.orig$
+^vignettes/precompute\.R$

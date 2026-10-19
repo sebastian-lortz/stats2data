@@ -1,197 +1,89 @@
 #' optim_mlr UI Function
 #'
-#' @description A shiny Module.
+#' @description A shiny Module for \code{optim_mlr()}.
 #'
 #' @param id,input,output,session Internal parameters for {shiny}.
 #'
-#'
 #' @import shiny
-#' @importFrom shinyjs useShinyjs disable enable
-#' @importFrom rhandsontable rHandsontableOutput renderRHandsontable hot_to_r hot_col hot_table hot_cell
+#' @importFrom shinyjs useShinyjs
+#' @importFrom rhandsontable rhandsontable rHandsontableOutput renderRHandsontable hot_to_r hot_col hot_table hot_cell
 #' @noRd
 mod_optim_mlr_ui <- function(id) {
   ns <- NS(id)
   tagList(
     shinyjs::useShinyjs(),
-    tags$head(
-      tags$style(HTML("
-    .rhandsontable .ht_master .wtHolder,
-    .rhandsontable .ht_master .handsontable {
-      overflow: visible !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu,
-    .rhandsontable .ht_master .htContextMenu {
-      z-index: 9999 !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu .dropdown-menu {
-      max-height: none !important;
-      white-space: normal !important;
-    }
-    .rhandsontable .ht_master .htDropdownMenu table {
-      width: auto !important;
-    }
-    .selectize-dropdown,
-    .selectize-dropdown-content {
-      overflow: visible !important;
-      z-index: 9999 !important;
-      max-height: none !important;
-      white-space: normal !important;
-    }
-  "))
-    ),
-
-    div(style = "white-space: nowrap;",
-        div(
-          style = "display:inline-block; vertical-align:top; margin-right:10px;",
-          wellPanel(
-             h4("Reported Summary Statistics"),
-            numericInput(ns("N"), name_with_info(
-              "Sample Size",
-              "The total number of observations (rows) in the target dataset.")
-              , 864, min = 5, step = 1),
-            tags$hr(),
-            p(tags$b(name_with_info(
-              "Descriptive Statistics",
-              "The variables' name, mean, SD, minimum, maximum, and if integer/continuous."
-            ))),
-             div(style = "width:100%; overflow-x:auto;",
-                rHandsontableOutput(ns("param_table"), width = "100%")
-            ),
-            fluidRow(
-              column(6, actionButton(ns("add_row"),    "Add row",    class = "btn-sm btn-block")),
-              column(6, actionButton(ns("remove_row"), "Remove row", class = "btn-sm btn-block"))
-            ),
-            tags$hr(),
-            p(tags$b(name_with_info(
-              "Correlations",
-              "The correlation matrix containing the upper triangle of the reported bivariate correlations. If a value is not available, the cell is supposed to be blank."
-            ))),
-            div(
-              style = "width:100%; overflow-x: auto;",
-              rHandsontableOutput(ns("corr_table"), width = "100%")
-            ),
-            tags$hr(),
-            p(tags$b(name_with_info(
-              "Regression Model",
-               "The model specifications determining the formula of the reported regression model."
-            ))),
-            tags$div(
-              style = "margin-top: 6px; font-style: italic; color: #555;",
-              textOutput(ns("lm_formula"))
-            ),
-            selectInput(
-              ns("lm_outcome"),
-              label = tags$span(style = "font-size:90%;", "Dependent Variable:"),
-              choices = NULL
-            ),
-            fluidRow(
-              column(
-                width = 6,
-                 checkboxGroupInput(
-                  ns("lm_predictors"),
-                  label = tags$span(style = "font-size:90%;", "Predictors:"),
-                  choices = NULL
+    s2d_css(),
+    div(class = "s2d-module",
+        div(id = ns("inputs"), class = "s2d-inputs",
+            div(class = "s2d-col",
+                wellPanel(
+                  h4("Targets"),
+                  numericInput(ns("N"), arg_label(
+                    "Sample Size", "Total number of observations (rows).", "N"),
+                    value = 150, min = 10, step = 1),
+                  tags$label(arg_label(
+                    "Variables",
+                    paste("One row per variable: its name, reported mean and SD, lower (Min)",
+                          "and upper (Max) bound, and whether it is integer-valued."),
+                    "target_mean, target_sd, range, integer")),
+                  rHandsontableOutput(ns("targets")),
+                  fluidRow(
+                    column(6, actionButton(ns("add_variable"),    "Add Variable",    class = "btn-sm btn-block")),
+                    column(6, actionButton(ns("remove_variable"), "Remove Variable", class = "btn-sm btn-block"))
+                  ),
+                  br(),
+                  s2d_sprite_prec_input(ns),
+                  tags$hr(),
+                  tags$label(arg_label(
+                    "Target Correlations",
+                    "Upper triangle of the reported correlation matrix of all variables; leave unreported cells empty.",
+                    "target_cor")),
+                  rHandsontableOutput(ns("target_cor")),
+                  tags$hr(),
+                  tags$label(arg_label(
+                    "Regression Model", "Outcome, predictors and interactions of the reported regression model.",
+                    "reg_equation")),
+                  tags$div(style = "font-style: italic; color: #555; margin-bottom: 6px;",
+                           textOutput(ns("reg_equation"))),
+                  selectInput(ns("reg_outcome"), "Outcome", choices = NULL),
+                  fluidRow(
+                    column(6, checkboxGroupInput(ns("reg_predictors"),   "Predictors",   choices = NULL)),
+                    column(6, checkboxGroupInput(ns("reg_interactions"), "Interactions", choices = NULL))
+                  ),
+                  tags$label(arg_label(
+                     "Target Coefficients",
+                    "Reported unstandardised coefficients (Estimate) and their standard errors (SE); leave unreported cells empty. If all SEs are empty, the SEs are not used.",
+                    "target_reg, target_se")),
+                  rHandsontableOutput(ns("target_reg"))
                 )
-              ),
-              column(
-                width = 6,
-                checkboxGroupInput(
-                  ns("lm_interactions"),
-                  label = tags$span(style = "font-size:90%;", "Interactions:"),
-                  choices = NULL
+            ),
+            div(class = "s2d-col s2d-settings",
+                wellPanel(
+                  h4("Settings"),
+                  numericInput(ns("weight"), arg_label(
+                    "Correlation Weight",
+                    "Mixing weight of the objective: weight x correlation error + (1 - weight) x regression error.",
+                    "weight"),
+                    value = 0.5, min = 0, max = 1, step = 0.05),
+                  s2d_settings_inputs(ns, thresh = 5e-3, max_iter = 1e5, max_starts = 3,
+                                      init_temp_default = "auto-calibrated"),
+                   numericInput(ns("hill_climbs"), arg_label(
+                    "Hill-Climbing Iterations",
+                    "Number of hill-climbing iterations after the annealing; 0 or empty skips the refinement.",
+                    "hill_climbs"),
+                    value = 1e4, min = 0, step = 1000),
+                  s2d_run_inputs(ns)
                 )
-              )
-            ),
-            p(tags$b(name_with_info(
-               "Regression Table",
-              "The reported unstandardised regression coefficients (estimates) and their standard errors (SE). If a value is not available, the cell is supposed to be blank."
-            ))),
-            div(
-              style = "margin-top:10px; overflow-x:auto; width:100%;",
-              rHandsontableOutput(ns("coef_table"), width = "100%")
-            ))
-        ),
-
-        div(
-          style = "display:inline-block; vertical-align:top; margin-right:20px;",
-          wellPanel(
-            h4("Algorithm Hyperparameters"),
-            numericInput(
-               ns("thresh"),
-              name_with_info(
-                "thresh",
-                "The threshold for the weighted objective function value below which the optimization will stop."),
-              value = 1e-3,
-              min   = 0,
-              step  = 1e-4,
-              width = "100%"
-            ),
-            numericInput(ns("max_iter"), name_with_info(
-              "Max Iterations",
-              "The maximum number of iterations the algorithm will run each time it restarts."), 1e5,   min = 1,    step = 1000),
-            numericInput(ns("init_temp"), name_with_info(
-              "Initial Temperature",
-              "The starting temperature for the simulated annealing. Leave empty for automatic calibration."),
-              NA, min = 0, max = 100,    step = 0.01),
-            numericInput(ns("cooling_rate"), name_with_info(
-              "Cooling Rate",
-              "The factor by which the temperature is multiplied after each iteration."),
-              (1e5-10)/1e5, min = 0, max = 1, step = 0.0001),
-            numericInput(ns("hill_climbs"), name_with_info(
-              "Hill Climbs",
-              "The number of hill climbing iterations for further refinement."), 1e4,   min = 0,    step = 1000),
-             numericInput(ns("max_starts"), name_with_info(
-              "Max Starts",
-              "The maximum number of times the optimization algorithm will restart."),
-              3,     min = 1,    step = 1),
-            numericInput(ns("n_datasets"),
-                         name_with_info(
-                           "Number of Datasets",
-                           "How many independent sequential optimization runs to perform."),
-                         value = 1, min = 1, step = 1),
-            tags$hr(),
-            h5(name_with_info(
-              "Weights of Objective Function",
-              "Relative weights of the correlation and regression terms in the objective function; they are rescaled to sum to 1.")),
-            div(style = "width:100%; margin-bottom:10px; overflow-x:auto;",
-                rHandsontableOutput(ns("weight_table"), width = "100%")
             )
-          )
         ),
-
-        div(style = "display:inline-block; vertical-align:top; margin-left:20px; width: calc(100% - auto);",
-            h4("Optimization Output"),
-            div(style = "margin-bottom:10px;",
-                 actionButton(ns("run"), name_with_info(
-                  "Run Optimization",
-                  "Executes stats2data: Nonparametric Data-Simulation via iterative optimization using reported summary estimates."), class = "btn-primary")
-            ),
-            div(
-              id    = ns("processing_msg"),
-              style = "display:none; margin:10px; font-weight:bold; color:#337ab7;",
-              "Processing, please wait ..."
-            ),
-            textOutput(ns("status_text")),
-            selectInput(ns("dataset_selector"), name_with_info("Select Dataset", "Choose the data set to inspect or download."),
-                        choices = NULL, selected = 1,   width    = "100px"),
-            h5(name_with_info("Objective Function Value","The minimum weighted value of the objective function attained by the optimization.")),
-            tableOutput(ns("best_objective")),
-            fluidRow( style = "margin-bottom: 10px;",
-                      column(12,
-                             actionButton(ns("plot_fit"),    name_with_info("Plot Summary","Plot summary differences"), class = "btn-sm"),
-                             actionButton(ns("plot_convergence"),      name_with_info("Plot Errors","Show objective value trajectory"), class = "btn-sm"),
-                             actionButton(ns("plot_convergence_ratio"),name_with_info("Plot Error Ratio","Show trajectory of objective ratio correlations/regression"), class = "btn-sm"),
-                             actionButton(ns("plot_cooling"),    name_with_info("Plot Cooling","Show temperature schedule"), class = "btn-sm"),
-                             actionButton(ns("get_rmse"),        name_with_info("Get RMSE","Compute unweighted RMSE"), class = "btn-sm")
-                      )
-            ),
-             fluidRow(
-              column(12,
-                     actionButton(ns("display_data"),    name_with_info("Display Data","Show head of simulated data"), class = "btn-sm"),
-                     actionButton(ns("download"),        name_with_info("Download","Download data or full object"), class = "btn-sm")
-              )
-            ),
-            div(style = "overflow:auto; margin-top:10px;", uiOutput(ns("main_output")))
+        div(class = "s2d-col s2d-results",
+            h4("Results"),
+            actionButton(ns("run"), name_with_info(
+              "Run Optimization",
+              "Simulate data that reproduce the target correlations and regression estimates (optim_mlr())."),
+              class = "btn-primary"),
+            br(), br(),
+            mod_results_ui(ns("results"))
         )
     )
   )
@@ -201,563 +93,208 @@ mod_optim_mlr_ui <- function(id) {
 #' optim_mlr Server Functions
 #'
 #' @noRd
-mod_optim_mlr_server <- function(id){
-  moduleServer(id, function(input, output, session){
-    ns <- session$ns
+mod_optim_mlr_server <- function(id) {
+  moduleServer(id, function(input, output, session) {
 
-    rv <- reactiveValues(
-      dirty       = TRUE,
-       result      = NULL,
-      status      = "ready",
-      params      = data.frame(
-        Variable = paste0("V", 1:5),
-        Mean     = c(10.53, 0.27, 2.49, -0.64, 0.03),
-        SD       = c( 7.82,  0.45,11.68, 1.85,  2.05),
-        Min      = c( 0,     0,  -24,  -3,    -3),
-        Max      = c(36,     1,   24,   3,     3),
-        Integer  = rep(TRUE, 5),
-        stringsAsFactors = FALSE
-      )
-    )
-
-    observeEvent({
-      list(
-        input$N,
-        input$param_table,
-         input$add_row,
-        input$remove_row,
-        input$corr_table,
-        input$lm_outcome,
-        input$lm_predictors,
-        input$lm_interactions,
-        input$coef_table,
-        input$thresh,
-        input$max_iter,
-        input$init_temp,
-        input$cooling_rate,
-        input$hill_climbs,
-         input$max_starts,
-        input$n_datasets,
-        input$weight_table)
-    }, {
-      rv$dirty <- TRUE
-      for (btn in c(
-        "plot_convergence", "plot_convergence_ratio", "get_rmse",
-        "plot_fit", "plot_cooling",
-        "display_data", "download", "dataset_selector"
-      )) {
-        shinyjs::disable(btn)
-      }
-    })
-
-    output$param_table <- renderRHandsontable({
-      tbl <- rhandsontable(rv$params, rowHeaders = NULL)
-      hot_col(tbl, "Integer", type = "checkbox")
-    })
-     observeEvent(input$param_table, {
-      rv$params <- hot_to_r(input$param_table)
-    })
-
-    observeEvent(input$add_row, {
-      n <- nrow(rv$params) + 1
-      rv$params <- rbind(rv$params, data.frame(
-        Variable = paste0("V", n),
-         Mean     = 4,
-        SD       = 1,
-        Min      = 0,
-        Max      = 9,
-        Integer  = TRUE,
-        stringsAsFactors = FALSE
-      ))
-    })
-    observeEvent(input$remove_row, {
-      if (nrow(rv$params) > 2)
-        rv$params <- rv$params[-nrow(rv$params), ]
-    })
-
-    observe({
-      vars <- rv$params$Variable
-      req(length(vars) >= 2)
-
-      cur_out <- input$lm_outcome
-      sel_out <- if (!is.null(cur_out) && cur_out %in% vars) cur_out else vars[length(vars)]
-       updateSelectInput(session, "lm_outcome", choices = vars, selected = sel_out)
-    })
-
-    observeEvent(input$lm_outcome, {
-      vars <- rv$params$Variable
-      out_var <- input$lm_outcome
-      new_preds <- setdiff(vars, out_var)
-      cur_preds <- input$lm_predictors
-      sel_preds <- if (!is.null(cur_preds)) intersect(cur_preds, new_preds) else new_preds
-      if (length(sel_preds) == 0) sel_preds <- new_preds
-      updateCheckboxGroupInput(session, "lm_predictors", choices = new_preds, selected = sel_preds)
-      updateCheckboxGroupInput(session, "lm_interactions", choices = character(0), selected = character(0))
-    })
-
-    observeEvent(input$lm_predictors, {
-      sel_preds <- input$lm_predictors
-      if (length(sel_preds) < 2) {
-        updateCheckboxGroupInput(session, "lm_interactions", choices = character(0), selected = character(0))
-         return()
-      }
-      inters <- utils::combn(sel_preds, 2, FUN = function(x) paste(x, collapse = ":"), simplify = TRUE)
-      cur_inters <- input$lm_interactions
-      sel_inters <- if (!is.null(cur_inters)) intersect(cur_inters, inters) else NULL
-      updateCheckboxGroupInput(session, "lm_interactions", choices = inters, selected = sel_inters)
-    }, ignoreNULL = FALSE)
-
-    lm_formula_reactive <- reactive({
-      out_var <- input$lm_outcome
-      preds   <- input$lm_predictors
-       inters  <- input$lm_interactions
-      if (is.null(out_var) || length(preds) == 0) return(NULL)
-      rhs_terms <- preds
-       if (!is.null(inters) && length(inters) > 0) {
-        rhs_terms <- c(rhs_terms, inters)
-      }
-      rhs <- paste(rhs_terms, collapse = " + ")
-      stats::as.formula(paste(out_var, "~", rhs))
-    })
-
-    output$lm_formula <- renderText({
-      frm <- lm_formula_reactive()
-      if (is.null(frm)) {
-        "Please select at least one predictor."
-      } else {
-        paste(deparse(frm), collapse = "")
-      }
-    })
-
-    corr_vars <- reactiveVal(NULL)
-     observe(corr_vars(rv$params$Variable))
-
-    corr_df_reactive <- reactive({
-      vars <- corr_vars()
-      req(length(vars) >= 2)
-       mat <- matrix(NA_real_, nrow = length(vars), ncol = length(vars))
-      rownames(mat) <- vars
-      colnames(mat) <- vars
-      if (length(vars) == 5) {
-        mat[upper.tri(mat)] <- c(0.011, -0.177, 0.091, 0.035, 0.114, 0.246, -0.110, 0.119, 0.357, 0.263)
-      }
-      as.data.frame(mat, check.names = FALSE, stringsAsFactors = FALSE)
-    })
-
-    output$corr_table <- renderRHandsontable({
-      df_corr <- corr_df_reactive()
-      if (is.null(df_corr)) return(NULL)
-      tbl <- rhandsontable(df_corr, rowHeaders = colnames(df_corr), width = "100%", height = "200px") %>%
-        hot_table(overflow = "visible") %>%
-         hot_col(col = colnames(df_corr), format = "0.000")
-      n <- ncol(df_corr)
-      for (i in seq_len(n)) {
-        for (j in seq_len(n)) {
-          if (i >= j) {
-            tbl <- hot_cell(tbl, row = i, col = j, readOnly = TRUE)
-          }
-        }
-      }
-      tbl
-    })
-
-    coef_df_reactive <- reactive({
-      frm <- lm_formula_reactive()
-      if (is.null(frm)) return(NULL)
-      term_labels <- attr(stats::terms(frm), "term.labels")
-      all_terms   <- c("(Intercept)", term_labels)
-      mat <- matrix(
-        NA_real_,
-         nrow = 2,
-        ncol = length(all_terms),
-        dimnames = list(c("Est.", "SE"), all_terms)
-      )
-      if (length(all_terms) == 7) {
-        mat[1,] <- c(0.115, -0.016, 0.292, 0.052, 0.203, 0.000, 0.009)
-        mat[2,] <- c(0.123, 0.008, 0.151, 0.009, 0.036, 0.001, 0.012)
-      }
-      as.data.frame(mat, check.names = FALSE, stringsAsFactors = FALSE)
-    })
-
-    output$coef_table <- renderRHandsontable({
-      df <- coef_df_reactive()
-      if (is.null(df)) return(NULL)
-       rhandsontable(df, rowHeaders = c("Est.", "SE"), width = "100%", height = "200px") %>%
-        hot_table(overflow = "visible") %>%
-        hot_col(col = colnames(df), format = "0.000")
-    })
-
-    observeEvent(input$max_iter, {
-       updateNumericInput(session, "cooling_rate",
-                         value = max(0, min(1, (input$max_iter - 10)/input$max_iter))
-      )
-    })
-
-    weight_df <- reactiveVal(data.frame(
-      Correlation = 1,
-       Regression   = 1,
+    targets <- reactiveVal(data.frame(
+      variable    = c("X1", "X2", "Y"),
+      target_mean = c(11.896, 18.178, 3.045),
+       target_sd   = c(1.743, 1.471,  1.985),
+      range_min   = c(7,    14,     -3),
+      range_max   = c(17,    23,    9),
+      integer     = c(FALSE, FALSE, FALSE),
       stringsAsFactors = FALSE
     ))
 
-    output$weight_table <- renderRHandsontable({
-      tbl <- rhandsontable(weight_df(), rowHeaders = NULL, width = "100%") %>%
-        hot_table(stretchH = "all") %>%
-         hot_col("Correlation",  title = "Correlation",  format = "0.000") %>%
-        hot_col("Regression",    title = "Regression",    format = "0.000")
-      tbl
+        redraw <- reactiveVal(0)
+    output$targets <- renderRHandsontable({
+      redraw()
+      s2d_targets_table(isolate(targets()))
+    })
+    observeEvent(input$targets, targets(hot_to_r(input$targets)))
+    observeEvent(input$add_variable, {
+      tg <- targets()
+      targets(rbind(tg, data.frame(
+        variable = setdiff(paste0("X", seq_len(nrow(tg) + 1)), tg$variable)[1],
+        target_mean = 4, target_sd = 1,
+        range_min = 0, range_max = 9, integer = TRUE, stringsAsFactors = FALSE)))
+      redraw(redraw() + 1)
+    })
+    observeEvent(input$remove_variable, {
+      tg <- targets()
+      if (nrow(tg) > 2) targets(tg[-nrow(tg), , drop = FALSE])
+      redraw(redraw() + 1)
     })
 
-    for (btn in c(
-      "run", "plot_convergence", "plot_convergence_ratio", "get_rmse",
-      "plot_fit", "plot_cooling",
-      "display_data", "download", "dataset_selector"
-    )) {
-      shinyjs::disable(btn)
+     vars <- reactiveVal(NULL)
+    observe(vars(targets()$variable))
+
+     cor_store <- reactiveVal({
+      v <- c("X1", "X2", "Y")
+      m <- matrix(NA_real_, 3, 3, dimnames = list(v, v))
+      m[upper.tri(m)] <- c(0.024, 0.231, 0.256)  # X1-X2, X1-Y, X2-Y
+      m
+    })
+
+         cor_for <- function(v, store) {
+      m    <- matrix(NA_real_, length(v), length(v), dimnames = list(v, v))
+      keep <- intersect(v, rownames(store))
+      m[keep, keep] <- store[keep, keep]
+      m[lower.tri(m, diag = TRUE)] <- NA_real_
+      m
     }
-
-    observe({
-       df <- rv$params
-      descriptives_ok <- all(
-        nzchar(df$Variable),
-        !is.na(df$Mean), !is.na(df$SD),
-        !is.na(df$Min),  !is.na(df$Max)
-      )
-      preds_ok <- length(input$lm_predictors) > 0
-       tbl <- tryCatch(hot_to_r(input$coef_table), error = function(e) NULL)
-      coef_present <- !is.null(tbl) && any(!is.na(as.numeric(tbl["Est.", ])))
-
-      if (descriptives_ok && preds_ok && coef_present) {
-        shinyjs::enable("run")
-      } else {
-        shinyjs::disable("run")
+    output$target_cor <- renderRHandsontable({
+      v  <- vars()
+      req(length(v) >= 2)
+      m  <- cor_for(v, isolate(cor_store()))
+       df <- as.data.frame(m, check.names = FALSE)
+      tb <- hot_col(hot_table(rhandsontable(df, rowHeaders = rownames(m)), overflow = "visible"),
+                    col = colnames(df), format = "0.000")
+      for (i in seq_len(nrow(m))) for (j in seq_len(i)) tb <- hot_cell(tb, row = i, col = j, readOnly = TRUE)
+      tb
+    })
+    observeEvent(input$target_cor, {
+      m <- as.matrix(hot_to_r(input$target_cor))
+      if (!is.null(rownames(m)) && identical(rownames(m), colnames(m))) {
+        m[lower.tri(m, diag = TRUE)] <- NA_real_
+        cor_store(m)
       }
     })
+
+    observeEvent(vars(), {
+      v   <- vars()
+      cur <- isolate(input$reg_outcome)
+       updateSelectInput(session, "reg_outcome", choices = v,
+                        selected = if (!is.null(cur) && cur %in% v) cur else v[length(v)])
+    })
+    observeEvent(list(input$reg_outcome, vars()), {
+      preds <- setdiff(vars(), input$reg_outcome)
+      cur   <- isolate(input$reg_predictors)
+      sel   <- if (length(cur)) intersect(cur, preds) else preds
+      if (!length(sel)) sel <- preds
+      updateCheckboxGroupInput(session, "reg_predictors", choices = preds, selected = sel)
+    })
+    default_inter <- "X1:X2"
+    observeEvent(input$reg_predictors, {
+      p     <- input$reg_predictors
+      inter <- if (length(p) >= 2) utils::combn(p, 2, FUN = paste, collapse = ":") else character(0)
+       sel   <- isolate(input$reg_interactions)
+      if (length(default_inter) && all(default_inter %in% inter)) {
+        sel <- default_inter
+        default_inter <<- character(0)
+      }
+      updateCheckboxGroupInput(session, "reg_interactions", choices = inter,
+                               selected = intersect(sel, inter))
+    }, ignoreNULL = FALSE)
+
+    reg_terms <- reactive({
+      req(input$reg_outcome, length(input$reg_predictors) > 0)
+      c(input$reg_predictors, input$reg_interactions)
+    })
+    reg_equation <- reactive(paste(input$reg_outcome, "~", paste(reg_terms(), collapse = " + ")))
+    output$reg_equation <- renderText({
+      if (length(input$reg_predictors) == 0) "Select at least one predictor." else reg_equation()
+    })
+
+    coef_store <- reactiveVal(list(
+      "(Intercept)" = c(-12.402, 12.262),
+      "X1"          = c(0.784, 1.024),
+      "X2"          = c(0.682, 0.673),
+       "X1:X2"       = c(-0.029, 0.056)
+    ))
+    coef_for <- function(terms, store) {
+      m <- matrix(NA_real_, 2, length(terms), dimnames = list(c("target_reg", "target_se"), terms))
+      for (t in intersect(terms, names(store))) m[, t] <- store[[t]]
+      m
+    }
+    output$target_reg <- renderRHandsontable({
+      m  <- coef_for(c("(Intercept)", reg_terms()), isolate(coef_store()))
+      df <- as.data.frame(m, check.names = FALSE)
+       hot_col(hot_table(rhandsontable(df, rowHeaders = c("Estimate", "SE"), rowHeaderWidth = 85),
+                        overflow = "visible"),
+              col = colnames(df), format = "0.000")
+    })
+    observeEvent(input$target_reg, {
+      df    <- hot_to_r(input$target_reg)
+      store <- coef_store()
+      for (t in colnames(df)) {
+        v <- as.numeric(df[, t])
+        if (any(!is.na(v))) store[[t]] <- v else store[[t]] <- NULL
+      }
+      coef_store(store)
+    })
+
+    result    <- reactiveVal(NULL)
+    call_code <- reactiveVal(NULL)
+    observeEvent(list(input$N, targets(), input$sprite_prec_mean, input$sprite_prec_sd,
+                      cor_store(), input$reg_outcome, input$reg_predictors,
+                      input$reg_interactions, coef_store(), input$weight, input$thresh,
+                      input$max_iter, input$init_temp, input$cooling_rate, input$max_starts,
+                       input$hill_climbs, input$runs, input$seed),
+                 result(NULL), ignoreInit = TRUE)
+
+    observeEvent(input$max_iter, s2d_cooling_placeholder(session, input$max_iter))
 
     observeEvent(input$run, {
-      shinyjs::show("processing_msg")
-       on.exit(shinyjs::hide("processing_msg"), add = TRUE)
-
-      df <- rv$params
-      N            <- input$N
-      target_mean  <- stats::setNames(df$Mean, df$Variable)
-      target_sd    <- stats::setNames(df$SD,   df$Variable)
-      range_mat    <- rbind(df$Min, df$Max)
-      is_int       <- df$Integer
-
-      df_corr    <- hot_to_r(input$corr_table)
-       mat_corr   <- as.matrix(df_corr)
-      target_cor <- mat_corr[upper.tri(mat_corr, diag = FALSE)]
-
-      coef_df    <- hot_to_r(input$coef_table)
-      estimates  <- as.numeric(coef_df["Est.", ])
-       target_reg <- estimates
-      names(target_reg) <- colnames(coef_df)
-
-      ses       <- as.numeric(coef_df["SE", ])
-      target_se <- ses
-      names(target_se) <- colnames(coef_df)
-      if (all(is.na(target_se))) target_se <- NULL
-
-      reg_equation <- paste(deparse(lm_formula_reactive()), collapse = "")
-
-      max_iter     <- input$max_iter
-      init_temp    <- input$init_temp
-      if (is.na(init_temp)) init_temp <- NULL
-      cooling_rate <- input$cooling_rate
-      thresh    <- input$thresh
-       max_starts   <- input$max_starts
-      hill_climbs  <- input$hill_climbs
-      n_datasets   <- input$n_datasets
-
-      wdf    <- hot_to_r(input$weight_table)
-       w_sum  <- wdf$Correlation + wdf$Regression
-      if (!isTRUE(wdf$Correlation >= 0 && wdf$Regression >= 0 && w_sum > 0)) {
-        showNotification(
-          "Objective weights must be non-negative and not both zero.",
-          type = "error"
-        )
+      if (!s2d_filled(list("Sample Size" = input$N, "Correlation Weight" = input$weight,
+                           "Convergence Threshold" = input$thresh,
+                            "Max Iterations" = input$max_iter, "Max Restarts" = input$max_starts,
+                           "Reported Decimals (Mean)" = input$sprite_prec_mean,
+                           "Reported Decimals (SD)" = input$sprite_prec_sd))) return()
+      tg <- targets()
+      if (any(!nzchar(tg$variable)) || anyDuplicated(tg$variable) ||
+          anyNA(tg[, c("target_mean", "target_sd", "range_min", "range_max")])) {
+        s2d_notify("Each variable needs a unique name, Mean, SD, Min and Max.")
         return()
       }
-      weight <- wdf$Correlation / w_sum
-
-      input.check <- check_lm_inputs(
-        thresh    = thresh,
-        max_iter     = max_iter,
-        init_temp    = init_temp,
-        cooling_rate = cooling_rate,
-        hill_climbs  = hill_climbs,
-        max_starts   = max_starts
-      )
-      if (!input.check) {return()}
-
-      for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
-        shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"none","opacity":0.5});',
-                  ns(tbl_id))
-        )
-      }
-      for (btn in c(
-        "N", "add_row", "remove_row",
-        "lm_outcome", "lm_predictors", "lm_interactions",
-        "thresh", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "n_datasets",
-        "run", "plot_convergence",
-        "plot_convergence_ratio", "get_rmse",
-         "plot_fit", "plot_cooling",
-        "display_data", "download", "dataset_selector"
-      )) {
-        shinyjs::disable(btn)
-      }
-      rv$status <- "running"
-      rv$result <- NULL
-      rv$dirty  <- TRUE
-
-      tryCatch({
-        withProgress(message = "Running optimization...", value = 0, {
-           if (n_datasets > 1) {
-            results_list <- vector("list", n_datasets)
-            for (ds in seq_len(n_datasets)) {
-              incProgress(1 / n_datasets,
-                          detail = sprintf("Dataset %d / %d", ds, n_datasets))
-              results_list[[ds]] <- optim_mlr(
-                N            = N,
-                target_mean  = target_mean,
-                 target_sd    = target_sd,
-                range        = range_mat,
-                integer      = is_int,
-                target_cor   = target_cor,
-                target_reg   = target_reg,
-                reg_equation = reg_equation,
-                sprite_prec  = c(2, 2),
-                target_se    = target_se,
-                weight       = weight,
-                thresh    = thresh,
-                max_iter     = max_iter,
-                init_temp    = init_temp,
-                cooling_rate = cooling_rate,
-                max_starts   = max_starts,
-                hill_climbs  = hill_climbs,
-                progress_mode = "off"
-              )
-            }
-            rv$result <- results_list
-          } else {
-            rv$result <- optim_mlr(
-              N            = N,
-              target_mean  = target_mean,
-              target_sd    = target_sd,
-              range        = range_mat,
-               integer      = is_int,
-              target_cor   = target_cor,
-              target_reg   = target_reg,
-              reg_equation = reg_equation,
-              sprite_prec  = c(2, 2),
-              target_se    = target_se,
-              weight       = weight,
-              thresh    = thresh,
-              max_iter     = max_iter,
-              init_temp    = init_temp,
-              cooling_rate = cooling_rate,
-              max_starts   = max_starts,
-              hill_climbs  = hill_climbs,
-              progress_mode = "shiny"
-            )
-          }
-        })
-      }, error = function(e) {
-        showNotification(
-           paste("Optimization failed:", conditionMessage(e)),
-          type = "error", duration = 10
-        )
-      })
-      if (is.null(rv$result)) {
-        shinyjs::enable("run")
-        for (btn in c(
-           "N", "add_row", "remove_row",
-          "lm_outcome", "lm_predictors", "lm_interactions",
-          "thresh", "max_iter", "init_temp", "cooling_rate",
-          "hill_climbs", "max_starts", "n_datasets"
-        )) {
-          shinyjs::enable(btn)
-        }
-        for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
-          shinyjs::runjs(
-            sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                    ns(tbl_id)))
-        }
+      if (length(input$reg_predictors) == 0) {
+        s2d_notify("Select at least one predictor for the Regression Model.")
         return()
       }
-
-      is_multi <- n_datasets > 1
-      rv$status <- "done"
-       rv$dirty  <- FALSE
-      shinyjs::enable("run")
-      for (btn in c(
-        "N", "add_row", "remove_row",
-        "lm_outcome", "lm_predictors", "lm_interactions",
-        "thresh", "max_iter", "init_temp", "cooling_rate",
-        "hill_climbs", "max_starts", "n_datasets",
-        "run", "plot_convergence",
-        "plot_convergence_ratio", "get_rmse",
-        "plot_fit", "plot_cooling",
-         "display_data", "download"
-      )) {
-        shinyjs::enable(btn)
+      cf <- coef_for(c("(Intercept)", reg_terms()), coef_store())
+       target_reg <- cf["target_reg", ]
+      target_se  <- cf["target_se", ]
+      if (all(is.na(target_reg))) {
+        s2d_notify("Enter at least one target coefficient (Estimate).")
+        return()
       }
-      if (is_multi) {
-        updateSelectInput(session, "dataset_selector",
-                          choices = seq_len(n_datasets), selected = 1)
-        shinyjs::enable("dataset_selector")
-      } else {
-        updateSelectInput(session, "dataset_selector", choices = 1, selected = 1)
-        shinyjs::disable("dataset_selector")
+      w <- input$weight
+      if (!is.numeric(w) || is.na(w) || w < 0 || w > 1) {
+        s2d_notify("Correlation Weight must be a number between 0 and 1.")
+        return()
       }
-      for (tbl_id in c("param_table", "corr_table", "coef_table", "weight_table")) {
-         shinyjs::runjs(
-          sprintf('$("#%s .ht_master").css({"pointer-events":"auto","opacity":1});',
-                  ns(tbl_id))
-        )
-      }
-    })
-
-    selected_dataset <- reactive({
-      if (rv$dirty) return(NULL)
-       if (is.list(rv$result) && !inherits(rv$result, "stats2data_mlr") &&
-          input$n_datasets > 1) {
-        rv$result[[as.integer(input$dataset_selector)]]
-      } else rv$result
-    })
-
-    output$status_text <- renderText({
-      if (rv$dirty) return(NULL)
-      if (rv$status == "running") "Optimization is running..." else ""
-    })
-
-    output$best_objective <- renderTable({
-      if (rv$dirty) return(NULL)
-      ds <- selected_dataset()
-      req(ds)
-       bes <- ds$best_objective
-      is_conv <- (bes == 0) | (bes <= input$thresh)
-      disp    <- ifelse(is_conv, "converged", format(bes))
-      data.frame(
-        Objective = disp,
-        stringsAsFactors = FALSE,
-        check.names = FALSE
+       m <- cor_for(tg$variable, cor_store())
+      args <- list(
+        N            = input$N,
+        target_mean  = stats::setNames(tg$target_mean, tg$variable),
+        target_sd    = stats::setNames(tg$target_sd,   tg$variable),
+        range        = rbind(tg$range_min, tg$range_max),
+        integer      = as.logical(tg$integer),
+        target_cor   = m[upper.tri(m)],
+        target_reg   = target_reg,
+        reg_equation = reg_equation(),
+        sprite_prec  = c(input$sprite_prec_mean, input$sprite_prec_sd),
+        target_se    = na_null(target_se),
+         weight       = w,
+        thresh       = input$thresh,
+        max_iter     = input$max_iter,
+        init_temp    = na_null(input$init_temp),
+        cooling_rate = na_null(input$cooling_rate),
+        max_starts   = input$max_starts,
+        hill_climbs  = na_null(input$hill_climbs)
       )
-    }, rownames = FALSE,
-    colnames = FALSE)
-
-    last_action <- reactiveVal(NULL)
-    observeEvent(input$plot_convergence,         last_action("plot_convergence"))
-    observeEvent(input$plot_convergence_ratio,   last_action("plot_convergence_ratio"))
-     observeEvent(input$get_rmse,           last_action("get_rmse"))
-    observeEvent(input$plot_fit,       last_action("plot_fit"))
-    observeEvent(input$plot_cooling,       last_action("plot_cooling"))
-    observeEvent(input$display_data,       last_action("display_data"))
-
-    observeEvent(input$download, {
-      showModal(modalDialog(
-        title = "Download",
-        downloadButton(ns("dl_object"), "Full stats2data.object"),
-         downloadButton(ns("dl_data"),   "Data as CSV"),
-        easyClose = TRUE
-      ))
-    })
-
-    output$error_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-       req(input$iter_select)
-      n_it <- length(selected_dataset()$track_objective)
-      plot_convergence(selected_dataset(),
-                 first_iter = min(max(0L, as.integer(input$iter_select) - 1L), n_it - 1L)
-      ) })
-    output$ratio_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_convergence(selected_dataset(), ratio = TRUE)
-    })
-     output$rmse_out <- renderPrint({
-      if (rv$dirty) return(NULL)
-      get_rmse(selected_dataset())
-    })
-    output$summary_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_fit(selected_dataset(),
-                   standardised = input$std %||% TRUE) })
-    output$cooling_plot <- renderPlot({
-      if (rv$dirty) return(NULL)
-      plot_cooling(selected_dataset())
-    })
-    output$data_preview <- renderTable({
-      if (rv$dirty) return(NULL)
-      ds <- selected_dataset()
-      if (!is.list(ds) || is.null(ds$data)) {
-        return(data.frame(Message = "No data available."))
-      }
-      utils::head(as.data.frame(ds$data), min(nrow(ds$data),15))
-    })
-
-      output$main_output <- renderUI({
-      if (rv$dirty) return(NULL)
-      req(last_action())
-      switch(last_action(),
-             "plot_convergence"        = tagList(
-               plotOutput(ns("error_plot"), width = "600px", height = "400px"),
-               fluidRow(
-                 column(
-                   width = 6,
-                   numericInput(
-                     ns("iter_select"),
-                     name_with_info(
-                       "Start Iteration",
-                       "Plot errors beginning at this iteration."
-                     ),
-                     value = isolate(input$iter_select %||% 1),
-                     min   = 1,
-                     max   = length(selected_dataset()$track_objective),
-                     step  = 100,
-                     width = "100px"
-                   )
-                 )
-               )
-             ),
-             "plot_convergence_ratio"  = plotOutput(ns("ratio_plot"),   width = "600px", height = "400px"),
-             "get_rmse"          = verbatimTextOutput(ns("rmse_out")),
-             "plot_fit"      = tagList(
-               plotOutput(ns("summary_plot"), width = "600px", height = "400px"),
-               fluidRow(
-                 column(
-                   width = 6,
-                   checkboxInput(
-                     ns("std"),
-                     name_with_info(
-                       "standardised",
-                       "Select whether the differences between simulated and target values are standardised."
-                      ),
-                     TRUE,
-                     width = "100%"
-                   ),
-                 ))),
-             "plot_cooling"      = plotOutput(ns("cooling_plot"),   width = "600px", height = "400px"),
-             "display_data"      = tableOutput(ns("data_preview"))
+      ok <- check_mlr_inputs(
+        thresh = args$thresh, max_iter = args$max_iter, init_temp = args$init_temp,
+        cooling_rate = args$cooling_rate, hill_climbs = args$hill_climbs,
+        max_starts = args$max_starts
       )
+      if (!ok) return()
+
+      s2d_execute("optim_mlr", args, runs = input$runs, seed = input$seed,
+                  result = result, call_code = call_code)
     })
 
-    output$dl_object <- downloadHandler(
-      filename = "stats2data_object.rds",
-      content = function(file) {
-         req(!rv$dirty)
-        ds <- selected_dataset()
-        saveRDS(ds, file)
-      }
-    )
-    output$dl_data <- downloadHandler(
-      filename = "optimised_data.csv",
-      content  = function(file) {
-        req(!rv$dirty)
-        ds <- selected_dataset()
-        utils::write.csv(as.data.frame(ds$data), file, row.names = TRUE)
-      }
-    )
+    mod_results_server("results", result = result, call_code = call_code,
+                       file_stub = "optim_mlr")
   })
 }

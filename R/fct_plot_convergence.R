@@ -368,7 +368,7 @@
 #' @param show_best Logical. If \code{TRUE} (default), marks the iteration
 #'   with the smallest objective value.
 #' @param first_iter Integer. Number of initial iterations to skip before
-#'   plotting (zero-based); default \code{1}.
+#'   plotting (zero-based); default \code{0}.
 #' @param log_y Logical. If \code{TRUE}, the y axis uses a base-10
 #'   logarithmic scale; non-positive objective values are dropped with a warning.
 #'   Default \code{FALSE}.
@@ -393,7 +393,7 @@
 #'   theme
 #' @export
 plot_convergence.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
-                                            first_iter = 1L, log_y = FALSE,
+                                            first_iter = 0L, log_y = FALSE,
                                             thresh = x$inputs$thresh, ...) {
 
   if (is.null(x$track_objective)) {
@@ -422,7 +422,8 @@ plot_convergence.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 #' @param run Integer. Index of the run to plot; default \code{1}.
 #' @param show_best Logical. If \code{TRUE} (default), marks the minimum
 #'   objective value.
-#' @param first_iter Integer. Iterations to skip; default \code{1}.
+#' @param first_iter Integer. Number of initial iterations to skip before
+#'   plotting (zero-based); default \code{0}.
 #' @param ratio Logical. If \code{TRUE}, plot the correlation-to-regression
 #'   objective value ratio instead of the total objective value trajectory. Default \code{FALSE}.
 #' @param show_mean Logical. When \code{ratio = TRUE}, draw a horizontal line
@@ -453,7 +454,7 @@ plot_convergence.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 #'
 #' @export
 plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
-                                            first_iter = 1L,
+                                            first_iter = 0L,
                                             ratio = FALSE,
                                             show_mean = TRUE,
                                             show_median = TRUE,
@@ -525,7 +526,7 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 #' @param run Integer. Index of the run (variable) to plot; default \code{1}.
 #' @param show_best Logical. If \code{TRUE} (default), marks the minimum
 #'   objective value.
-#' @param first_iter Integer. Iterations to skip; default \code{1}.
+#' @param first_iter Integer. Iterations to skip; default \code{0}.
 #' @param log_y Logical. If \code{TRUE}, the y axis uses a base-10
 #'   logarithmic scale; non-positive objective values are dropped with a warning.
 #'   Default \code{FALSE}.
@@ -544,7 +545,7 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 #'
 #' @export
 plot_convergence.stats2data_vec <- function(x, run = 1L, show_best = TRUE,
-                                            first_iter = 1L, log_y = FALSE,
+                                            first_iter = 0L, log_y = FALSE,
                                             thresh = x$inputs$thresh, ...) {
 
   if (is.null(x$track_objective)) {

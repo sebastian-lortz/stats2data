@@ -28,11 +28,11 @@ app_ui <- function(request) {
             column(width = 12,
                    h1("Welcome to the stats2data App"),
                    p(HTML(
-                  "We introduce the stats2data package: <strong>N</strong>onparametric <strong>D</strong>ata <strong>S</strong>imulation from <strong>S</strong>ummary <strong>S</strong>tatistics.
-                  The primary scope of this algorithmic framework is to simulate complete datasets using only summary statistics, giving researchers a way to generate plausible sample data when original data are unavailable."
+                  "In this App and corresponding R package, we implemented a new method: Non-parametric Data Simulation from Summary Statistics. The primary scope of the method is to simulate complete datasets using only summary statistics, giving researchers a way to generate plausible raw datasets when original data are unavailable.
+                  "
                       )),
                    h3("Modular Structure"),
-                   p("The package is composed of two main simulation modules, ANOVA and multiple linear regression (LM), with a Descriptives sub-module. The modules are tailored to different data structures and statistical models, each following a similar high-level workflow. The ANOVA and LM modules produce datasets as a matrix, while the Descriptives sub-module generates a single variable. The modules can operate independently or sequentially, depending on the specific requirements of the optimization context."),
+                   p("The package is composed of three simulation modules, Descriptives, ANOVA and multiple linear regression (MLR). The modules are tailored to different data structures and statistical models, each following a similar high-level workflow."),
                     br(),
                    tags$a(
                      href   = "https://example.com/research_article.pdf",
@@ -49,9 +49,15 @@ app_ui <- function(request) {
           fluidRow(
             column(width = 6,
                    h2("High Level Workflow"),
-                   p("The algorithmic framework simulates and adjusts data until its  summary statistics closely match the reported targets. The process (see Figure) begins with the candidate initialization, that is, the creation of an initial simulated dataset. The algorithm then iteratively refines the candidate by optimizing an objective function f that quantifies the discrepancy between the summary statistics of the candidate and the reported targets. At each iteration, the following two steps are performed. Candidate Modification: Modifications to the data are produced through different types of moves (i.e., adjustments of the data) within the search space. Candidate Evaluation: Each candidate is evaluated by f and accepted based on a stochastic optimization criterion, ensuring that modifications progressively reduce the  value of f."),
+                   p("
+                     The procedure (summarized in the Figure) begins with the candidate initialization, that is, the creation of an initial simulated dataset. The algorithm then iteratively refines the candidate by minimizing an objective function f that quantifies the discrepancy between the summary statistics of the candidate and the reported summary statistics, which we collect in a target vector. Because the targets are fixed, we treat f as a function of the candidate data alone. At each iteration, the following three steps are performed: \n\n
+                     Candidate Modification: The data are modified through different types of moves within the search space. \n\n
+                     Candidate Evaluation: Each candidate is evaluated by f. \n\n
+                     Candidate Acceptance: The candidate is accepted based on a stochastic optimization criterion that favors reductions in f.
+                     "),
                    h4("Convergence"),
-                   p("The algorithm is deemed to have met the convergence criteria as soon as the best objective function value f_best falls below the user-specified thresh. If convergence is not reached within the iteration limit, the algorithm restarts from the best candidate found so far (with updated optimization settings). Only when all allowed iterations and restarts have been exhausted without achieving the thresh does the routine stop due to iteration limits rather than discrepancy criteria.")
+                   p("The algorithm is deemed to have met the convergence criteria as soon as the best objective function value falls below the user-specified absolute threshold.
+                   In addition, the modules use the threshold for targets that are enforced as constraints. If convergence is not reached within the iteration limit, the algorithm restarts from the best candidate found so far, with the adaptive optimization parameter reset to its starting value. When all allowed iterations and restarts have been exhausted, the optimization routine stops.")
              ),
             column(width = 6,
                    tags$img(

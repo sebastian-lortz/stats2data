@@ -12,7 +12,7 @@
 \method{plot_fit}{stats2data_parallel}(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   error_type = c("range", "sd"),
   order = c("input", "fit"),
   thresh = x$results[[1L]]$inputs$thresh,
@@ -22,7 +22,7 @@
 \method{plot_fit}{stats2data_mlr}(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...
@@ -31,7 +31,7 @@
 \method{plot_fit}{stats2data_aov}(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...
@@ -40,7 +40,7 @@
 \method{plot_fit}{stats2data_vec}(
   x,
   standardised = TRUE,
-  eps = 1e-12,
+  eps = 0.000000000001,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...

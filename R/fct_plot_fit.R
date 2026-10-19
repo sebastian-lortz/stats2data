@@ -400,9 +400,11 @@ plot_fit.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12,
     stringsAsFactors = FALSE
   )
   df <- .tag_sim_type(df, standardised, eps)
+  df$Variable <- factor(df$Variable, levels = unique(effect_names))
 
   p <- .plot_fit_engine(df, standardised, var_lab = NULL,
                         order = order, thresh = thresh)
+
   print(p)
   invisible(p)
 }

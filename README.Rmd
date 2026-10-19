@@ -19,7 +19,7 @@ output: github_document
 [![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
 <!-- badges:end -->
 
-We introduce the stats2data package for nonparametric data simulation from summary statistics.
+We introduce the stats2data package: Nonparametric Data Simulation from Summary Statistics.
 
 
 ## Usage

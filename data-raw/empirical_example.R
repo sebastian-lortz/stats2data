@@ -66,7 +66,7 @@ range(result_aov$data$outcome)
 any(result_aov$data$outcome %in% sumstats$range)
 
 # Figure: diagnostics and summary
-fig_diag <- (plot_convergence(result_aov, first_iter = 1, log_y = TRUE)) | (plot_fit(result_aov, standardised = FALSE))
+fig_diag <- (plot_convergence(result_aov, log_y = TRUE)) | (plot_fit(result_aov, standardised = FALSE))
 
 ggsave(file.path(fig_dir, "aov.empirical.diagnostics.pdf"),
        fig_diag,
