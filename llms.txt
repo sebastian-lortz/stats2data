@@ -93,8 +93,6 @@ This README has been compiled on 2026-05-03 22:06:10.
   : Extract statistics from a \`stats2data\` result
 - [`hill_climb()`](https://sebastian-lortz.github.io/stats2data/reference/hill_climb.md)
   : Perform hill-climbing optimization
-- [`long_to_wide()`](https://sebastian-lortz.github.io/stats2data/reference/long_to_wide.md)
-  : Reshape Data from Long to Wide Format
 - [`optim_aov()`](https://sebastian-lortz.github.io/stats2data/reference/optim_aov.md)
   : Optimize simulated data to match ANOVA F-values
 - [`optim_mlr()`](https://sebastian-lortz.github.io/stats2data/reference/optim_mlr.md)
@@ -104,18 +102,19 @@ This README has been compiled on 2026-05-03 22:06:10.
   : Optimize a vector or matrix to match target means and SDs
 - [`parallel_optim()`](https://sebastian-lortz.github.io/stats2data/reference/parallel_optim.md)
   : Run an optimization function multiple times in parallel
-- [`plot(`*`<stats2data_parallel>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data_parallel.md)
-  : Plot RMSE distributions for a parallel result
+- [`plot(`*`<stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data.md)
+  [`plot(`*`<stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data.md)
+  [`plot(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data.md)
+  [`plot(`*`<stats2data_parallel>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data.md)
+  : Default plots for stats2data results
+- [`plot_convergence()`](https://sebastian-lortz.github.io/stats2data/reference/plot_convergence.md)
+  : Plot error trajectory for a stats2data result
 - [`plot_cooling()`](https://sebastian-lortz.github.io/stats2data/reference/plot_cooling.md)
   : Plot cooling schedule for a stats2data result
-- [`plot_error()`](https://sebastian-lortz.github.io/stats2data/reference/plot_error.md)
-  : Plot error trajectory for a stats2data result
-- [`plot_histogram()`](https://sebastian-lortz.github.io/stats2data/reference/plot_histogram.md)
-  : Plot Histograms for Each Variable
-- [`plot_partial_regression()`](https://sebastian-lortz.github.io/stats2data/reference/plot_partial_regression.md)
-  : Partial Regression Plots for a Linear Model
-- [`plot_summary()`](https://sebastian-lortz.github.io/stats2data/reference/plot_summary.md)
+- [`plot_fit()`](https://sebastian-lortz.github.io/stats2data/reference/plot_fit.md)
   : Plot summary of target-vs-simulated statistics
+- [`plot_stability()`](https://sebastian-lortz.github.io/stats2data/reference/plot_stability.md)
+  : Plot run-to-run stability for a stats2data result
 - [`print(`*`<stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_aov.md)
   : Print a stats2data ANOVA result
 - [`print(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_mlr.md)
@@ -143,8 +142,6 @@ This README has been compiled on 2026-05-03 22:06:10.
   : Summarize a stats2data parallel result
 - [`summary(`*`<stats2data_vec>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_vec.md)
   : Summarize a stats2data Descriptives result
-- [`wide_to_long()`](https://sebastian-lortz.github.io/stats2data/reference/wide_to_long.md)
-  : Reshape Data from Wide to Long Format
 
 # Articles
 

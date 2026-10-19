@@ -49,8 +49,8 @@ parallel_optim(
 - stop_conv:
 
   Logical. If `TRUE`, stop launching further runs as soon as one run has
-  converged, i.e. its `best_error` is below the convergence threshold.
-  Default `FALSE`.
+  converged, i.e. its `best_objective` is below the convergence
+  threshold. Default `FALSE`.
 
 - progress_mode:
 
@@ -69,7 +69,7 @@ An object of class `stats2data_parallel` — a list with:
 
 - best:
 
-  The single result with the lowest `best_error`.
+  The single result with the lowest `best_objective`.
 
 - module:
 
@@ -105,9 +105,9 @@ of `cores` and the convergence check happens after each batch. Up to
 they are kept in `results`. With `stop_conv = FALSE` all runs are
 dispatched in a single call, as before.
 
-Convergence of a single run is judged as `best_error < thresh`. For
-`stats2data_vec` results, where `best_error` is a list of per-variable
-errors, every component must be below `thresh`.
+Convergence of a single run is judged as `best_objective < thresh`. For
+`stats2data_vec` results, where `best_objective` is a list of
+per-variable errors, every component must be below `thresh`.
 
 ## Examples
 

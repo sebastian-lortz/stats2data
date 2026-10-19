@@ -1,7 +1,7 @@
 # Extract statistics from a \`stats2data\` result
 
-Computes and returns key analytical outputs from a \`stats2data\` result
-object, including means, standard deviations, correlations, regression
+Computes and returns outputs from a \`stats2data\` result object,
+including means, standard deviations, correlations, regression
 coefficients, or F-statistics depending on the module that produced the
 result.
 

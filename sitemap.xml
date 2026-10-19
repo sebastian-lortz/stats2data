@@ -14,17 +14,15 @@
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/get_stats.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/hill_climb.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/index.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/long_to_wide.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/optim_aov.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/optim_mlr.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/optim_vec.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/parallel_optim.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data_parallel.html</loc></url>
+<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot.stats2data.html</loc></url>
+<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_convergence.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_cooling.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_error.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_histogram.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_partial_regression.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_summary.html</loc></url>
+<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_fit.html</loc></url>
+<url><loc>https://sebastian-lortz.github.io/stats2data/reference/plot_stability.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_aov.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_mlr.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/print.stats2data_vec.html</loc></url>
@@ -38,6 +36,5 @@
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_mlr.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_parallel.html</loc></url>
 <url><loc>https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_vec.html</loc></url>
-<url><loc>https://sebastian-lortz.github.io/stats2data/reference/wide_to_long.html</loc></url>
 </urlset>
 

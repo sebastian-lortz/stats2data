@@ -1,8 +1,8 @@
 # Optimize a vector or matrix to match target means and SDs
 
-Uses the stats2data approach to simulate one or multiple vectors so that
-each matches specified target means and standard deviations under given
-input parameters.
+Uses the stats2data method to simulate one or multiple vectors so that
+each matches specified target means and standard deviations within a
+range under given input parameters.
 
 ## Usage
 
@@ -50,7 +50,7 @@ optim_vec(
 
 - thresh:
 
-  Numeric. Convergence threshold. Default `1e-3`.
+  Numeric. Convergence threshold. Default `5e-3`.
 
 - sprite_prec:
 
@@ -59,11 +59,11 @@ optim_vec(
 
 - max_iter:
 
-  Integer. Iterations per restart. Default `1e4`.
+  Integer. Iterations per restart. Default `5e5`.
 
 - init_temp:
 
-  Numeric. Initial SA temperature. Default `1`.
+  Numeric. Initial SA temperature. Default `1e-3`.
 
 - cooling_rate:
 
@@ -71,7 +71,7 @@ optim_vec(
 
 - max_starts:
 
-  Integer. Number of restarts. Default `1`.
+  Integer. Number of restarts. Default `3`.
 
 - progress_mode:
 
@@ -79,8 +79,8 @@ optim_vec(
 
 ## Value
 
-A `stats2data.object` list with components `best_error`, `data`,
-`inputs`, `track_error`, and `error_msgs`.
+An object of class `stats2data_vec`, a list with components
+`best_objective`, `data`, `inputs`, `track_objective`, and `error_msgs`.
 
 ## Examples
 

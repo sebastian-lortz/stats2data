@@ -1,8 +1,6 @@
 # Plot cooling schedule for a stats2data result
 
 Visualises the simulated-annealing temperature decay across iterations.
-Dispatches to class-specific methods for `stats2data_aov`,
-`stats2data_mlr`, and `stats2data_vec`.
 
 ## Usage
 
@@ -57,7 +55,7 @@ object, returned invisibly.
 
 ## See also
 
-[`plot_error`](https://sebastian-lortz.github.io/stats2data/reference/plot_error.md)
+[`plot_convergence`](https://sebastian-lortz.github.io/stats2data/reference/plot_convergence.md)
 
 ## Examples
 

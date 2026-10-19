@@ -66,32 +66,49 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette walks through two empirical examples based on published
-studies whose raw data are not publicly available:</p>
+<p><code>stats2data</code> simulates raw datasets whose summary
+statistics match reported summary statistics (the <em>targets</em>).
+Each module defines an objective, the discrepancy between the summary
+statistics of a candidate dataset and the targets, and minimizes it with
+simulated annealing. A run stops once the best objective value falls
+below the convergence threshold <code>thresh</code> or once the
+iteration budget is spent. In this vignette, a run whose best objective
+value is below <code>thresh</code> is called <em>converged</em>.</p>
+<p>Convergence is a statement about the optimization only: the simulated
+summary statistics reproduce the targets to within <code>thresh</code>.
+Many different datasets share the same summary statistics, and a
+simulated dataset is one of them. The results below are therefore
+described in terms of the optimization (objective values,
+target-vs-simulated differences, run-to-run variability), not in terms
+of how closely the simulated data resemble the unobserved original
+data.</p>
+<p>The vignette works through four examples:</p>
+<ol style="list-style-type: decimal">
+<li>the <strong>Descriptives module</strong> (<code><a href="../reference/optim_vec.html">optim_vec()</a></code>),
+using the reported marginal statistics of Bardwell et al. (2007);</li>
+<li>the <strong>MLR module</strong> (<code><a href="../reference/optim_mlr.html">optim_mlr()</a></code>), using
+the reported correlations and regression estimates of the same
+study;</li>
+<li>the <strong>ANOVA module</strong> (<code><a href="../reference/optim_aov.html">optim_aov()</a></code>), using
+the reported cell means and F-statistics of Reynolds and Besner (2008),
+as in the accompanying manuscript;</li>
+<li>the <strong>parallel workflow</strong>
+(<code><a href="../reference/parallel_optim.html">parallel_optim()</a></code>), using the ANOVA example.</li>
+</ol>
+<p>Across the examples, the following functions are demonstrated:</p>
 <ul>
-<li>an <strong>ANOVA design</strong> with reported cell means and
-F-statistics (Reynolds &amp; Besner, 2008);</li>
-<li>a <strong>multiple linear regression</strong> with reported
-descriptives, correlations, and regression coefficients (Bardwell et
-al., 2007).</li>
-</ul>
-<p>Across the two examples, every exported function in
-<code>stats2data</code> is demonstrated:</p>
-<ul>
-<li>the optimization functions <code><a href="../reference/optim_aov.html">optim_aov()</a></code>,
-<code><a href="../reference/optim_vec.html">optim_vec()</a></code>, <code><a href="../reference/optim_mlr.html">optim_mlr()</a></code>, and
+<li>the optimization functions <code><a href="../reference/optim_vec.html">optim_vec()</a></code>,
+<code><a href="../reference/optim_mlr.html">optim_mlr()</a></code>, <code><a href="../reference/optim_aov.html">optim_aov()</a></code>, and
 <code><a href="../reference/parallel_optim.html">parallel_optim()</a></code>;</li>
-<li>the S3 inspection methods <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>,
-<code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>, <code><a href="../reference/get_stats.html">get_stats()</a></code>,
-<code><a href="../reference/get_rmse.html">get_rmse()</a></code>, and <code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>;</li>
-<li>the diagnostic and comparison plots <code><a href="../reference/plot_error.html">plot_error()</a></code>,
-<code><a href="../reference/plot_cooling.html">plot_cooling()</a></code>, <code><a href="../reference/plot_summary.html">plot_summary()</a></code>, and
-<code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> (for parallel results);</li>
-<li>the GRIM helper <code><a href="../reference/check_grim.html">check_grim()</a></code>;</li>
-<li>the Shiny entry point <code><a href="../reference/run_app.html">run_app()</a></code>.</li>
+<li>the GRIM check <code><a href="../reference/check_grim.html">check_grim()</a></code>;</li>
+<li>the inspection methods <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code>, <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code>,
+<code><a href="../reference/get_stats.html">get_stats()</a></code>, <code><a href="../reference/get_rmse.html">get_rmse()</a></code>, and
+<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code>;</li>
+<li>the plotting functions <code><a href="../reference/plot_convergence.html">plot_convergence()</a></code>,
+<code><a href="../reference/plot_cooling.html">plot_cooling()</a></code>, <code><a href="../reference/plot_fit.html">plot_fit()</a></code>,
+<code><a href="../reference/plot_stability.html">plot_stability()</a></code>, and the <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> methods;</li>
+<li>the Shiny interface <code><a href="../reference/run_app.html">run_app()</a></code>.</li>
 </ul>
-<p>Tuning hyperparameters are left at their package defaults wherever
-feasible.</p>
 <div class="section level3">
 <h3 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h3>
@@ -100,117 +117,650 @@ feasible.</p>
 <span><span class="fu">devtools</span><span class="fu">::</span><span class="fu">install_github</span><span class="op">(</span><span class="st">"sebastian-lortz/stats2data"</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
+<h3 id="shiny-interface">Shiny interface<a class="anchor" aria-label="anchor" href="#shiny-interface"></a>
 </h3>
+<p>All three modules and the parallel workflow are also available in a
+point-and-click interface:</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sebastian-lortz/stats2data" class="external-link">stats2data</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://jtools.jacob-long.com" class="external-link">jtools</a></span><span class="op">)</span></span>
-<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">gridExtra</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>The tabs <em>Descriptives</em>, <em>ANOVA</em>, and <em>Linear
+Regression</em> correspond to <code><a href="../reference/optim_vec.html">optim_vec()</a></code>,
+<code><a href="../reference/optim_aov.html">optim_aov()</a></code>, and <code><a href="../reference/optim_mlr.html">optim_mlr()</a></code>. The inputs of
+each tab correspond to the arguments of the function (the info icon of
+each input names the argument), and setting <em>Number of Runs</em>
+above one calls <code><a href="../reference/parallel_optim.html">parallel_optim()</a></code>. The results panel offers
+the plots and summaries shown in this vignette. The <em>Download</em>
+button exports the result object, the simulated data, and the R code of
+the function call, which reproduces the result in R.</p>
+</div>
+<div class="section level3">
+<h3 id="setup">Setup<a class="anchor" aria-label="anchor" href="#setup"></a>
+</h3>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/sebastian-lortz/stats2data" class="external-link">stats2data</a></span><span class="op">)</span></span>
+<span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
-<h2 id="anova-module-reynolds-besner-2008">1. ANOVA module — Reynolds &amp; Besner (2008)<a class="anchor" aria-label="anchor" href="#anova-module-reynolds-besner-2008"></a>
+<h2 id="descriptives-module-bardwell-et-al--2007">1. Descriptives module: Bardwell et al. (2007)<a class="anchor" aria-label="anchor" href="#descriptives-module-bardwell-et-al--2007"></a>
 </h2>
-<p>In their effort to assess the reproducibility of psychological
-science, the Open Science Collaboration (2015) attempted a large-scale
-replication of research findings. Among the replicated studies are
-Reynolds and Besner (2008), who reported a 2 × 2 within-subjects design
-(<code>S = 16</code>) measuring response times to exception words and
-nonwords under predictable switch and stay sequences. The original raw
-data are not publicly available (Open Science Collaboration, 2015). The
-reported cell means and F-statistics provide the targets required by
-<code><a href="../reference/optim_aov.html">optim_aov()</a></code>. This section simulates a plausible raw dataset
-consistent with those targets, using the optimization methods
-implemented in <code>stats2data</code>.</p>
+<p>Bardwell et al. (2007, <a href="https://doi.org/10.1016/j.jad.2006.06.013" class="external-link uri">https://doi.org/10.1016/j.jad.2006.06.013</a>) examined
+whether depressive symptoms or apnea severity better predict fatigue in
+patients with obstructive sleep apnea. The raw data are not publicly
+available. The study reports means and standard deviations of four
+variables for <code>N = 60</code> patients, rounded to one decimal.
+<code><a href="../reference/optim_vec.html">optim_vec()</a></code> simulates one vector per variable that
+reproduces its target mean and SD.</p>
 <div class="section level3">
 <h3 id="encoding-the-targets">1.1 Encoding the targets<a class="anchor" aria-label="anchor" href="#encoding-the-targets"></a>
 </h3>
-<p>The reported summary statistics are encoded as the inputs of
-<code><a href="../reference/optim_aov.html">optim_aov()</a></code>. The factor types, the design formula, and the
-data type (continuous mean response times) follow directly from the
-method description of the experiment.</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">S</span>                  <span class="op">&lt;-</span> <span class="fl">16</span></span>
-<span><span class="va">levels</span>             <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span></span>
-<span><span class="va">factor_type</span>        <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"within"</span>, <span class="st">"within"</span><span class="op">)</span></span>
-<span><span class="va">formula</span>            <span class="op">&lt;-</span> <span class="st">"outcome ~ Factor1 * Factor2 + Error(ID / (Factor1 * Factor2))"</span></span>
-<span><span class="va">integer</span>            <span class="op">&lt;-</span> <span class="cn">FALSE</span></span></code></pre></div>
-<p>In the results, <code>Factor1</code> is reported with
-<code>F(1, 15) = 30.5</code>. <code>Factor2</code> and the
-<code>Factor1:Factor2</code> interaction are reported as
-<code>F &lt; 1</code>; small ordered placeholders are supplied for both.
-The cell means are taken directly from the manuscript:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">target_f_list</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  effect <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Factor1"</span>, <span class="st">"Factor2"</span>, <span class="st">"Factor1:Factor2"</span><span class="op">)</span>,</span>
-<span>  F_value      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">30.5</span>, <span class="fl">0.4</span>, <span class="fl">0.5</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">target_group_means</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">543</span>, <span class="fl">536</span>, <span class="fl">614</span>, <span class="fl">618</span><span class="op">)</span></span></code></pre></div>
-<p>A plausible (and deliberately wide) admissible range is derived from
-the reported pooled <code>MSE = 3070</code>:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">range</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">target_group_means</span><span class="op">)</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">3070</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>            <span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">target_group_means</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="fl">3070</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">range</span></span>
-<span><span class="co">#&gt; [1] 315 840</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="va">N</span>           <span class="op">&lt;-</span> <span class="fl">60</span></span>
+<span><span class="va">target_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Apnea.1 <span class="op">=</span> <span class="fl">48.8</span>, Apnea.2 <span class="op">=</span> <span class="fl">17.3</span>, Depression <span class="op">=</span> <span class="fl">12.6</span>, Fatigue <span class="op">=</span> <span class="fl">10.8</span><span class="op">)</span></span>
+<span><span class="va">target_sd</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>Apnea.1 <span class="op">=</span> <span class="fl">27.1</span>, Apnea.2 <span class="op">=</span> <span class="fl">20.1</span>, Depression <span class="op">=</span> <span class="fl">11.3</span>, Fatigue <span class="op">=</span> <span class="fl">7.3</span><span class="op">)</span></span>
+<span><span class="va">integer</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span>, <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">range</span>       <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span> <span class="fl">15</span>,    <span class="fl">0</span>,  <span class="fl">0</span>,  <span class="fl">0</span>,    <span class="co"># lower bounds</span></span>
+<span>    <span class="fl">111</span>, <span class="fl">80.9</span>, <span class="fl">49</span>, <span class="fl">28</span><span class="op">)</span>,   <span class="co"># upper bounds</span></span>
+<span>  nrow <span class="op">=</span> <span class="fl">2</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><code>Apnea.1</code> and <code>Apnea.2</code> are treated as
+continuous, <code>Depression</code> and <code>Fatigue</code> as
+integer-valued sum scores. <code>range</code> holds one column of lower
+and upper bounds per variable.</p>
 </div>
 <div class="section level3">
-<h3 id="running-the-optimiser">1.2 Running the optimiser<a class="anchor" aria-label="anchor" href="#running-the-optimiser"></a>
+<h3 id="grim-check">1.2 GRIM check<a class="anchor" aria-label="anchor" href="#grim-check"></a>
 </h3>
-<p><code><a href="../reference/optim_aov.html">optim_aov()</a></code> is called with default hyperparameters
-(<code>max_iter = 1e4</code>, <code>thresh = 5e-3</code>,
-<code>init_temp = 1e-3</code>, <code>cooling_rate = NULL</code> (set
-automatically), <code>max_starts = 3</code>).</p>
+<p>For integer-valued data, not every mean is attainable: the sum of
+<code>N</code> integers divided by <code>N</code> can only take values
+on a grid of width <code>1 / N</code>. The GRIM test (Brown &amp;
+Heathers, 2017) checks whether a reported mean, rounded to
+<code>decimals</code>, lies on that grid:</p>
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/check_grim.html">check_grim</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">N</span>, target_mean <span class="op">=</span> <span class="va">target_mean</span><span class="op">[[</span><span class="st">"Depression"</span><span class="op">]</span><span class="op">]</span>, decimals <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $test</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $grim_mean</span></span>
+<span><span class="co">#&gt; [1] 12.6</span></span>
+<span><span class="fu"><a href="../reference/check_grim.html">check_grim</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">N</span>, target_mean <span class="op">=</span> <span class="va">target_mean</span><span class="op">[[</span><span class="st">"Fatigue"</span><span class="op">]</span><span class="op">]</span>,    decimals <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $test</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $grim_mean</span></span>
+<span><span class="co">#&gt; [1] 10.8</span></span></code></pre></div>
+<p>With <code>N = 60</code> and one decimal, the grid width
+(<code>1 / 60</code>) is smaller than the rounding unit
+(<code>0.1</code>), so every mean passes. The check is informative for
+small samples or more decimals; for a mean that fails,
+<code>grim_mean</code> returns the nearest attainable mean (hypothetical
+values):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_aov.html">optim_aov</a></span><span class="op">(</span></span>
-<span>  S                  <span class="op">=</span> <span class="va">S</span>,</span>
-<span>  levels             <span class="op">=</span> <span class="va">levels</span>,</span>
-<span>  target_group_means <span class="op">=</span> <span class="va">target_group_means</span>,</span>
-<span>  target_f_list      <span class="op">=</span> <span class="va">target_f_list</span>,</span>
-<span>  factor_type        <span class="op">=</span> <span class="va">factor_type</span>,</span>
-<span>  range              <span class="op">=</span> <span class="va">range</span>,</span>
-<span>  formula            <span class="op">=</span> <span class="va">formula</span>,</span>
-<span>  integer            <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>  max_iter <span class="op">=</span> <span class="fl">100</span> <span class="co"># remove later</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/check_grim.html">check_grim</a></span><span class="op">(</span>n <span class="op">=</span> <span class="fl">7</span>, target_mean <span class="op">=</span> <span class="fl">3.45</span>, decimals <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $test</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $grim_mean</span></span>
+<span><span class="co">#&gt; [1] 3.43</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="running-the-optimizer">1.3 Running the optimizer<a class="anchor" aria-label="anchor" href="#running-the-optimizer"></a>
+</h3>
+<p>For continuous variables, <code><a href="../reference/optim_vec.html">optim_vec()</a></code> starts from a
+vector whose mean lies within <code>thresh</code> of the target mean and
+anneals the values toward the target SD; the moves keep the mean fixed.
+For integer variables, it draws a distribution from SPRITE (Heathers et
+al., 2018) via <code>rsprite2</code> whose mean and SD match the targets
+at the number of decimals given by <code>sprite_prec</code>. The
+objective of each variable is the absolute difference between its
+simulated and target SD.</p>
+<p>Both statistics are reported to one decimal, so
+<code>sprite_prec = c(1, 1)</code>, and <code>thresh = 0.05</code> is
+set to half a unit of the last reported decimal. All other arguments are
+at their defaults (<code>max_iter = 5e5</code>,
+<code>init_temp = 1e-3</code>, <code>cooling_rate = NULL</code>,
+i.e. <code>(max_iter - 10) / max_iter</code>,
+<code>max_starts = 3</code>).</p>
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
+<span><span class="va">result_vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_vec.html">optim_vec</a></span><span class="op">(</span></span>
+<span>  N           <span class="op">=</span> <span class="va">N</span>,</span>
+<span>  target_mean <span class="op">=</span> <span class="va">target_mean</span>,</span>
+<span>  target_sd   <span class="op">=</span> <span class="va">target_sd</span>,</span>
+<span>  range       <span class="op">=</span> <span class="va">range</span>,</span>
+<span>  integer     <span class="op">=</span> <span class="va">integer</span>,</span>
+<span>  sprite_prec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  thresh      <span class="op">=</span> <span class="fl">0.05</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="inspecting-the-result">1.3 Inspecting the result<a class="anchor" aria-label="anchor" href="#inspecting-the-result"></a>
+<h3 id="inspecting-the-result">1.4 Inspecting the result<a class="anchor" aria-label="anchor" href="#inspecting-the-result"></a>
 </h3>
-<p>The default <code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> method shows the design, the sample
-size, the requested effects, and the best objective value. The reported
-best error is below <code>thresh = 5e-3</code>, indicating that the
-optimiser has located a candidate within the user-specified
-threshold.</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.aov</span></span>
+<p><code><a href="https://rdrr.io/r/base/print.html" class="external-link">print()</a></code> shows the sample size and the best objective
+value per variable:</p>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_vec</span></span>
+<span><span class="co">#&gt; stats2data Descriptives result</span></span>
+<span><span class="co">#&gt;   Variables: 4 </span></span>
+<span><span class="co">#&gt;   N:         60 </span></span>
+<span><span class="co">#&gt;   Best objective per variable:</span></span>
+<span><span class="co">#&gt;     Apnea.1: 0.04797</span></span>
+<span><span class="co">#&gt;     Apnea.2: 0.04888</span></span>
+<span><span class="co">#&gt;     Depression: 0.02264</span></span>
+<span><span class="co">#&gt;     Fatigue: 0.04108</span></span></code></pre></div>
+<p>The best objective values are below <code>thresh = 0.05</code> for
+all four variables. <code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> adds the target and simulated
+means and SDs and their RMSEs; the largest absolute difference between a
+simulated and a target mean is 0.0497:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result_vec</span><span class="op">)</span></span>
+<span><span class="co">#&gt; stats2data Descriptives Summary</span></span>
+<span><span class="co">#&gt; -----------------------------------------------</span></span>
+<span><span class="co">#&gt; N: 60  | Variables: 4 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Best objective per variable:</span></span>
+<span><span class="co">#&gt;   Apnea.1: 0.04797</span></span>
+<span><span class="co">#&gt;   Apnea.2: 0.04888</span></span>
+<span><span class="co">#&gt;   Depression: 0.02264</span></span>
+<span><span class="co">#&gt;   Fatigue: 0.04108</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; RMSE</span></span>
+<span><span class="co">#&gt;   Means: 0.03875 </span></span>
+<span><span class="co">#&gt;   SDs:   0.0415 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Target vs. Simulated:</span></span>
+<span><span class="co">#&gt;    variable target_mean sim_mean target_sd sim_sd</span></span>
+<span><span class="co">#&gt;     Apnea.1        48.8    48.75      27.1 27.052</span></span>
+<span><span class="co">#&gt;     Apnea.2        17.3    17.35      20.1 20.051</span></span>
+<span><span class="co">#&gt;  Depression        12.6    12.63      11.3 11.323</span></span>
+<span><span class="co">#&gt;     Fatigue        10.8    10.80       7.3  7.341</span></span></code></pre></div>
+<p><code><a href="../reference/get_stats.html">get_stats()</a></code> returns the simulated statistics and
+<code><a href="../reference/get_rmse.html">get_rmse()</a></code> the RMSEs between simulated and target
+statistics:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result_vec</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $mean</span></span>
+<span><span class="co">#&gt;    Apnea.1    Apnea.2 Depression    Fatigue </span></span>
+<span><span class="co">#&gt;   48.75073   17.34969   12.63333   10.80000 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $sd</span></span>
+<span><span class="co">#&gt;    Apnea.1    Apnea.2 Depression    Fatigue </span></span>
+<span><span class="co">#&gt;  27.052032  20.051124  11.322644   7.341085</span></span>
+<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_vec</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $rmse_mean</span></span>
+<span><span class="co">#&gt; [1] 0.03875487</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $rmse_sd</span></span>
+<span><span class="co">#&gt; [1] 0.04150452</span></span></code></pre></div>
+<p>If SPRITE finds no distribution for an integer variable, the reason
+is stored per variable in <code>error_msgs</code> (<code>NULL</code>
+when SPRITE succeeded):</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_vec</span><span class="op">$</span><span class="va">error_msgs</span></span>
+<span><span class="co">#&gt; [[1]]</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[2]]</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[3]]</span></span>
+<span><span class="co">#&gt; NULL</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; [[4]]</span></span>
+<span><span class="co">#&gt; NULL</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="diagnostics">1.5 Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+</h3>
+<p><code><a href="../reference/plot_convergence.html">plot_convergence()</a></code> shows the best objective value across
+iterations. For a <code>stats2data_vec</code> result, <code>run</code>
+selects the variable; <code>Apnea.2</code> is the second variable.
+<code>log_y = TRUE</code> uses a logarithmic y axis, and the shaded band
+marks the region below <code>thresh</code>.</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_convergence.html">plot_convergence</a></span><span class="op">(</span><span class="va">result_vec</span>, run <span class="op">=</span> <span class="fl">2</span>, log_y <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/vec-convergence-1.png" alt="Objective trajectory of the Apnea.2 variable." style="display: block; margin: auto auto auto 0;"></p>
+<p>The trajectory has 112 iterations. Integer variables are drawn by
+SPRITE without annealing, so their trajectory consists of a single
+value.</p>
+<p><code><a href="../reference/plot_cooling.html">plot_cooling()</a></code> shows the temperature schedule implied by
+<code>init_temp</code>, <code>cooling_rate</code>, and
+<code>max_iter</code>:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cooling.html">plot_cooling</a></span><span class="op">(</span><span class="va">result_vec</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/vec-cooling-1.png" alt="Cooling schedule of the descriptives optimization." style="display: block; margin: auto auto auto 0;"></p>
+</div>
+<div class="section level3">
+<h3 id="target-vs--simulated-statistics">1.6 Target vs. simulated statistics<a class="anchor" aria-label="anchor" href="#target-vs--simulated-statistics"></a>
+</h3>
+<p><code><a href="../reference/plot_fit.html">plot_fit()</a></code> plots the difference between simulated and
+target statistics. With <code>standardised = FALSE</code>, the
+differences are on the original scale; the shaded band marks
+<code>+/- thresh</code>. <code>order = "fit"</code> sorts the statistics
+by absolute difference.</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_fit.html">plot_fit</a></span><span class="op">(</span><span class="va">result_vec</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span>, order <span class="op">=</span> <span class="st">"fit"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/vec-fit-1.png" alt="Simulated minus target means and SDs." style="display: block; margin: auto auto auto 0;"></p>
+<p>The same plots are available through <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>, with
+<code>which</code> selecting the panel:</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_vec</span><span class="op">)</span>                    <span class="co"># plot_convergence()</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_vec</span>, which <span class="op">=</span> <span class="st">"cooling"</span><span class="op">)</span> <span class="co"># plot_cooling()</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_vec</span>, which <span class="op">=</span> <span class="st">"fit"</span><span class="op">)</span>     <span class="co"># plot_fit()</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="simulated-data">1.7 Simulated data<a class="anchor" aria-label="anchor" href="#simulated-data"></a>
+</h3>
+<p>The simulated data are stored in <code>result_vec$data</code>, one
+column per variable:</p>
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data_vec</span> <span class="op">&lt;-</span> <span class="va">result_vec</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data_vec</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    Apnea.1    Apnea.2 Depression Fatigue</span></span>
+<span><span class="co">#&gt; 1 75.77349 18.2021350          8      14</span></span>
+<span><span class="co">#&gt; 2 62.38032 11.3144337         19      20</span></span>
+<span><span class="co">#&gt; 3 18.60938  2.7516503         15       7</span></span>
+<span><span class="co">#&gt; 4 53.29988 26.4374525         16       9</span></span>
+<span><span class="co">#&gt; 5 56.48064 40.9638859          5      21</span></span>
+<span><span class="co">#&gt; 6 24.81849  0.1944602         25       6</span></span>
+<span></span>
+<span><span class="va">data_long</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  variable <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data_vec</span><span class="op">)</span>, each <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">data_vec</span><span class="op">)</span><span class="op">)</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">data_vec</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  value    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="va">data_vec</span>, use.names <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data_long</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html" class="external-link">geom_histogram</a></span><span class="op">(</span>bins <span class="op">=</span> <span class="fl">15</span>, fill <span class="op">=</span> <span class="st">"grey60"</span>, colour <span class="op">=</span> <span class="st">"grey20"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">variable</span>, scales <span class="op">=</span> <span class="st">"free"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Count"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/vec-data-1.png" alt="Distributions of the four simulated variables." style="display: block; margin: auto auto auto 0;"></p>
+</div>
+</div>
+<div class="section level2">
+<h2 id="mlr-module-bardwell-et-al--2007">2. MLR module: Bardwell et al. (2007)<a class="anchor" aria-label="anchor" href="#mlr-module-bardwell-et-al--2007"></a>
+</h2>
+<p>Bardwell et al. (2007) also report a multiple linear regression of
+<code>Fatigue</code> on the two apnea indices and
+<code>Depression</code>, with coefficients, standard errors, and the
+correlations of each predictor with <code>Fatigue</code>.
+<code><a href="../reference/optim_mlr.html">optim_mlr()</a></code> simulates data that reproduce these targets
+together with the marginal statistics from Section 1.</p>
+<div class="section level3">
+<h3 id="encoding-the-targets-1">2.1 Encoding the targets<a class="anchor" aria-label="anchor" href="#encoding-the-targets-1"></a>
+</h3>
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">reg_equation</span> <span class="op">&lt;-</span> <span class="st">"Fatigue ~ Apnea.1 + Apnea.2 + Depression"</span></span>
+<span><span class="va">target_reg</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span> <span class="op">=</span> <span class="fl">4.020</span>, Apnea.1 <span class="op">=</span> <span class="fl">0.023</span>, Apnea.2 <span class="op">=</span> <span class="fl">0.008</span>, Depression <span class="op">=</span> <span class="fl">0.438</span><span class="op">)</span></span>
+<span><span class="va">target_se</span>    <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">0.034</span>, <span class="fl">0.048</span>, <span class="fl">0.066</span><span class="op">)</span></span>
+<span><span class="va">target_cor</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="fl">0.11</span>, <span class="fl">0.20</span>, <span class="fl">0.68</span><span class="op">)</span></span></code></pre></div>
+<p><code>target_reg</code> and <code>target_se</code> follow the terms
+of <code>reg_equation</code>, intercept first. <code>target_cor</code>
+holds the upper triangle of the correlation matrix of all variables in
+<code>target_mean</code>, filled column by column in the order of
+<code>target_mean</code>: <code>Apnea.1-Apnea.2</code>,
+<code>Apnea.1-Depression</code>, <code>Apnea.2-Depression</code>,
+<code>Apnea.1-Fatigue</code>, <code>Apnea.2-Fatigue</code>,
+<code>Depression-Fatigue</code>. <code>NA</code> marks statistics that
+were not reported; they are excluded from the objective.</p>
+</div>
+<div class="section level3">
+<h3 id="running-the-optimizer-1">2.2 Running the optimizer<a class="anchor" aria-label="anchor" href="#running-the-optimizer-1"></a>
+</h3>
+<p><code><a href="../reference/optim_mlr.html">optim_mlr()</a></code> first calls <code><a href="../reference/optim_vec.html">optim_vec()</a></code> to
+simulate the marginals and then reorders the values of the predictors
+with simulated annealing, followed by hill climbing
+(<code>hill_climbs</code>). The objective is
+<code>weight * correlation error + (1 - weight) * regression error</code>,
+where the regression error includes the standard errors when
+<code>target_se</code> is given.</p>
+<p>The call uses <code>thresh = 0.001</code>,
+<code>sprite_prec = c(1, 1)</code> as in Section 1, and the defaults
+otherwise (<code>weight = 0.5</code>, <code>max_iter = 1e5</code>,
+<code>max_starts = 3</code>, <code>hill_climbs = 1e4</code>;
+<code>init_temp = NULL</code> is calibrated from the objective changes
+of random swaps, <code>cooling_rate = NULL</code> is
+<code>(max_iter - 10) / max_iter</code>).</p>
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
+<span><span class="va">result_mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_mlr.html">optim_mlr</a></span><span class="op">(</span></span>
+<span>  N            <span class="op">=</span> <span class="va">N</span>,</span>
+<span>  target_mean  <span class="op">=</span> <span class="va">target_mean</span>,</span>
+<span>  target_sd    <span class="op">=</span> <span class="va">target_sd</span>,</span>
+<span>  range        <span class="op">=</span> <span class="va">range</span>,</span>
+<span>  integer      <span class="op">=</span> <span class="va">integer</span>,</span>
+<span>  sprite_prec  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  reg_equation <span class="op">=</span> <span class="va">reg_equation</span>,</span>
+<span>  target_cor   <span class="op">=</span> <span class="va">target_cor</span>,</span>
+<span>  target_reg   <span class="op">=</span> <span class="va">target_reg</span>,</span>
+<span>  target_se    <span class="op">=</span> <span class="va">target_se</span>,</span>
+<span>  thresh       <span class="op">=</span> <span class="fl">0.001</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="inspecting-the-result-1">2.3 Inspecting the result<a class="anchor" aria-label="anchor" href="#inspecting-the-result-1"></a>
+</h3>
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_mlr</span></span>
+<span><span class="co">#&gt; stats2data MLR result</span></span>
+<span><span class="co">#&gt;   N:          60 </span></span>
+<span><span class="co">#&gt;   Equation:   Fatigue ~ Apnea.1 + Apnea.2 + Depression </span></span>
+<span><span class="co">#&gt;   Best objective: 0.00225996</span></span></code></pre></div>
+<p>The best objective value is 0.00226, which is not below
+<code>thresh = 0.001</code>.</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; stats2data MLR Summary</span></span>
+<span><span class="co">#&gt; -----------------------------------------------</span></span>
+<span><span class="co">#&gt; N: 60  | Model: Fatigue ~ Apnea.1 + Apnea.2 + Depression </span></span>
+<span><span class="co">#&gt; Best objective: 0.00225996 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; RMSE</span></span>
+<span><span class="co">#&gt;   Correlations:             0.00002284 </span></span>
+<span><span class="co">#&gt;   Regression Coefficients:  0.0003972 </span></span>
+<span><span class="co">#&gt;   Standard Errors:          0.006854 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Descriptives (Target vs. Simulated):</span></span>
+<span><span class="co">#&gt;    variable target_mean sim_mean target_sd sim_sd</span></span>
+<span><span class="co">#&gt;     Apnea.1        48.8    48.80      27.1 27.099</span></span>
+<span><span class="co">#&gt;     Apnea.2        17.3    17.30      20.1 20.099</span></span>
+<span><span class="co">#&gt;  Depression        12.6    12.60      11.3 11.283</span></span>
+<span><span class="co">#&gt;     Fatigue        10.8    10.82       7.3  7.347</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Coefficients (Target vs. Simulated):</span></span>
+<span><span class="co">#&gt;         term target_reg  sim_reg target_se  sim_se</span></span>
+<span><span class="co">#&gt;  (Intercept)      4.020 4.020297        NA 1.65638</span></span>
+<span><span class="co">#&gt;      Apnea.1      0.023 0.023138     0.034 0.02754</span></span>
+<span><span class="co">#&gt;      Apnea.2      0.008 0.008704     0.048 0.03809</span></span>
+<span><span class="co">#&gt;   Depression      0.438 0.437831     0.066 0.06500</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Correlations (Target vs. Simulated):</span></span>
+<span><span class="co">#&gt;                pair target_cor sim_cor</span></span>
+<span><span class="co">#&gt;     Apnea.1-Apnea.2         NA 0.28831</span></span>
+<span><span class="co">#&gt;  Apnea.1-Depression         NA 0.02649</span></span>
+<span><span class="co">#&gt;  Apnea.2-Depression         NA 0.22546</span></span>
+<span><span class="co">#&gt;     Apnea.1-Fatigue       0.11 0.11001</span></span>
+<span><span class="co">#&gt;     Apnea.2-Fatigue       0.20 0.20000</span></span>
+<span><span class="co">#&gt;  Depression-Fatigue       0.68 0.67996</span></span></code></pre></div>
+<p><code><a href="../reference/get_stats.html">get_stats()</a></code> returns the fitted <code>lm</code> object,
+the coefficients, standard errors, correlations (upper triangle in the
+order predictors, outcome), means, and SDs of the simulated data.
+<code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> refits the regression and returns the
+coefficients:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">stats_mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">stats_mlr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "model" "reg"   "se"    "cor"   "mean"  "sd"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">stats_mlr</span><span class="op">$</span><span class="va">model</span><span class="op">)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Call:</span></span>
+<span><span class="co">#&gt; stats::lm(formula = frm, data = d)</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Residuals:</span></span>
+<span><span class="co">#&gt;      Min       1Q   Median       3Q      Max </span></span>
+<span><span class="co">#&gt; -13.1641  -3.0217  -0.8974   4.5710  11.1889 </span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Coefficients:</span></span>
+<span><span class="co">#&gt;             Estimate Std. Error t value      Pr(&gt;|t|)    </span></span>
+<span><span class="co">#&gt; (Intercept) 4.020297   1.656380   2.427        0.0185 *  </span></span>
+<span><span class="co">#&gt; Apnea.1     0.023138   0.027536   0.840        0.4043    </span></span>
+<span><span class="co">#&gt; Apnea.2     0.008704   0.038093   0.228        0.8201    </span></span>
+<span><span class="co">#&gt; Depression  0.437831   0.065002   6.736 0.00000000945 ***</span></span>
+<span><span class="co">#&gt; ---</span></span>
+<span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; Residual standard error: 5.484 on 56 degrees of freedom</span></span>
+<span><span class="co">#&gt; Multiple R-squared:  0.4713, Adjusted R-squared:  0.443 </span></span>
+<span><span class="co">#&gt; F-statistic: 16.64 on 3 and 56 DF,  p-value: 0.0000000752</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; (Intercept)     Apnea.1     Apnea.2  Depression </span></span>
+<span><span class="co">#&gt; 4.020297185 0.023137936 0.008703818 0.437831483</span></span>
+<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $rmse_cor</span></span>
+<span><span class="co">#&gt; [1] 0.00002283587</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $rmse_reg</span></span>
+<span><span class="co">#&gt; [1] 0.00039721</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $rmse_se</span></span>
+<span><span class="co">#&gt; [1] 0.006854068</span></span></code></pre></div>
+<p>The marginal result of the internal <code><a href="../reference/optim_vec.html">optim_vec()</a></code> call is
+stored in <code>result_mlr$optim_vec</code> and supports the methods of
+Section 1:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">$</span><span class="va">optim_vec</span><span class="op">)</span></span>
+<span><span class="co">#&gt; $rmse_mean</span></span>
+<span><span class="co">#&gt; [1] 0.008362809</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $rmse_sd</span></span>
+<span><span class="co">#&gt; [1] 0.02522139</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="diagnostics-1">2.4 Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics-1"></a>
+</h3>
+<p><code><a href="../reference/plot_convergence.html">plot_convergence()</a></code> shows the best objective value across
+the annealing iterations; <code>first_iter</code> skips leading
+iterations, here the first 10%:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">n_iter_mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">$</span><span class="va">track_objective</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/plot_convergence.html">plot_convergence</a></span><span class="op">(</span><span class="va">result_mlr</span>, log_y <span class="op">=</span> <span class="cn">TRUE</span>, first_iter <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="va">n_iter_mlr</span> <span class="op">/</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/mlr-convergence-1.png" alt="Objective trajectory of the MLR optimization." style="display: block; margin: auto auto auto 0;"></p>
+<p>With <code>ratio = TRUE</code>, the plot shows the ratio of the
+correlation error to the regression error of the best candidate, with
+lines at its mean, median, and final value (<code>show_mean</code>,
+<code>show_median</code>, <code>show_final</code>). A ratio above 1
+means that the correlation component is the larger of the two.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_convergence.html">plot_convergence</a></span><span class="op">(</span><span class="va">result_mlr</span>, ratio <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/mlr-ratio-1.png" alt="Ratio of correlation to regression error across iterations." style="display: block; margin: auto auto auto 0;"></p>
+<p>The final ratio is 0.00509.</p>
+<p><code><a href="../reference/plot_cooling.html">plot_cooling()</a></code> uses the stored <code>init_temp</code>
+and <code>cooling_rate</code>, i.e. the values calibrated during the
+run:</p>
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_mlr</span><span class="op">$</span><span class="va">inputs</span><span class="op">$</span><span class="va">init_temp</span></span>
+<span><span class="co">#&gt; [1] 0.03931238</span></span>
+<span><span class="fu"><a href="../reference/plot_cooling.html">plot_cooling</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/mlr-cooling-1.png" alt="Cooling schedule of the MLR optimization." style="display: block; margin: auto auto auto 0;"></p>
+</div>
+<div class="section level3">
+<h3 id="balancing-the-objective-with-weight">2.5 Balancing the objective with <code>weight</code><a class="anchor" aria-label="anchor" href="#balancing-the-objective-with-weight"></a>
+</h3>
+<p><code>weight</code> sets how much the correlation and the regression
+components contribute to the objective. Objective values obtained with
+different weights are on different scales and are not compared directly;
+the unweighted RMSEs of <code><a href="../reference/get_rmse.html">get_rmse()</a></code> are. The optimization is
+repeated with <code>weight = 0.1</code>:</p>
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
+<span><span class="va">result_mlr_w01</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_mlr.html">optim_mlr</a></span><span class="op">(</span></span>
+<span>  N            <span class="op">=</span> <span class="va">N</span>,</span>
+<span>  target_mean  <span class="op">=</span> <span class="va">target_mean</span>,</span>
+<span>  target_sd    <span class="op">=</span> <span class="va">target_sd</span>,</span>
+<span>  range        <span class="op">=</span> <span class="va">range</span>,</span>
+<span>  integer      <span class="op">=</span> <span class="va">integer</span>,</span>
+<span>  sprite_prec  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  reg_equation <span class="op">=</span> <span class="va">reg_equation</span>,</span>
+<span>  target_cor   <span class="op">=</span> <span class="va">target_cor</span>,</span>
+<span>  target_reg   <span class="op">=</span> <span class="va">target_reg</span>,</span>
+<span>  target_se    <span class="op">=</span> <span class="va">target_se</span>,</span>
+<span>  thresh       <span class="op">=</span> <span class="fl">0.001</span>,</span>
+<span>  weight       <span class="op">=</span> <span class="fl">0.1</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/cbind.html" class="external-link">rbind</a></span><span class="op">(</span></span>
+<span>  <span class="st">"weight = 0.5"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_mlr</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  <span class="st">"weight = 0.1"</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_mlr_w01</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="co">#&gt;                   rmse_cor     rmse_reg      rmse_se</span></span>
+<span><span class="co">#&gt; weight = 0.5 0.00002283587 0.0003972100 0.0068540684</span></span>
+<span><span class="co">#&gt; weight = 0.1 0.00194172165 0.0006876133 0.0009375174</span></span></code></pre></div>
+<p>The table shows how the RMSEs of the correlations, coefficients, and
+standard errors change with <code>weight</code> in this example. Which
+balance is preferable depends on which targets matter most for the
+intended use of the data. The remainder of this section continues with
+the <code>weight = 0.5</code> result.</p>
+</div>
+<div class="section level3">
+<h3 id="target-vs--simulated-statistics-1">2.6 Target vs. simulated statistics<a class="anchor" aria-label="anchor" href="#target-vs--simulated-statistics-1"></a>
+</h3>
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_fit.html">plot_fit</a></span><span class="op">(</span><span class="va">result_mlr</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/mlr-fit-1.png" alt="Simulated minus target coefficients, standard errors, and correlations." style="display: block; margin: auto auto auto 0;"></p>
+<p>With the default <code>standardised = TRUE</code>, the differences
+are divided by the target values (for targets of zero, the
+unstandardised difference is shown). The <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method
+offers the same panels, including <code>which = "ratio"</code>:</p>
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_mlr</span>, which <span class="op">=</span> <span class="st">"fit"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_mlr</span>, which <span class="op">=</span> <span class="st">"ratio"</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="simulated-data-1">2.7 Simulated data<a class="anchor" aria-label="anchor" href="#simulated-data-1"></a>
+</h3>
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">data_mlr</span> <span class="op">&lt;-</span> <span class="va">result_mlr</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data_mlr</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     Apnea.1   Apnea.2 Depression Fatigue</span></span>
+<span><span class="co">#&gt; 1  64.13553 17.754307         11      18</span></span>
+<span><span class="co">#&gt; 2  17.86473 15.232345         15      14</span></span>
+<span><span class="co">#&gt; 3 110.29750 17.351951          0      15</span></span>
+<span><span class="co">#&gt; 4  29.09759 32.718223         16      11</span></span>
+<span><span class="co">#&gt; 5  47.35261 14.904594         11       7</span></span>
+<span><span class="co">#&gt; 6  28.03631  1.847764          9       6</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/cor.html" class="external-link">cor</a></span><span class="op">(</span><span class="va">data_mlr</span><span class="op">)</span>, <span class="fl">2</span><span class="op">)</span></span>
+<span><span class="co">#&gt;            Apnea.1 Apnea.2 Depression Fatigue</span></span>
+<span><span class="co">#&gt; Apnea.1       1.00    0.29       0.03    0.11</span></span>
+<span><span class="co">#&gt; Apnea.2       0.29    1.00       0.23    0.20</span></span>
+<span><span class="co">#&gt; Depression    0.03    0.23       1.00    0.68</span></span>
+<span><span class="co">#&gt; Fatigue       0.11    0.20       0.68    1.00</span></span></code></pre></div>
+</div>
+</div>
+<div class="section level2">
+<h2 id="anova-module-reynolds-and-besner-2008">3. ANOVA module: Reynolds and Besner (2008)<a class="anchor" aria-label="anchor" href="#anova-module-reynolds-and-besner-2008"></a>
+</h2>
+<p>This section follows the empirical example of the accompanying
+manuscript. Reynolds and Besner (2008, Experiment 5) examined how
+contextual predictability affects response times in word and nonword
+naming; the study was among those replicated by the Open Science
+Collaboration (2015). To our knowledge, the raw data are not publicly
+available.</p>
+<div class="section level3">
+<h3 id="reported-summary-statistics">3.1 Reported summary statistics<a class="anchor" aria-label="anchor" href="#reported-summary-statistics"></a>
+</h3>
+<p>The study reports a 2 x 2 within-subjects design
+(<code>S = 16</code>) with four cell means, indexed by stimulus type
+(<code>Factor1</code>) and switch condition (<code>Factor2</code>): 543,
+536, 614, and 618 ms. It reports <code>MSE = 3070</code> for the
+<code>Factor1</code> effect, <code>F(1, 15) = 30.5</code> (partial eta
+squared .670) for <code>Factor1</code>, and <code>F &lt; 1</code> for
+<code>Factor2</code> (.002) and the interaction (.015).</p>
+<p>The code of this section is the code of the empirical example in the
+manuscript, so it reproduces the results reported there.</p>
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">S</span>   <span class="op">&lt;-</span> <span class="fl">16</span></span>
+<span><span class="va">mse</span> <span class="op">&lt;-</span> <span class="fl">3070</span></span>
+<span><span class="va">target_group_means</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">543</span>, <span class="fl">536</span>, <span class="fl">614</span>, <span class="fl">618</span><span class="op">)</span></span>
+<span><span class="va">eta2</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.002</span>, <span class="fl">0.015</span><span class="op">)</span>  <span class="co"># Factor2, Factor1:Factor2</span></span>
+<span><span class="va">df_err</span> <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">-</span> <span class="fl">1</span></span></code></pre></div>
+<p>The numerator mean squares implied by the cell means of the balanced
+2 x 2 within-subjects design are:</p>
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m_cell</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span><span class="va">target_group_means</span>, nrow <span class="op">=</span> <span class="fl">2</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>  <span class="co"># rows: Factor1, cols: Factor2</span></span>
+<span><span class="va">m_grand</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/mean.html" class="external-link">mean</a></span><span class="op">(</span><span class="va">m_cell</span><span class="op">)</span></span>
+<span><span class="va">ms_f1</span>   <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">*</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">m_cell</span><span class="op">)</span> <span class="op">-</span> <span class="va">m_grand</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">ms_f2</span>   <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">*</span> <span class="fl">2</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">m_cell</span><span class="op">)</span> <span class="op">-</span> <span class="va">m_grand</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="va">ms_int</span>  <span class="op">&lt;-</span> <span class="va">S</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="op">(</span><span class="va">m_cell</span> <span class="op">-</span> <span class="fu"><a href="https://rdrr.io/r/base/outer.html" class="external-link">outer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">rowMeans</a></span><span class="op">(</span><span class="va">m_cell</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/colSums.html" class="external-link">colMeans</a></span><span class="op">(</span><span class="va">m_cell</span><span class="op">)</span>, <span class="st">"+"</span><span class="op">)</span> <span class="op">+</span> <span class="va">m_grand</span><span class="op">)</span><span class="op">^</span><span class="fl">2</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>ms_f1 <span class="op">=</span> <span class="va">ms_f1</span>, ms_f2 <span class="op">=</span> <span class="va">ms_f2</span>, ms_int <span class="op">=</span> <span class="va">ms_int</span><span class="op">)</span></span>
+<span><span class="co">#&gt;  ms_f1  ms_f2 ms_int </span></span>
+<span><span class="co">#&gt;  93636     36    484</span></span></code></pre></div>
+<p>The reported <code>Factor1</code> statistics are consistent with each
+other: the implied mean square divided by the reported <code>MSE</code>
+gives <code>F = 30.5</code>, and <code>F / (F + df_error)</code> gives
+the reported partial eta squared of .670.</p>
+<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">ms_f1</span> <span class="op">/</span> <span class="va">mse</span>, <span class="fl">1</span><span class="op">)</span> <span class="op">==</span> <span class="fl">30.5</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/stopifnot.html" class="external-link">stopifnot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fl">30.5</span> <span class="op">/</span> <span class="op">(</span><span class="fl">30.5</span> <span class="op">+</span> <span class="va">df_err</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span> <span class="op">==</span> <span class="fl">0.670</span><span class="op">)</span></span></code></pre></div>
+<p>For the two effects reported as <code>F &lt; 1</code>, the
+F-statistics are set from the reported partial eta squared via
+<code>F = eta^2 * df_error / (1 - eta^2)</code> (one numerator degree of
+freedom). The modules require bounds for the outcome, which the study
+does not report; the range of the reported cell means is extended by
+four times <code>sqrt(MSE)</code>, the residual SD implied by the MSE,
+and rounded outward. The summary statistics are encoded in one list of
+<code><a href="../reference/optim_aov.html">optim_aov()</a></code> arguments:</p>
+<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">F_value_derived</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">ms_f1</span> <span class="op">/</span> <span class="va">mse</span>, <span class="fl">1</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">eta2</span> <span class="op">*</span> <span class="va">df_err</span> <span class="op">/</span> <span class="op">(</span><span class="fl">1</span> <span class="op">-</span> <span class="va">eta2</span><span class="op">)</span>, <span class="fl">3</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">sumstats</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>  S                  <span class="op">=</span> <span class="va">S</span>,</span>
+<span>  levels             <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span>,</span>
+<span>  factor_type        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"within"</span>, <span class="st">"within"</span><span class="op">)</span>,</span>
+<span>  formula            <span class="op">=</span> <span class="st">"outcome ~ Factor1 * Factor2 + Error(ID / (Factor1 * Factor2))"</span>,</span>
+<span>  integer            <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  target_f_list      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    effect  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Factor1"</span>, <span class="st">"Factor2"</span>, <span class="st">"Factor1:Factor2"</span><span class="op">)</span>,</span>
+<span>    F_value <span class="op">=</span> <span class="va">F_value_derived</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  target_group_means <span class="op">=</span> <span class="va">target_group_means</span>,</span>
+<span>  range              <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">floor</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">min</a></span><span class="op">(</span><span class="va">target_group_means</span><span class="op">)</span> <span class="op">-</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">mse</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>                         <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">ceiling</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="va">target_group_means</span><span class="op">)</span> <span class="op">+</span> <span class="fl">4</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/MathFun.html" class="external-link">sqrt</a></span><span class="op">(</span><span class="va">mse</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">sumstats</span><span class="op">$</span><span class="va">target_f_list</span><span class="op">$</span><span class="va">F_value</span></span>
+<span><span class="co">#&gt; [1] 30.500  0.030  0.228</span></span>
+<span><span class="va">sumstats</span><span class="op">$</span><span class="va">range</span></span>
+<span><span class="co">#&gt; [1] 314 840</span></span></code></pre></div>
+<p><code>target_group_means</code> lists the cells with
+<code>Factor1</code> varying slowest (11, 12, 21, 22).</p>
+</div>
+<div class="section level3">
+<h3 id="simulating-a-dataset">3.2 Simulating a dataset<a class="anchor" aria-label="anchor" href="#simulating-a-dataset"></a>
+</h3>
+<p><code><a href="../reference/optim_aov.html">optim_aov()</a></code> is called with its default hyperparameters
+(<code>max_iter = 3e4</code>, <code>thresh = 0.005</code>,
+<code>max_starts = 3</code>, <code>init_temp = 1e-3</code>,
+<code>cooling_rate = NULL</code>,
+i.e. <code>(max_iter - 10) / max_iter</code>). The objective is the RMSE
+between the simulated and target F-statistics.</p>
+<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Random.html" class="external-link">set.seed</a></span><span class="op">(</span><span class="fl">2026</span><span class="op">)</span></span>
+<span><span class="va">result_aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">optim_aov</span>, <span class="va">sumstats</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="inspecting-the-output">3.3 Inspecting the output<a class="anchor" aria-label="anchor" href="#inspecting-the-output"></a>
+</h3>
+<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_aov</span></span>
 <span><span class="co">#&gt; stats2data ANOVA result</span></span>
 <span><span class="co">#&gt;   Design:    2 x 2 (within, within)</span></span>
 <span><span class="co">#&gt;   Subjects:   16 </span></span>
 <span><span class="co">#&gt;   Effects:    Factor1, Factor2, Factor1:Factor2 </span></span>
-<span><span class="co">#&gt;   Best error: 0.339412</span></span></code></pre></div>
-<p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> prints the target-vs-simulated F-values, the
-target-vs-simulated cell means, and the corresponding RMSEs.</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.aov</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Best objective: 0.00346117</span></span></code></pre></div>
+<p>The best objective value is 0.00346, which is below
+<code>thresh = 0.005</code>. The best objective value first fell below
+<code>thresh</code> at iteration 8493:</p>
+<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/which.html" class="external-link">which</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">$</span><span class="va">track_objective</span> <span class="op">&lt;</span> <span class="va">result_aov</span><span class="op">$</span><span class="va">inputs</span><span class="op">$</span><span class="va">thresh</span><span class="op">)</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span></span>
+<span><span class="co">#&gt; [1] 8493</span></span></code></pre></div>
+<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt; stats2data ANOVA Summary</span></span>
 <span><span class="co">#&gt; -----------------------------------------------</span></span>
 <span><span class="co">#&gt; Design:     2 x 2 (within, within)</span></span>
 <span><span class="co">#&gt; Subjects:   16 </span></span>
-<span><span class="co">#&gt; Best error: 0.339412 </span></span>
+<span><span class="co">#&gt; Best objective: 0.00346117 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; RMSE</span></span>
-<span><span class="co">#&gt;   F-statistics: 0.3394 </span></span>
-<span><span class="co">#&gt;   Group means:  9.095e-13 </span></span>
+<span><span class="co">#&gt;   F-statistics: 0.003461 </span></span>
+<span><span class="co">#&gt;   Group means:  0.0000000000009747 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; -----------------------------------------------</span></span>
 <span><span class="co">#&gt; F-values (Target vs. Simulated):</span></span>
-<span><span class="co">#&gt;           effect target_F     sim_F</span></span>
-<span><span class="co">#&gt;          Factor1     30.5 30.498653</span></span>
-<span><span class="co">#&gt;          Factor2      0.4  0.001407</span></span>
-<span><span class="co">#&gt;  Factor1:Factor2      0.5  0.067885</span></span>
+<span><span class="co">#&gt;           effect target_F    sim_F</span></span>
+<span><span class="co">#&gt;          Factor1   30.500 30.49911</span></span>
+<span><span class="co">#&gt;          Factor2    0.030  0.02408</span></span>
+<span><span class="co">#&gt;  Factor1:Factor2    0.228  0.22774</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; -----------------------------------------------</span></span>
 <span><span class="co">#&gt; Group Means (Target vs. Simulated):</span></span>
@@ -219,875 +769,333 @@ target-vs-simulated cell means, and the corresponding RMSEs.</p>
 <span><span class="co">#&gt;  F1=1, F2=2         536      536</span></span>
 <span><span class="co">#&gt;  F1=2, F2=1         614      614</span></span>
 <span><span class="co">#&gt;  F1=2, F2=2         618      618</span></span></code></pre></div>
-<p><code><a href="../reference/get_stats.html">get_stats()</a></code> returns the underlying numeric components:
-the fitted <code>afex</code> ANOVA table, the F-vector, and the
-simulated cell means.</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">stats.aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result.aov</span><span class="op">)</span></span>
-<span><span class="va">stats.aov</span></span>
+<p>The simulated F-statistics are 30.499, 0.024, 0.228 for
+<code>Factor1</code>, <code>Factor2</code>, and
+<code>Factor1:Factor2</code> (targets 30.5, 0.030, 0.228); the
+F-statistic RMSE is 0.003 and the cell-mean RMSE 0.000000000000975.</p>
+<p>Before the annealing, <code><a href="../reference/optim_aov.html">optim_aov()</a></code> may shift the target
+cell means by less than <code>thresh</code> so that the means and
+F-statistics can be matched jointly. The values used are stored in
+<code>adjusted_targets</code>:</p>
+<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_aov</span><span class="op">$</span><span class="va">adjusted_targets</span></span>
+<span><span class="co">#&gt; $group_means</span></span>
+<span><span class="co">#&gt; [1] 543 536 614 618</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $F_values</span></span>
+<span><span class="co">#&gt; [1] 30.500  0.030  0.228</span></span></code></pre></div>
+<p><code><a href="../reference/get_stats.html">get_stats()</a></code> returns the ANOVA table of the simulated
+data (fitted with <code>afex</code>), the F-statistics, and the cell
+means; <code><a href="../reference/get_rmse.html">get_rmse()</a></code> returns the two RMSEs:</p>
+<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $model</span></span>
 <span><span class="co">#&gt; Anova Table (Type 3 tests)</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Response: outcome</span></span>
-<span><span class="co">#&gt;                 num Df den Df     MSE       F      ges    Pr(&gt;F)    </span></span>
-<span><span class="co">#&gt; Factor1              1     15  3070.2 30.4987 0.099557 5.853e-05 ***</span></span>
-<span><span class="co">#&gt; Factor2              1     15 25591.5  0.0014 0.000043    0.9706    </span></span>
-<span><span class="co">#&gt; Factor1:Factor2      1     15  7129.7  0.0679 0.000571    0.7980    </span></span>
+<span><span class="co">#&gt;                 num Df den Df    MSE       F     ges     Pr(&gt;F)    </span></span>
+<span><span class="co">#&gt; Factor1              1     15 3070.1 30.4991 0.43050 0.00005852 ***</span></span>
+<span><span class="co">#&gt; Factor2              1     15 1495.2  0.0241 0.00029     0.8788    </span></span>
+<span><span class="co">#&gt; Factor1:Factor2      1     15 2125.2  0.2277 0.00389     0.6401    </span></span>
 <span><span class="co">#&gt; ---</span></span>
 <span><span class="co">#&gt; Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $F_value</span></span>
-<span><span class="co">#&gt; [1] 30.498652713  0.001406717  0.067884806</span></span>
+<span><span class="co">#&gt; [1] 30.49911423  0.02407665  0.22773815</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean</span></span>
 <span><span class="co">#&gt; 1_1 1_2 2_1 2_2 </span></span>
-<span><span class="co">#&gt; 543 536 614 618</span></span></code></pre></div>
-<p><code><a href="../reference/get_rmse.html">get_rmse()</a></code> returns the F-statistic and group-mean RMSEs
-as a list.</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.aov</span><span class="op">)</span></span>
+<span><span class="co">#&gt; 543 536 614 618</span></span>
+<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $rmse_F</span></span>
-<span><span class="co">#&gt; [1] 0.3394122</span></span>
+<span><span class="co">#&gt; [1] 0.003461175</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $rmse_mean</span></span>
-<span><span class="co">#&gt; [1] 9.094947e-13</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 0.0000000000009746616</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="diagnostics">1.4 Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics"></a>
+<h3 id="diagnostic-plots">3.4 Diagnostic plots<a class="anchor" aria-label="anchor" href="#diagnostic-plots"></a>
 </h3>
-<p><code><a href="../reference/plot_error.html">plot_error()</a></code> shows the simulated-annealing best-error
-trajectory.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_error.html">plot_error</a></span><span class="op">(</span><span class="va">result.aov</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-error-1.png" class="r-plt" alt="Error trajectory for the ANOVA optimization." width="600" style="display: block; margin: auto auto auto 0;"></p>
-<p><code><a href="../reference/plot_cooling.html">plot_cooling()</a></code> reconstructs the temperature schedule
-from the stored <code>inputs</code>.</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cooling.html">plot_cooling</a></span><span class="op">(</span><span class="va">result.aov</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-cooling-1.png" class="r-plt" alt="Cooling schedule for the ANOVA optimization." width="600" style="display: block; margin: auto auto auto 0;"></p>
+<p>The two panels of the manuscript figure are obtained with
+(<code>first_iter = 1</code> skips the first iteration):</p>
+<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_convergence.html">plot_convergence</a></span><span class="op">(</span><span class="va">result_aov</span>, first_iter <span class="op">=</span> <span class="fl">1</span>, log_y <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/aov-convergence-1.png" alt="Objective trajectory of the ANOVA optimization on a log scale." style="display: block; margin: auto auto auto 0;"></p>
+<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_fit.html">plot_fit</a></span><span class="op">(</span><span class="va">result_aov</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/aov-fit-1.png" alt="Simulated minus target F-statistics." style="display: block; margin: auto auto auto 0;"></p>
+<p><code>show_best = FALSE</code> removes the marker of the best value
+and <code>thresh = NULL</code> the shaded band:</p>
+<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_convergence.html">plot_convergence</a></span><span class="op">(</span><span class="va">result_aov</span>, show_best <span class="op">=</span> <span class="cn">FALSE</span>, thresh <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/plot_cooling.html">plot_cooling()</a></code> shows the temperature schedule:</p>
+<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cooling.html">plot_cooling</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/aov-cooling-1.png" alt="Cooling schedule of the ANOVA optimization." style="display: block; margin: auto auto auto 0;"></p>
 </div>
 <div class="section level3">
-<h3 id="target-vs--simulated-comparison">1.5 Target vs. simulated comparison<a class="anchor" aria-label="anchor" href="#target-vs--simulated-comparison"></a>
+<h3 id="simulated-data-2">3.5 Simulated data<a class="anchor" aria-label="anchor" href="#simulated-data-2"></a>
 </h3>
-<p><code><a href="../reference/plot_summary.html">plot_summary()</a></code> builds a lollipop chart of simulated
-minus target values. With <code>standardised = FALSE</code> (used here
-because one target F is below the standardization threshold), the y-axis
-is on the original F-scale; with the default
-<code>standardised = TRUE</code>, discrepancies would be divided by the
-target value, with a fall-back to the unstandardised difference for
-near-zero targets.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_summary.html">plot_summary</a></span><span class="op">(</span><span class="va">result.aov</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-summary-plot-1.png" class="r-plt" alt="ANOVA target-vs-simulated lollipop chart." width="600" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-<div class="section level3">
-<h3 id="inspect-the-simulated-dataset">1.6 Inspect the simulated dataset<a class="anchor" aria-label="anchor" href="#inspect-the-simulated-dataset"></a>
-</h3>
-<p>The simulated dataset is stored at <code>result.aov$data</code> with
-columns <code>ID</code>, <code>Factor1</code>, <code>Factor2</code>,
-<code>outcome</code>.</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data.aov</span> <span class="op">&lt;-</span> <span class="va">result.aov</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.aov</span><span class="op">)</span></span>
+<p>The data are stored in long format, one row per subject and cell. The
+simulated observations lie within <code>range</code>; the second line
+checks whether any observation equals one of the bounds:</p>
+<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">outcome</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 469.2889 735.7955</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/any.html" class="external-link">any</a></span><span class="op">(</span><span class="va">result_aov</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">outcome</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">sumstats</span><span class="op">$</span><span class="va">range</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] FALSE</span></span>
+<span></span>
+<span><span class="va">data_aov</span> <span class="op">&lt;-</span> <span class="va">result_aov</span><span class="op">$</span><span class="va">data</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   ID Factor1 Factor2  outcome</span></span>
-<span><span class="co">#&gt; 1  1       1       1 426.2445</span></span>
-<span><span class="co">#&gt; 2  1       1       2 651.8148</span></span>
-<span><span class="co">#&gt; 3  1       2       1 614.9745</span></span>
-<span><span class="co">#&gt; 4  1       2       2 607.3280</span></span>
-<span><span class="co">#&gt; 5  2       1       1 722.4472</span></span>
-<span><span class="co">#&gt; 6  2       1       2 374.3796</span></span></code></pre></div>
-<p>The four cells and the four factor marginals are visualised as
-densities in a greyscale <code><a href="https://jtools.jacob-long.com/reference/theme_apa.html" class="external-link">theme_apa()</a></code> style.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">make_panel</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">idx</span>, <span class="va">title</span><span class="op">)</span> <span class="op">{</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>value <span class="op">=</span> <span class="va">data.aov</span><span class="op">$</span><span class="va">outcome</span><span class="op">[</span><span class="va">idx</span><span class="op">]</span><span class="op">)</span>,</span>
-<span>         <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_density.html" class="external-link">geom_density</a></span><span class="op">(</span>fill <span class="op">=</span> <span class="st">"grey25"</span>, colour <span class="op">=</span> <span class="st">"white"</span>, linewidth <span class="op">=</span> <span class="fl">0.2</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>title <span class="op">=</span> <span class="va">title</span>, x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="cn">NULL</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/lims.html" class="external-link">xlim</a></span><span class="op">(</span><span class="fl">300</span>, <span class="fl">900</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu">jtools</span><span class="fu">::</span><span class="fu"><a href="https://jtools.jacob-long.com/reference/theme_apa.html" class="external-link">theme_apa</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/theme.html" class="external-link">theme</a></span><span class="op">(</span>legend.position <span class="op">=</span> <span class="st">"none"</span><span class="op">)</span></span>
-<span><span class="op">}</span></span>
+<span><span class="co">#&gt; 1  1       1       1 526.5609</span></span>
+<span><span class="co">#&gt; 2  1       1       2 594.2713</span></span>
+<span><span class="co">#&gt; 3  1       2       1 641.5214</span></span>
+<span><span class="co">#&gt; 4  1       2       2 551.0167</span></span>
+<span><span class="co">#&gt; 5  2       1       1 535.8782</span></span>
+<span><span class="co">#&gt; 6  2       1       2 549.8449</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/stats/aggregate.html" class="external-link">aggregate</a></span><span class="op">(</span><span class="va">outcome</span> <span class="op">~</span> <span class="va">Factor1</span> <span class="op">+</span> <span class="va">Factor2</span>, data <span class="op">=</span> <span class="va">data_aov</span>, FUN <span class="op">=</span> <span class="va">mean</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Factor1 Factor2 outcome</span></span>
+<span><span class="co">#&gt; 1       1       1     543</span></span>
+<span><span class="co">#&gt; 2       2       1     614</span></span>
+<span><span class="co">#&gt; 3       1       2     536</span></span>
+<span><span class="co">#&gt; 4       2       2     618</span></span>
 <span></span>
-<span><span class="va">panels</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;</span> <span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"Factor1=1, Factor2=1"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">1</span> <span class="op">&amp;</span> <span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">2</span>, <span class="st">"Factor1=1, Factor2=2"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">2</span> <span class="op">&amp;</span> <span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"Factor1=2, Factor2=1"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">2</span> <span class="op">&amp;</span> <span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">2</span>, <span class="st">"Factor1=2, Factor2=2"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"Factor1=1 marginal"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor1</span> <span class="op">==</span> <span class="fl">2</span>, <span class="st">"Factor1=2 marginal"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">1</span>, <span class="st">"Factor2=1 marginal"</span><span class="op">)</span>,</span>
-<span>  <span class="fu">make_panel</span><span class="op">(</span><span class="va">data.aov</span><span class="op">$</span><span class="va">Factor2</span> <span class="op">==</span> <span class="fl">2</span>, <span class="st">"Factor2=2 marginal"</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu">gridExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html" class="external-link">grid.arrange</a></span><span class="op">(</span>grobs <span class="op">=</span> <span class="va">panels</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-cells-1.png" class="r-plt" alt="Densities of the simulated outcome by cell and by factor marginal." width="700" style="display: block; margin: auto auto auto 0;"></p>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">data_aov</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interaction.html" class="external-link">interaction</a></span><span class="op">(</span><span class="va">Factor1</span>, <span class="va">Factor2</span>, sep <span class="op">=</span> <span class="st">"-"</span><span class="op">)</span>, y <span class="op">=</span> <span class="va">outcome</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_jitter.html" class="external-link">geom_jitter</a></span><span class="op">(</span>width <span class="op">=</span> <span class="fl">0.1</span>, colour <span class="op">=</span> <span class="st">"grey40"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/stat_summary.html" class="external-link">stat_summary</a></span><span class="op">(</span>fun <span class="op">=</span> <span class="va">mean</span>, geom <span class="op">=</span> <span class="st">"point"</span>, shape <span class="op">=</span> <span class="fl">4</span>, size <span class="op">=</span> <span class="fl">4</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"Cell (Factor1-Factor2)"</span>, y <span class="op">=</span> <span class="st">"Outcome"</span><span class="op">)</span> <span class="op">+</span></span>
+<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/aov-data-1.png" alt="Simulated observations per cell with cell means." style="display: block; margin: auto auto auto 0;"></p>
+<p>Crosses mark the simulated cell means.</p>
 </div>
-<div class="section level3">
-<h3 id="repeated-runs-parallel_optim">1.7 Repeated runs — <code>parallel_optim()</code><a class="anchor" aria-label="anchor" href="#repeated-runs-parallel_optim"></a>
-</h3>
-<p><code><a href="../reference/parallel_optim.html">parallel_optim()</a></code> repeatedly calls any
-<code>optim_*</code> function with the same arguments, returns the list
-of results, and identifies the single best run by minimum objective
-error. <code>runs = 18</code> parallel replications are used here;
-setting <code>cores = 6</code> dispatches the runs to multiple R
-sessions via <code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code>.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel_aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parallel_optim.html">parallel_optim</a></span><span class="op">(</span></span>
-<span>  FUN <span class="op">=</span> <span class="va">optim_aov</span>,</span>
-<span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    S                  <span class="op">=</span> <span class="va">S</span>,</span>
-<span>    levels             <span class="op">=</span> <span class="va">levels</span>,</span>
-<span>    target_group_means <span class="op">=</span> <span class="va">target_group_means</span>,</span>
-<span>    target_f_list      <span class="op">=</span> <span class="va">target_f_list</span>,</span>
-<span>    factor_type        <span class="op">=</span> <span class="va">factor_type</span>,</span>
-<span>    range              <span class="op">=</span> <span class="va">range</span>,</span>
-<span>    formula            <span class="op">=</span> <span class="va">formula</span>,</span>
-<span>    integer            <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>    max_iter <span class="op">=</span> <span class="fl">100</span> <span class="co"># remove later</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  runs  <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>  cores <span class="op">=</span> <span class="fl">6</span>, <span class="co"># change later</span></span>
-<span>  seed  <span class="op">=</span> <span class="fl">2026</span></span>
+</div>
+<div class="section level2">
+<h2 id="parallel-workflow-reynolds-and-besner-2008">4. Parallel workflow: Reynolds and Besner (2008)<a class="anchor" aria-label="anchor" href="#parallel-workflow-reynolds-and-besner-2008"></a>
+</h2>
+<p>Each run of an optimizer is subject to randomness, and many datasets
+share the same summary statistics, so repeated runs return different
+datasets. <code><a href="../reference/parallel_optim.html">parallel_optim()</a></code> repeats the optimization with
+the same arguments and collects the runs. As in the manuscript, the
+ANOVA optimization is repeated 100 times on 6 parallel workers using
+<code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code> (Bengtsson, 2021); <code>seed</code>
+gives each run its own reproducible random-number stream.</p>
+<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_parallel_aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parallel_optim.html">parallel_optim</a></span><span class="op">(</span></span>
+<span>  FUN   <span class="op">=</span> <span class="va">optim_aov</span>, <span class="co"># ANOVA module</span></span>
+<span>  args  <span class="op">=</span> <span class="va">sumstats</span>,  <span class="co"># reported summary statistics</span></span>
+<span>  runs  <span class="op">=</span> <span class="fl">100</span>,       <span class="co"># number of optimization runs</span></span>
+<span>  cores <span class="op">=</span> <span class="fl">6</span>,         <span class="co"># number of parallel workers</span></span>
+<span>  seed  <span class="op">=</span> <span class="fl">2026</span>,      <span class="co"># future.seed for parallel workers</span></span>
+<span>  stop_conv <span class="op">=</span> <span class="cn">FALSE</span>  <span class="co"># whether to stop once a run converges</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="inspect">Inspect<a class="anchor" aria-label="anchor" href="#inspect"></a>
-</h4>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel_aov</span></span>
+<p><code>cores = 1</code> (the default) runs the replications
+sequentially; <code>cores &gt; 1</code> requires the packages
+<code>future</code> and <code>future.apply</code>. Because every run has
+its own random-number stream derived from <code>seed</code>, the results
+do not depend on <code>cores</code>.</p>
+<div class="section level3">
+<h3 id="inspecting-the-parallel-output">4.1 Inspecting the parallel output<a class="anchor" aria-label="anchor" href="#inspecting-the-parallel-output"></a>
+</h3>
+<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_parallel_aov</span></span>
 <span><span class="co">#&gt; stats2data parallel result</span></span>
 <span><span class="co">#&gt;   Module: aov </span></span>
-<span><span class="co">#&gt;   Runs:   6 </span></span>
-<span><span class="co">#&gt;   Best error (across runs): 0.360605 </span></span>
-<span><span class="co">#&gt;   Mean error (across runs): 3.94888</span></span></code></pre></div>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.parallel_aov</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Runs:   100 </span></span>
+<span><span class="co">#&gt;   Best objective (across runs): 0.00106352 </span></span>
+<span><span class="co">#&gt;   Mean objective (across runs): 0.0038539</span></span></code></pre></div>
+<p>100 of 100 runs have a best objective value below <code>thresh</code>
+= 0.005. Across runs, the best objective values range from 0.00106 to
+0.00499, and the simulated observations of all runs range from 358.1 to
+765.9:</p>
+<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/Extremes.html" class="external-link">max</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">x</span><span class="op">)</span> <span class="va">x</span><span class="op">$</span><span class="va">best_objective</span><span class="op">)</span><span class="op">)</span> <span class="op">&lt;</span> <span class="fl">.005</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">vapply</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">results</span>,</span>
+<span>           <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="va">r</span><span class="op">$</span><span class="va">best_objective</span> <span class="op">&lt;</span> <span class="va">r</span><span class="op">$</span><span class="va">inputs</span><span class="op">$</span><span class="va">thresh</span>, <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">logical</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 100</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/range.html" class="external-link">range</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/unlist.html" class="external-link">unlist</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">results</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="va">r</span><span class="op">$</span><span class="va">data</span><span class="op">$</span><span class="va">outcome</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] 358.1386 765.8632</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary()</a></code> lists the best and mean objective values, the
+RMSE against the targets and between runs, and the target statistics
+aggregated across runs:</p>
+<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt; stats2data Parallel Summary</span></span>
 <span><span class="co">#&gt; -----------------------------------------------</span></span>
-<span><span class="co">#&gt; Module: aov  | Runs: 6 </span></span>
-<span><span class="co">#&gt; Best error:  0.360605 </span></span>
-<span><span class="co">#&gt; Mean error:  3.94888 </span></span>
-<span><span class="co">#&gt; SD error:    3.23516 </span></span>
+<span><span class="co">#&gt; Module: aov  | Runs: 100 </span></span>
+<span><span class="co">#&gt; Best objective:  0.00106352 </span></span>
+<span><span class="co">#&gt; Mean error:  0.0038539 </span></span>
+<span><span class="co">#&gt; SD error:    0.00107989 </span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Target RMSE (across runs):</span></span>
-<span><span class="co">#&gt;  metric  mean    sd    min   max</span></span>
-<span><span class="co">#&gt;  rmse_F 3.949 3.235 0.3606 9.237</span></span>
+<span><span class="co">#&gt;  metric     mean      sd      min      max</span></span>
+<span><span class="co">#&gt;  rmse_F 0.003854 0.00108 0.001064 0.004993</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Between-run RMSE:</span></span>
-<span><span class="co">#&gt;  metric  mean    sd    min   max</span></span>
-<span><span class="co">#&gt;  rmse_F 2.389 2.106 0.3213 5.386</span></span>
+<span><span class="co">#&gt;  metric     mean       sd       min     max</span></span>
+<span><span class="co">#&gt;  rmse_F 0.002037 0.001176 0.0003188 0.00747</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; Aggregated Statistics:</span></span>
 <span><span class="co">#&gt;   F_value:</span></span>
-<span><span class="co">#&gt;        mean    median       sd       min      max</span></span>
-<span><span class="co">#&gt; 1 23.834757 23.242753 5.816849 1.451e+01 30.70873</span></span>
-<span><span class="co">#&gt; 2  0.001846  0.002005 0.000713 8.136e-04  0.00257</span></span>
-<span><span class="co">#&gt; 3  0.098669  0.075892 0.077893 2.284e-02  0.24730</span></span>
+<span><span class="co">#&gt;       mean   median       sd      min      max</span></span>
+<span><span class="co">#&gt; 1 30.49988 30.50007 0.002090 30.49379 30.50390</span></span>
+<span><span class="co">#&gt; 2  0.02439  0.02308 0.003290  0.02143  0.03728</span></span>
+<span><span class="co">#&gt; 3  0.22786  0.22779 0.001234  0.22488  0.23112</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt;   mean:</span></span>
-<span><span class="co">#&gt;     mean median        sd min max</span></span>
-<span><span class="co">#&gt; 1_1  543    543 9.859e-13 543 543</span></span>
-<span><span class="co">#&gt; 1_2  536    536 8.007e-13 536 536</span></span>
-<span><span class="co">#&gt; 2_1  614    614 9.963e-13 614 614</span></span>
-<span><span class="co">#&gt; 2_2  618    618 9.552e-13 618 618</span></span></code></pre></div>
-<p><code><a href="../reference/get_stats.html">get_stats()</a></code> for a <code>stats2data_parallel</code>
-object aggregates each numeric component returned by the per-run
-<code><a href="../reference/get_stats.html">get_stats()</a></code> method into a data frame with columns
-<code>mean</code>, <code>median</code>, <code>sd</code>,
-<code>min</code>, <code>max</code>:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result.parallel_aov</span><span class="op">)</span></span>
+<span><span class="co">#&gt;     mean median                 sd min max</span></span>
+<span><span class="co">#&gt; 1_1  543    543 0.0000000000009403 543 543</span></span>
+<span><span class="co">#&gt; 1_2  536    536 0.0000000000009664 536 536</span></span>
+<span><span class="co">#&gt; 2_1  614    614 0.0000000000009346 614 614</span></span>
+<span><span class="co">#&gt; 2_2  618    618 0.0000000000009585 618 618</span></span></code></pre></div>
+<p><code><a href="../reference/get_stats.html">get_stats()</a></code> aggregates each statistic across runs (mean,
+median, SD, minimum, maximum):</p>
+<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $F_value</span></span>
-<span><span class="co">#&gt;           mean       median           sd          min         max</span></span>
-<span><span class="co">#&gt; 1 23.834757167 23.242753177 5.8168488118 1.450774e+01 30.70872540</span></span>
-<span><span class="co">#&gt; 2  0.001845932  0.002004755 0.0007130464 8.136056e-04  0.00256984</span></span>
-<span><span class="co">#&gt; 3  0.098669150  0.075891549 0.0778927687 2.284071e-02  0.24729683</span></span>
+<span><span class="co">#&gt;          mean      median          sd         min         max</span></span>
+<span><span class="co">#&gt; 1 30.49988225 30.50006753 0.002090449 30.49379382 30.50390112</span></span>
+<span><span class="co">#&gt; 2  0.02439294  0.02307733 0.003290052  0.02143349  0.03727947</span></span>
+<span><span class="co">#&gt; 3  0.22786082  0.22779020 0.001233544  0.22487923  0.23112459</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $mean</span></span>
-<span><span class="co">#&gt;     mean median           sd min max</span></span>
-<span><span class="co">#&gt; 1_1  543    543 9.858688e-13 543 543</span></span>
-<span><span class="co">#&gt; 1_2  536    536 8.006653e-13 536 536</span></span>
-<span><span class="co">#&gt; 2_1  614    614 9.963015e-13 614 614</span></span>
-<span><span class="co">#&gt; 2_2  618    618 9.552401e-13 618 618</span></span></code></pre></div>
-<p><code><a href="../reference/get_rmse.html">get_rmse()</a></code> returns three components:
-<code>between_rmse</code> (per-metric run-to-run RMSE against the
-across-run grand mean), <code>target_rmse</code> (per-metric RMSE
-against the original targets), and the raw per-run vectors:</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.parallel_aov</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $between_rmse</span></span>
-<span><span class="co">#&gt;   metric    mean       sd       min      max</span></span>
-<span><span class="co">#&gt; 1 rmse_F 2.38867 2.105637 0.3213465 5.385638</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $target_rmse</span></span>
-<span><span class="co">#&gt;   metric    mean       sd       min      max</span></span>
-<span><span class="co">#&gt; 1 rmse_F 3.94888 3.235156 0.3606053 9.237163</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw</span></span>
-<span><span class="co">#&gt; $raw$between</span></span>
-<span><span class="co">#&gt; $raw$between$rmse_F</span></span>
-<span><span class="co">#&gt; [1] 0.3654966 3.1953306 3.9687327 1.0954759 5.3856384 0.3213465</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$target</span></span>
-<span><span class="co">#&gt; $raw$target$rmse_F</span></span>
-<span><span class="co">#&gt; [1] 4.2262798 0.7321844 0.3606053 4.9542151 9.2371627 4.1828356</span></span></code></pre></div>
+<span><span class="co">#&gt;     mean median                    sd min max</span></span>
+<span><span class="co">#&gt; 1_1  543    543 0.0000000000009403361 543 543</span></span>
+<span><span class="co">#&gt; 1_2  536    536 0.0000000000009663550 536 536</span></span>
+<span><span class="co">#&gt; 2_1  614    614 0.0000000000009345567 614 614</span></span>
+<span><span class="co">#&gt; 2_2  618    618 0.0000000000009584873 618 618</span></span></code></pre></div>
+<p><code><a href="../reference/get_rmse.html">get_rmse()</a></code> returns two RMSEs per run and metric:
+<code>target_rmse</code>, against the targets, and
+<code>between_rmse</code>, against the across-run mean of the simulated
+statistics. The per-run values are in <code>raw</code>:</p>
+<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">par_rmse</span><span class="op">$</span><span class="va">target_rmse</span></span>
+<span><span class="co">#&gt;   metric        mean          sd        min         max</span></span>
+<span><span class="co">#&gt; 1 rmse_F 0.003853902 0.001079895 0.00106352 0.004992881</span></span>
+<span><span class="va">par_rmse</span><span class="op">$</span><span class="va">between_rmse</span></span>
+<span><span class="co">#&gt;   metric        mean          sd          min         max</span></span>
+<span><span class="co">#&gt; 1 rmse_F 0.002036642 0.001175672 0.0003187576 0.007469883</span></span></code></pre></div>
+<p>The mean F-statistic RMSE against the targets is 0.00385 (maximum
+0.00499); the mean run-to-run RMSE is 0.00204. The run-to-run RMSE
+quantifies how much the simulated F-statistics vary between runs; it
+does not compare the runs with the original data.</p>
 </div>
-<div class="section level4">
-<h4 id="rmse-distribution">RMSE distribution<a class="anchor" aria-label="anchor" href="#rmse-distribution"></a>
-</h4>
-<p>The <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> method for <code>stats2data_parallel</code>
-displays the between-run RMSE distribution alongside the
-deviation-from-target RMSE distribution, faceted by metric:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result.parallel_aov</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-par-plot-1.png" class="r-plt" alt="Between-run vs. target RMSE distribution across parallel ANOVA runs." width="800" style="display: block; margin: auto auto auto 0;"></p>
+<div class="section level3">
+<h3 id="stability-and-fit-across-runs">4.2 Stability and fit across runs<a class="anchor" aria-label="anchor" href="#stability-and-fit-across-runs"></a>
+</h3>
+<p>The two panels of the manuscript figure are <code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code>,
+which draws <code><a href="../reference/plot_stability.html">plot_stability()</a></code>, and <code><a href="../reference/plot_fit.html">plot_fit()</a></code>.
+<code><a href="../reference/plot_stability.html">plot_stability()</a></code> shows the distributions of both RMSEs
+across runs, faceted by metric:</p>
+<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_stability.html">plot_stability</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/par-stability-1.png" alt="Run-to-run and to-target RMSE distributions across parallel runs." style="display: block; margin: auto auto auto 0;"></p>
+<p><code><a href="../reference/plot_fit.html">plot_fit()</a></code> shows the across-run mean difference per
+statistic, with error bars for the across-run range
+(<code>error_type = "range"</code>, default) or <code>mean +/- SD</code>
+(<code>error_type = "sd"</code>); dots mark the individual runs.</p>
+<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_fit.html">plot_fit</a></span><span class="op">(</span></span>
+<span>  <span class="va">result_parallel_aov</span>,</span>
+<span>  standardised <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/par-fit-1.png" alt="Across-run differences between simulated and target F-statistics." style="display: block; margin: auto auto auto 0;"></p>
+<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_fit.html">plot_fit</a></span><span class="op">(</span><span class="va">result_parallel_aov</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span>, error_type <span class="op">=</span> <span class="st">"sd"</span><span class="op">)</span></span></code></pre></div>
+<p><img src="figures/par-fit-sd-1.png" alt="Across-run differences with mean plus or minus SD error bars." style="display: block; margin: auto auto auto 0;"></p>
+<p><code><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot()</a></code> draws <code><a href="../reference/plot_stability.html">plot_stability()</a></code> by default
+(as in the manuscript script) and <code><a href="../reference/plot_fit.html">plot_fit()</a></code> with
+<code>which = "fit"</code>:</p>
+<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result_parallel_aov</span>, which <span class="op">=</span> <span class="st">"fit"</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
 </div>
-<div class="section level4">
-<h4 id="aggregated-target-vs-simulated-comparison">Aggregated target-vs-simulated comparison<a class="anchor" aria-label="anchor" href="#aggregated-target-vs-simulated-comparison"></a>
-</h4>
-<p><code><a href="../reference/plot_summary.html">plot_summary()</a></code> for a parallel result draws the same
-lollipop chart as for a stand-alone result; the simulated point per
-parameter is the across-run mean and an error bar overlays the
-across-run min/max (default).</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_summary.html">plot_summary</a></span><span class="op">(</span><span class="va">result.parallel_aov</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/aov-par-summary-plot-1.png" class="r-plt" alt="Across-run aggregated target-vs-simulated summary statistics for parallel ANOVA runs." width="800" style="display: block; margin: auto auto auto 0;"></p>
-<p>The single best run is accessible via <code>$best</code> and supports
-the same S3 methods as a stand-alone result:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel_aov</span><span class="op">$</span><span class="va">best</span></span>
+<div class="section level3">
+<h3 id="individual-runs">4.3 Individual runs<a class="anchor" aria-label="anchor" href="#individual-runs"></a>
+</h3>
+<p>The run with the lowest best objective value is stored in
+<code>best</code>; all runs are in <code>results</code>. Both are
+ordinary <code>stats2data_aov</code> objects and support the methods of
+Section 3:</p>
+<div class="sourceCode" id="cb56"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">best</span></span>
 <span><span class="co">#&gt; stats2data ANOVA result</span></span>
 <span><span class="co">#&gt;   Design:    2 x 2 (within, within)</span></span>
 <span><span class="co">#&gt;   Subjects:   16 </span></span>
 <span><span class="co">#&gt;   Effects:    Factor1, Factor2, Factor1:Factor2 </span></span>
-<span><span class="co">#&gt;   Best error: 0.360605</span></span>
-<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.parallel_aov</span><span class="op">$</span><span class="va">best</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   Best objective: 0.00106352</span></span>
+<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">best</span><span class="op">)</span></span>
 <span><span class="co">#&gt; $rmse_F</span></span>
-<span><span class="co">#&gt; [1] 0.3606053</span></span>
+<span><span class="co">#&gt; [1] 0.00106352</span></span>
 <span><span class="co">#&gt; </span></span>
 <span><span class="co">#&gt; $rmse_mean</span></span>
-<span><span class="co">#&gt; [1] 9.392074e-13</span></span></code></pre></div>
-</div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="descriptives-mlr-module-bardwell-et-al--2007">2. Descriptives + MLR module — Bardwell et al. (2007)<a class="anchor" aria-label="anchor" href="#descriptives-mlr-module-bardwell-et-al--2007"></a>
-</h2>
-<p>Bardwell et al. (2007, <a href="https://doi.org/10.1016/j.jad.2006.06.013" class="external-link">https://doi.org/10.1016/j.jad.2006.06.013</a>)
-examined whether mood symptoms or apnea severity better predict daytime
-fatigue in patients with obstructive sleep apnea. The original raw data
-of Bardwell et al. (2003) are not publicly available. The simulation
-proceeds in three steps: marginal distributions via
-<code><a href="../reference/optim_vec.html">optim_vec()</a></code>, joint regression structure via
-<code><a href="../reference/optim_mlr.html">optim_mlr()</a></code>, and a replication assessment via
-<code><a href="../reference/parallel_optim.html">parallel_optim()</a></code>.</p>
-<div class="section level3">
-<h3 id="step-1-marginals-via-optim_vec">2.1 Step 1 — marginals via <code>optim_vec()</code><a class="anchor" aria-label="anchor" href="#step-1-marginals-via-optim_vec"></a>
-</h3>
-<div class="section level4">
-<h4 id="targets">Targets<a class="anchor" aria-label="anchor" href="#targets"></a>
-</h4>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">N</span>           <span class="op">&lt;-</span> <span class="fl">60</span></span>
-<span><span class="va">target_mean</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">48.8</span>, <span class="fl">17.3</span>, <span class="fl">12.6</span>, <span class="fl">10.8</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">target_mean</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Apnea.1"</span>, <span class="st">"Apnea.2"</span>, <span class="st">"Depression"</span>, <span class="st">"Fatigue"</span><span class="op">)</span></span>
-<span><span class="va">target_sd</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">27.1</span>, <span class="fl">20.1</span>, <span class="fl">11.3</span>, <span class="fl">7.3</span><span class="op">)</span></span>
-<span><span class="va">integer</span>     <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">FALSE</span>, <span class="cn">FALSE</span>, <span class="cn">TRUE</span>, <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="va">range_matrix</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/matrix.html" class="external-link">matrix</a></span><span class="op">(</span></span>
-<span>  <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span> <span class="fl">15</span>,   <span class="fl">0</span>,  <span class="fl">0</span>,  <span class="fl">0</span>,</span>
-<span>    <span class="fl">111</span>, <span class="fl">80.9</span>, <span class="fl">49</span>, <span class="fl">28</span><span class="op">)</span>,</span>
-<span>  nrow <span class="op">=</span> <span class="fl">2</span>, byrow <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="sanity-check-with-check_grim">Sanity check with <code>check_grim()</code><a class="anchor" aria-label="anchor" href="#sanity-check-with-check_grim"></a>
-</h4>
-<p>The GRIM test (Brown &amp; Heathers, 2017) verifies whether a
-reported mean is achievable for the stated sample size and decimal
-precision. Each integer-valued mean is checked at one decimal place:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/check_grim.html">check_grim</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">N</span>, target_mean <span class="op">=</span> <span class="va">target_mean</span><span class="op">[</span><span class="st">"Depression"</span><span class="op">]</span>, decimals <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $test</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $grim_mean</span></span>
-<span><span class="co">#&gt; Depression </span></span>
-<span><span class="co">#&gt;       12.6</span></span>
-<span><span class="fu"><a href="../reference/check_grim.html">check_grim</a></span><span class="op">(</span>n <span class="op">=</span> <span class="va">N</span>, target_mean <span class="op">=</span> <span class="va">target_mean</span><span class="op">[</span><span class="st">"Fatigue"</span><span class="op">]</span>,    decimals <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $test</span></span>
-<span><span class="co">#&gt; [1] TRUE</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $grim_mean</span></span>
-<span><span class="co">#&gt; Fatigue </span></span>
-<span><span class="co">#&gt;    10.8</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="run-the-optimiser">Run the optimiser<a class="anchor" aria-label="anchor" href="#run-the-optimiser"></a>
-</h4>
-<p><code>sprite_prec = c(1, 1)</code> matches the reported one-decimal
-rounding precision of the target means and SDs; all other arguments are
-at the package defaults (<code>thresh = .005</code>,
-<code>max_iter = 5e5</code>,
-<code>init_temp = cooling_rate = NULL</code> (set automatically),
-<code>max_starts = 3</code>).</p>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.vec</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_vec.html">optim_vec</a></span><span class="op">(</span></span>
-<span>  N           <span class="op">=</span> <span class="va">N</span>,</span>
-<span>  target_mean <span class="op">=</span> <span class="va">target_mean</span>,</span>
-<span>  target_sd   <span class="op">=</span> <span class="va">target_sd</span>,</span>
-<span>  range       <span class="op">=</span> <span class="va">range_matrix</span>,</span>
-<span>  integer     <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>  sprite_prec <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  thresh      <span class="op">=</span> <span class="fl">.05</span></span>
-<span><span class="op">)</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="inspect-1">Inspect<a class="anchor" aria-label="anchor" href="#inspect-1"></a>
-</h4>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.vec</span></span>
-<span><span class="co">#&gt; stats2data Descriptives result</span></span>
-<span><span class="co">#&gt;   Variables: 4 </span></span>
-<span><span class="co">#&gt;   N:         60 </span></span>
-<span><span class="co">#&gt;   Best error per variable:</span></span>
-<span><span class="co">#&gt;     Apnea.1: 0.04283</span></span>
-<span><span class="co">#&gt;     Apnea.2: 0.04102</span></span>
-<span><span class="co">#&gt;     Depression: 0.02748</span></span>
-<span><span class="co">#&gt;     Fatigue: 0.03714</span></span></code></pre></div>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt; stats2data Descriptives Summary</span></span>
-<span><span class="co">#&gt; -----------------------------------------------</span></span>
-<span><span class="co">#&gt; N: 60  | Variables: 4 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Best error per variable:</span></span>
-<span><span class="co">#&gt;   Apnea.1: 0.04283</span></span>
-<span><span class="co">#&gt;   Apnea.2: 0.04102</span></span>
-<span><span class="co">#&gt;   Depression: 0.02748</span></span>
-<span><span class="co">#&gt;   Fatigue: 0.03714</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; RMSE</span></span>
-<span><span class="co">#&gt;   Means: 0.0361 </span></span>
-<span><span class="co">#&gt;   SDs:   0.03759 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Target vs. Simulated:</span></span>
-<span><span class="co">#&gt;    variable target_mean sim_mean target_sd sim_sd</span></span>
-<span><span class="co">#&gt;     Apnea.1        48.8    48.85      27.1 27.057</span></span>
-<span><span class="co">#&gt;     Apnea.2        17.3    17.35      20.1 20.059</span></span>
-<span><span class="co">#&gt;  Depression        12.6    12.60      11.3 11.327</span></span>
-<span><span class="co">#&gt;     Fatigue        10.8    10.78       7.3  7.337</span></span></code></pre></div>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result.vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $mean</span></span>
-<span><span class="co">#&gt;    Apnea.1    Apnea.2 Depression    Fatigue </span></span>
-<span><span class="co">#&gt;   48.84982   17.34952   12.60000   10.78333 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $sd</span></span>
-<span><span class="co">#&gt;    Apnea.1    Apnea.2 Depression    Fatigue </span></span>
-<span><span class="co">#&gt;  27.057171  20.058983  11.327483   7.337139</span></span>
-<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $rmse_mean</span></span>
-<span><span class="co">#&gt; [1] 0.03609813</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $rmse_sd</span></span>
-<span><span class="co">#&gt; [1] 0.03758761</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="diagnostics-1">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics-1"></a>
-</h4>
-<p><code><a href="../reference/plot_error.html">plot_error()</a></code> for a <code>stats2data_vec</code> object
-accepts <code>run</code> to select a per-variable trajectory; the
-trajectory for <code>Apnea.2</code> (the second variable) is shown:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_error.html">plot_error</a></span><span class="op">(</span><span class="va">result.vec</span>, run <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/vec-error-1.png" class="r-plt" alt="Error trajectory for the Apnea.2 marginal." width="600" style="display: block; margin: auto auto auto 0;"></p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_cooling.html">plot_cooling</a></span><span class="op">(</span><span class="va">result.vec</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/vec-cooling-1.png" class="r-plt" alt="Cooling schedule for the descriptives optimization." width="600" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-<div class="section level4">
-<h4 id="target-vs--simulated-comparison-1">Target vs. simulated comparison<a class="anchor" aria-label="anchor" href="#target-vs--simulated-comparison-1"></a>
-</h4>
-<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_summary.html">plot_summary</a></span><span class="op">(</span><span class="va">result.vec</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/vec-summary-plot-1.png" class="r-plt" alt="Descriptives target-vs-simulated lollipop chart." width="600" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-<div class="section level4">
-<h4 id="inspect-the-simulated-dataset-1">Inspect the simulated dataset<a class="anchor" aria-label="anchor" href="#inspect-the-simulated-dataset-1"></a>
-</h4>
-<p>The four marginals are shown together. <code>Apnea.1</code> and
-<code>Apnea.2</code> are continuous; <code>Depression</code> and
-<code>Fatigue</code> are integer-valued
-(<code>integer = c(FALSE, FALSE, TRUE, TRUE)</code>), so the latter two
-are shown as <code>binwidth = 1</code> histograms scaled to density to
-remain visually comparable to the densities of the continuous
-variables.</p>
-<div class="sourceCode" id="cb33"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data.vec</span> <span class="op">&lt;-</span> <span class="va">result.vec</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.vec</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     Apnea.1      Apnea.2 Depression Fatigue</span></span>
-<span><span class="co">#&gt; 1  45.43085 77.497362040          6      13</span></span>
-<span><span class="co">#&gt; 2  27.96974  0.094717968          5       7</span></span>
-<span><span class="co">#&gt; 3  80.65296 70.847112915         20       3</span></span>
-<span><span class="co">#&gt; 4  16.84571  2.760439889          5      21</span></span>
-<span><span class="co">#&gt; 5  57.82309  0.004102534         29      10</span></span>
-<span><span class="co">#&gt; 6 110.99222 51.328891744         25       5</span></span>
-<span></span>
-<span><span class="va">cont_vars</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Apnea.1"</span>, <span class="st">"Apnea.2"</span><span class="op">)</span></span>
-<span><span class="va">int_vars</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Depression"</span>, <span class="st">"Fatigue"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="va">ggdata.vec</span> <span class="op">&lt;-</span> <span class="fu">tidyr</span><span class="fu">::</span><span class="fu"><a href="https://tidyr.tidyverse.org/reference/pivot_longer.html" class="external-link">pivot_longer</a></span><span class="op">(</span></span>
-<span>  <span class="va">data.vec</span>,</span>
-<span>  cols      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">Apnea.1</span>, <span class="va">Apnea.2</span>, <span class="va">Depression</span>, <span class="va">Fatigue</span><span class="op">)</span>,</span>
-<span>  names_to  <span class="op">=</span> <span class="st">"variable"</span>,</span>
-<span>  values_to <span class="op">=</span> <span class="st">"value"</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">ggdata.vec</span><span class="op">$</span><span class="va">variable</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span></span>
-<span>  <span class="va">ggdata.vec</span><span class="op">$</span><span class="va">variable</span>,</span>
-<span>  levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">cont_vars</span>, <span class="va">int_vars</span><span class="op">)</span></span>
-<span><span class="op">)</span></span>
-<span><span class="va">ggdata.vec</span><span class="op">$</span><span class="va">kind</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ifelse.html" class="external-link">ifelse</a></span><span class="op">(</span><span class="va">ggdata.vec</span><span class="op">$</span><span class="va">variable</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="va">int_vars</span>,</span>
-<span>                          <span class="st">"integer"</span>, <span class="st">"continuous"</span><span class="op">)</span></span>
-<span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">ggdata.vec</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">value</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_density.html" class="external-link">geom_density</a></span><span class="op">(</span></span>
-<span>    data  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">ggdata.vec</span>, <span class="va">kind</span> <span class="op">==</span> <span class="st">"continuous"</span><span class="op">)</span>,</span>
-<span>    fill  <span class="op">=</span> <span class="st">"gray60"</span>, color <span class="op">=</span> <span class="st">"gray20"</span>, alpha <span class="op">=</span> <span class="fl">0.5</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_histogram.html" class="external-link">geom_histogram</a></span><span class="op">(</span></span>
-<span>    data     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="va">ggdata.vec</span>, <span class="va">kind</span> <span class="op">==</span> <span class="st">"integer"</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span>y    <span class="op">=</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes_eval.html" class="external-link">after_stat</a></span><span class="op">(</span><span class="va">density</span><span class="op">)</span><span class="op">)</span>,</span>
-<span>    binwidth <span class="op">=</span> <span class="fl">1</span>,</span>
-<span>    fill     <span class="op">=</span> <span class="st">"gray60"</span>, color <span class="op">=</span> <span class="st">"gray20"</span></span>
-<span>  <span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/facet_wrap.html" class="external-link">facet_wrap</a></span><span class="op">(</span><span class="op">~</span> <span class="va">variable</span>, scales <span class="op">=</span> <span class="st">"free"</span>, nrow <span class="op">=</span> <span class="fl">2</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="cn">NULL</span>, y <span class="op">=</span> <span class="st">"Density"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_minimal</a></span><span class="op">(</span>base_size <span class="op">=</span> <span class="fl">13</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/vec-data-1.png" class="r-plt" alt="Marginal distributions of the four simulated variables." width="800" style="display: block; margin: auto auto auto 0;"></p>
-</div>
+<span><span class="co">#&gt; [1] 0.0000000000009426415</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">result_parallel_aov</span><span class="op">$</span><span class="va">results</span><span class="op">[[</span><span class="fl">2</span><span class="op">]</span><span class="op">]</span><span class="op">$</span><span class="va">data</span><span class="op">)</span></span>
+<span><span class="co">#&gt;   ID Factor1 Factor2  outcome</span></span>
+<span><span class="co">#&gt; 1  1       1       1 543.7920</span></span>
+<span><span class="co">#&gt; 2  1       1       2 484.1879</span></span>
+<span><span class="co">#&gt; 3  1       2       1 630.0790</span></span>
+<span><span class="co">#&gt; 4  1       2       2 590.7470</span></span>
+<span><span class="co">#&gt; 5  2       1       1 629.6518</span></span>
+<span><span class="co">#&gt; 6  2       1       2 526.1276</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="step-2-regression-structure-via-optim_mlr">2.2 Step 2 — regression structure via <code>optim_mlr()</code><a class="anchor" aria-label="anchor" href="#step-2-regression-structure-via-optim_mlr"></a>
+<h3 id="stopping-at-the-first-converged-run">4.4 Stopping at the first converged run<a class="anchor" aria-label="anchor" href="#stopping-at-the-first-converged-run"></a>
 </h3>
-<div class="section level4">
-<h4 id="targets-1">Targets<a class="anchor" aria-label="anchor" href="#targets-1"></a>
-</h4>
-<p>The reported regression coefficients (intercept first), their
-standard errors, and the upper-triangular correlation matrix
-(column-wise, excluding the diagonal) are encoded as numeric vectors.
-<code>NA</code> entries flag unreported values that are excluded from
-the objective.</p>
-<div class="sourceCode" id="cb34"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">target_reg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">4.020</span>, <span class="fl">0.023</span>, <span class="fl">0.008</span>, <span class="fl">0.438</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">target_reg</span><span class="op">)</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"(Intercept)"</span>, <span class="st">"Apnea.1"</span>, <span class="st">"Apnea.2"</span>, <span class="st">"Depression"</span><span class="op">)</span></span>
-<span><span class="va">target_se</span>   <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">0.034</span>, <span class="fl">0.048</span>, <span class="fl">0.066</span><span class="op">)</span></span>
-<span><span class="va">target_cor</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="cn">NA</span>, <span class="cn">NA</span>, <span class="fl">0.11</span>, <span class="fl">0.20</span>, <span class="fl">0.68</span><span class="op">)</span></span>
-<span><span class="va">reg_equation</span> <span class="op">&lt;-</span> <span class="st">"Fatigue ~ Apnea.1 + Apnea.2 + Depression"</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="run-the-optimiser-1">Run the optimiser<a class="anchor" aria-label="anchor" href="#run-the-optimiser-1"></a>
-</h4>
-<p>A first call uses package defaults except for a stricter
-<code>thresh = .0005</code> and a starting <code>weight = .5</code> for
-the regression-vs.-correlation balance.</p>
-<div class="sourceCode" id="cb35"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_mlr.html">optim_mlr</a></span><span class="op">(</span></span>
-<span>  N            <span class="op">=</span> <span class="va">N</span>,</span>
-<span>  target_mean  <span class="op">=</span> <span class="va">target_mean</span>,</span>
-<span>  target_sd    <span class="op">=</span> <span class="va">target_sd</span>,</span>
-<span>  range        <span class="op">=</span> <span class="va">range_matrix</span>,</span>
-<span>  integer      <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>  reg_equation <span class="op">=</span> <span class="va">reg_equation</span>,</span>
-<span>  target_cor   <span class="op">=</span> <span class="va">target_cor</span>,</span>
-<span>  target_reg   <span class="op">=</span> <span class="va">target_reg</span>,</span>
-<span>  target_se    <span class="op">=</span> <span class="va">target_se</span>,</span>
-<span>  thresh       <span class="op">=</span> <span class="fl">.0005</span>,</span>
-<span>  weight       <span class="op">=</span> <span class="fl">.5</span></span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Hill climbing best error: 0.002397144</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="inspect-2">Inspect<a class="anchor" aria-label="anchor" href="#inspect-2"></a>
-</h4>
-<div class="sourceCode" id="cb36"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.mlr</span></span>
-<span><span class="co">#&gt; stats2data MLR result</span></span>
-<span><span class="co">#&gt;   N:          60 </span></span>
-<span><span class="co">#&gt;   Equation:   Fatigue ~ Apnea.1 + Apnea.2 + Depression </span></span>
-<span><span class="co">#&gt;   Best error: 0.00239714</span></span></code></pre></div>
-<div class="sourceCode" id="cb37"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.mlr</span><span class="op">)</span></span>
-<span><span class="co">#&gt; stats2data MLR Summary</span></span>
-<span><span class="co">#&gt; -----------------------------------------------</span></span>
-<span><span class="co">#&gt; N: 60  | Model: Fatigue ~ Apnea.1 + Apnea.2 + Depression </span></span>
-<span><span class="co">#&gt; Best error: 0.00239714 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; RMSE</span></span>
-<span><span class="co">#&gt;   Correlations:             6.742e-05 </span></span>
-<span><span class="co">#&gt;   Regression Coefficients:  0.001739 </span></span>
-<span><span class="co">#&gt;   Standard Errors:          0.006936 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Descriptives (Target vs. Simulated):</span></span>
-<span><span class="co">#&gt;    variable target_mean sim_mean target_sd sim_sd</span></span>
-<span><span class="co">#&gt;     Apnea.1        48.8     48.8      27.1 27.100</span></span>
-<span><span class="co">#&gt;     Apnea.2        17.3     17.3      20.1 20.100</span></span>
-<span><span class="co">#&gt;  Depression        12.6     12.6      11.3 11.302</span></span>
-<span><span class="co">#&gt;     Fatigue        10.8     10.8       7.3  7.297</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Coefficients (Target vs. Simulated):</span></span>
-<span><span class="co">#&gt;         term target_reg  sim_reg target_se  sim_se</span></span>
-<span><span class="co">#&gt;  (Intercept)      4.020 4.019991        NA 1.64575</span></span>
-<span><span class="co">#&gt;      Apnea.1      0.023 0.024067     0.034 0.02748</span></span>
-<span><span class="co">#&gt;      Apnea.2      0.008 0.007384     0.048 0.03803</span></span>
-<span><span class="co">#&gt;   Depression      0.438 0.434748     0.066 0.06447</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Correlations (Target vs. Simulated):</span></span>
-<span><span class="co">#&gt;                pair target_cor sim_cor</span></span>
-<span><span class="co">#&gt;     Apnea.1-Apnea.2         NA 0.30288</span></span>
-<span><span class="co">#&gt;  Apnea.1-Depression         NA 0.02148</span></span>
-<span><span class="co">#&gt;     Apnea.1-Fatigue         NA 0.22661</span></span>
-<span><span class="co">#&gt;  Apnea.2-Depression       0.11 0.11000</span></span>
-<span><span class="co">#&gt;     Apnea.2-Fatigue       0.20 0.20000</span></span>
-<span><span class="co">#&gt;  Depression-Fatigue       0.68 0.67988</span></span></code></pre></div>
-<p><code><a href="../reference/get_stats.html">get_stats()</a></code> returns the fitted <code>lm</code>, its
-coefficients and standard errors, the upper-triangular correlation
-vector, and the column-wise means and SDs:</p>
-<div class="sourceCode" id="cb38"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">stats.mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result.mlr</span><span class="op">)</span></span>
-<span><span class="va">stats.mlr</span><span class="op">$</span><span class="va">reg</span></span>
-<span><span class="co">#&gt; (Intercept)     Apnea.1     Apnea.2  Depression </span></span>
-<span><span class="co">#&gt; 4.019990932 0.024066672 0.007384476 0.434747588</span></span>
-<span><span class="va">stats.mlr</span><span class="op">$</span><span class="va">se</span></span>
-<span><span class="co">#&gt; (Intercept)     Apnea.1     Apnea.2  Depression </span></span>
-<span><span class="co">#&gt;  1.64574804  0.02747814  0.03802864  0.06446858</span></span>
-<span><span class="va">stats.mlr</span><span class="op">$</span><span class="va">cor</span></span>
-<span><span class="co">#&gt; [1] 0.30287813 0.02147571 0.22661398 0.10999909 0.20000236 0.67988325</span></span></code></pre></div>
-<p><code><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef()</a></code> is a convenience wrapper that re-fits the
-regression and returns the coefficient vector:</p>
-<div class="sourceCode" id="cb39"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/stats/coef.html" class="external-link">coef</a></span><span class="op">(</span><span class="va">result.mlr</span><span class="op">)</span></span>
-<span><span class="co">#&gt; (Intercept)     Apnea.1     Apnea.2  Depression </span></span>
-<span><span class="co">#&gt; 4.019990932 0.024066672 0.007384476 0.434747588</span></span></code></pre></div>
-<div class="sourceCode" id="cb40"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.mlr</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $rmse_cor</span></span>
-<span><span class="co">#&gt; [1] 6.742064e-05</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $rmse_reg</span></span>
-<span><span class="co">#&gt; [1] 0.001738888</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $rmse_se</span></span>
-<span><span class="co">#&gt; [1] 0.006935607</span></span></code></pre></div>
-</div>
-<div class="section level4">
-<h4 id="diagnostics-2">Diagnostics<a class="anchor" aria-label="anchor" href="#diagnostics-2"></a>
-</h4>
-<p><code><a href="../reference/plot_error.html">plot_error()</a></code> shows the total-objective trajectory:</p>
-<div class="sourceCode" id="cb41"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_error.html">plot_error</a></span><span class="op">(</span><span class="va">result.mlr</span>, first_iter <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/lm-error-1.png" class="r-plt" alt="Error trajectory for the MLR optimization." width="600" style="display: block; margin: auto auto auto 0;"></p>
-<p>For <code>stats2data_mlr</code> objects, <code><a href="../reference/plot_error.html">plot_error()</a></code>
-exposes a <code>ratio = TRUE</code> switch that plots the per-iteration
-correlation-to-regression error ratio together with mean, median, and
-final reference lines:</p>
-<div class="sourceCode" id="cb42"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_error.html">plot_error</a></span><span class="op">(</span><span class="va">result.mlr</span>, ratio <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/lm-error-ratio-1.png" class="r-plt" alt="Cor/Reg error ratio trajectory for MLR." width="600" style="display: block; margin: auto auto auto 0;"></p>
-<p>The trajectory shows that the regression component dominates the
-objective. To rebalance the two error components, the optimization is
-repeated with a smaller <code>weight = .9</code>:</p>
-<div class="sourceCode" id="cb43"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/optim_mlr.html">optim_mlr</a></span><span class="op">(</span></span>
-<span>  N            <span class="op">=</span> <span class="va">N</span>,</span>
-<span>  target_mean  <span class="op">=</span> <span class="va">target_mean</span>,</span>
-<span>  target_sd    <span class="op">=</span> <span class="va">target_sd</span>,</span>
-<span>  range        <span class="op">=</span> <span class="va">range_matrix</span>,</span>
-<span>  integer      <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>  reg_equation <span class="op">=</span> <span class="va">reg_equation</span>,</span>
-<span>  target_cor   <span class="op">=</span> <span class="va">target_cor</span>,</span>
-<span>  target_reg   <span class="op">=</span> <span class="va">target_reg</span>,</span>
-<span>  target_se    <span class="op">=</span> <span class="va">target_se</span>,</span>
-<span>  thresh       <span class="op">=</span> <span class="fl">.0005</span>,</span>
-<span>  weight       <span class="op">=</span> <span class="fl">.9</span> </span>
-<span><span class="op">)</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Hill climbing best error: 0.0005361657</span></span>
-<span><span class="fu"><a href="../reference/plot_error.html">plot_error</a></span><span class="op">(</span><span class="va">result.mlr</span>, ratio <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/lm-rerun-1.png" class="r-plt" alt="Weight-tuned MLR error ratio." width="600" style="display: block; margin: auto auto auto 0;"></p>
-<p>The error ratio is now closer to one and the best objective value is
-lower than in the first call.</p>
-</div>
-<div class="section level4">
-<h4 id="target-vs--simulated-comparison-2">Target vs. simulated comparison<a class="anchor" aria-label="anchor" href="#target-vs--simulated-comparison-2"></a>
-</h4>
-<div class="sourceCode" id="cb44"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_summary.html">plot_summary</a></span><span class="op">(</span><span class="va">result.mlr</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/lm-summary-plot-1.png" class="r-plt" alt="MLR target-vs-simulated lollipop chart." width="600" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-<div class="section level4">
-<h4 id="inspect-the-simulated-dataset-2">Inspect the simulated dataset<a class="anchor" aria-label="anchor" href="#inspect-the-simulated-dataset-2"></a>
-</h4>
-<div class="sourceCode" id="cb45"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">data.mlr</span> <span class="op">&lt;-</span> <span class="va">result.mlr</span><span class="op">$</span><span class="va">data</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">data.mlr</span><span class="op">)</span></span>
-<span><span class="co">#&gt;     Apnea.1     Apnea.2 Depression Fatigue</span></span>
-<span><span class="co">#&gt; 1  31.15287  0.05950186         17      19</span></span>
-<span><span class="co">#&gt; 2  39.38530  0.28732845         33      14</span></span>
-<span><span class="co">#&gt; 3  78.48202 24.30862154         23      20</span></span>
-<span><span class="co">#&gt; 4  35.12022 27.00917381         15       5</span></span>
-<span><span class="co">#&gt; 5 103.79105 20.96804540         28      12</span></span>
-<span><span class="co">#&gt; 6  45.43404  2.19282393          9      21</span></span></code></pre></div>
-<p><code><a href="../reference/plot_partial_regression.html">plot_partial_regression()</a></code> returns one partial-regression
-ggplot per predictor, each annotated with the partial slope and the
-residual SD:</p>
-<div class="sourceCode" id="cb46"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">partial.plots</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/plot_partial_regression.html">plot_partial_regression</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/lm.html" class="external-link">lm</a></span><span class="op">(</span><span class="va">reg_equation</span>, data <span class="op">=</span> <span class="va">data.mlr</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">gridExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/gridExtra/man/arrangeGrob.html" class="external-link">grid.arrange</a></span><span class="op">(</span>grobs <span class="op">=</span> <span class="va">partial.plots</span>, ncol <span class="op">=</span> <span class="fl">2</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/lm-partial-1.png" class="r-plt" alt="Partial-regression plots for the MLR fit." width="1100" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-</div>
-<div class="section level3">
-<h3 id="step-3-repeated-runs-via-parallel_optim">2.3 Step 3 — repeated runs via <code>parallel_optim()</code><a class="anchor" aria-label="anchor" href="#step-3-repeated-runs-via-parallel_optim"></a>
-</h3>
-<p><code><a href="../reference/parallel_optim.html">parallel_optim()</a></code> repeatedly calls any
-<code>optim_*</code> function with the same arguments, returns the list
-of results, and identifies the single best run by minimum objective
-error. <code>runs = 18</code> parallel replications are used; setting
-<code>cores = 6</code> dispatches the runs to multiple R sessions via
-<code><a href="https://future.futureverse.org/reference/multisession.html" class="external-link">future::multisession</a></code>.</p>
-<div class="sourceCode" id="cb47"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parallel_optim.html">parallel_optim</a></span><span class="op">(</span></span>
-<span>  FUN <span class="op">=</span> <span class="va">optim_mlr</span>,</span>
-<span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    N            <span class="op">=</span> <span class="va">N</span>,</span>
-<span>    target_mean  <span class="op">=</span> <span class="va">target_mean</span>,</span>
-<span>    target_sd    <span class="op">=</span> <span class="va">target_sd</span>,</span>
-<span>    range        <span class="op">=</span> <span class="va">range_matrix</span>,</span>
-<span>    integer      <span class="op">=</span> <span class="va">integer</span>,</span>
-<span>    reg_equation <span class="op">=</span> <span class="va">reg_equation</span>,</span>
-<span>    target_cor   <span class="op">=</span> <span class="va">target_cor</span>,</span>
-<span>    target_reg   <span class="op">=</span> <span class="va">target_reg</span>,</span>
-<span>    target_se    <span class="op">=</span> <span class="va">target_se</span>,</span>
-<span>    thresh       <span class="op">=</span> <span class="fl">.0005</span>,</span>
-<span>    weight       <span class="op">=</span> <span class="fl">.9</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  runs  <span class="op">=</span> <span class="fl">6</span>, <span class="co"># change later</span></span>
-<span>  cores <span class="op">=</span> <span class="fl">6</span>, </span>
-<span>  seed  <span class="op">=</span> <span class="fl">2026</span></span>
+<p>With <code>stop_conv = TRUE</code>, <code><a href="../reference/parallel_optim.html">parallel_optim()</a></code>
+stops launching runs once a run has converged. With
+<code>cores &gt; 1</code>, runs are dispatched in batches of
+<code>cores</code>, so a whole batch completes before the check:</p>
+<div class="sourceCode" id="cb57"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_first_aov</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/parallel_optim.html">parallel_optim</a></span><span class="op">(</span></span>
+<span>  FUN       <span class="op">=</span> <span class="va">optim_aov</span>,</span>
+<span>  args      <span class="op">=</span> <span class="va">sumstats</span>,</span>
+<span>  runs      <span class="op">=</span> <span class="fl">12</span>,</span>
+<span>  cores     <span class="op">=</span> <span class="fl">6</span>,</span>
+<span>  seed      <span class="op">=</span> <span class="fl">2026</span>,</span>
+<span>  stop_conv <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span></code></pre></div>
-<div class="section level4">
-<h4 id="inspect-3">Inspect<a class="anchor" aria-label="anchor" href="#inspect-3"></a>
-</h4>
-<div class="sourceCode" id="cb48"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel</span></span>
+<div class="sourceCode" id="cb58"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">result_first_aov</span></span>
 <span><span class="co">#&gt; stats2data parallel result</span></span>
-<span><span class="co">#&gt;   Module: mlr </span></span>
-<span><span class="co">#&gt;   Runs:   6 </span></span>
-<span><span class="co">#&gt;   Best error (across runs): 0.00050209 </span></span>
-<span><span class="co">#&gt;   Mean error (across runs): 0.000536122</span></span></code></pre></div>
-<div class="sourceCode" id="cb49"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">result.parallel</span><span class="op">)</span></span>
-<span><span class="co">#&gt; stats2data Parallel Summary</span></span>
-<span><span class="co">#&gt; -----------------------------------------------</span></span>
-<span><span class="co">#&gt; Module: mlr  | Runs: 6 </span></span>
-<span><span class="co">#&gt; Best error:  0.00050209 </span></span>
-<span><span class="co">#&gt; Mean error:  0.000536122 </span></span>
-<span><span class="co">#&gt; SD error:    2.85285e-05 </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Target RMSE (across runs):</span></span>
-<span><span class="co">#&gt;    metric      mean        sd       min       max</span></span>
-<span><span class="co">#&gt;  rmse_cor 2.028e-05 1.533e-05 4.311e-06 3.906e-05</span></span>
-<span><span class="co">#&gt;  rmse_reg 2.117e-03 3.748e-04 1.665e-03 2.578e-03</span></span>
-<span><span class="co">#&gt;   rmse_se 7.514e-03 3.256e-04 7.189e-03 7.992e-03</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Between-run RMSE:</span></span>
-<span><span class="co">#&gt;    metric      mean        sd       min       max</span></span>
-<span><span class="co">#&gt;  rmse_cor 1.566e-05 7.450e-06 6.615e-06 2.495e-05</span></span>
-<span><span class="co">#&gt;  rmse_reg 8.606e-04 4.203e-04 1.278e-04 1.315e-03</span></span>
-<span><span class="co">#&gt;   rmse_se 4.587e-04 1.351e-04 2.495e-04 6.047e-04</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; Aggregated Statistics:</span></span>
-<span><span class="co">#&gt;   reg:</span></span>
-<span><span class="co">#&gt;                 mean   median        sd      min      max</span></span>
-<span><span class="co">#&gt; (Intercept) 4.020097 4.020194 0.0005180 4.019194 4.020581</span></span>
-<span><span class="co">#&gt; Apnea.1     0.024243 0.024171 0.0005333 0.023651 0.024900</span></span>
-<span><span class="co">#&gt; Apnea.2     0.007082 0.007609 0.0017443 0.004736 0.008796</span></span>
-<span><span class="co">#&gt; Depression  0.434473 0.434578 0.0008163 0.433010 0.435484</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   se:</span></span>
-<span><span class="co">#&gt;                mean  median        sd     min     max</span></span>
-<span><span class="co">#&gt; (Intercept) 1.70225 1.69947 0.0510956 1.64763 1.77126</span></span>
-<span><span class="co">#&gt; Apnea.1     0.02667 0.02665 0.0004020 0.02621 0.02721</span></span>
-<span><span class="co">#&gt; Apnea.2     0.03729 0.03732 0.0004598 0.03660 0.03785</span></span>
-<span><span class="co">#&gt; Depression  0.06526 0.06535 0.0006627 0.06449 0.06614</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   cor:</span></span>
-<span><span class="co">#&gt;      mean    median        sd      min     max</span></span>
-<span><span class="co">#&gt; 1 0.03020 -0.006912 1.942e-01 -0.18818 0.27143</span></span>
-<span><span class="co">#&gt; 2 0.02826  0.027771 4.504e-03  0.02328 0.03596</span></span>
-<span><span class="co">#&gt; 3 0.26478  0.270856 3.035e-02  0.22768 0.30155</span></span>
-<span><span class="co">#&gt; 4 0.11000  0.110000 1.567e-06  0.11000 0.11000</span></span>
-<span><span class="co">#&gt; 5 0.20000  0.200000 3.970e-06  0.19999 0.20000</span></span>
-<span><span class="co">#&gt; 6 0.68003  0.680030 3.212e-05  0.67999 0.68007</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   mean:</span></span>
-<span><span class="co">#&gt;            mean median        sd  min  max</span></span>
-<span><span class="co">#&gt; Apnea.1    48.8   48.8 0.0005433 48.8 48.8</span></span>
-<span><span class="co">#&gt; Apnea.2    17.3   17.3 0.0005423 17.3 17.3</span></span>
-<span><span class="co">#&gt; Depression 12.6   12.6 0.0000000 12.6 12.6</span></span>
-<span><span class="co">#&gt; Fatigue    10.8   10.8 0.0000000 10.8 10.8</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt;   sd:</span></span>
-<span><span class="co">#&gt;              mean median        sd    min    max</span></span>
-<span><span class="co">#&gt; Apnea.1    27.100 27.100 4.935e-05 27.100 27.100</span></span>
-<span><span class="co">#&gt; Apnea.2    20.100 20.100 2.560e-05 20.100 20.100</span></span>
-<span><span class="co">#&gt; Depression 11.299 11.299 3.062e-03 11.296 11.304</span></span>
-<span><span class="co">#&gt; Fatigue     7.301  7.302 2.398e-03  7.297  7.304</span></span></code></pre></div>
-<div class="sourceCode" id="cb50"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_stats.html">get_stats</a></span><span class="op">(</span><span class="va">result.parallel</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $reg</span></span>
-<span><span class="co">#&gt;                    mean      median           sd         min        max</span></span>
-<span><span class="co">#&gt; (Intercept) 4.020096650 4.020193969 0.0005179723 4.019194197 4.02058099</span></span>
-<span><span class="co">#&gt; Apnea.1     0.024242507 0.024170712 0.0005332882 0.023651387 0.02490021</span></span>
-<span><span class="co">#&gt; Apnea.2     0.007081759 0.007608737 0.0017442654 0.004736021 0.00879606</span></span>
-<span><span class="co">#&gt; Depression  0.434472644 0.434577722 0.0008163250 0.433009943 0.43548442</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $se</span></span>
-<span><span class="co">#&gt;                   mean     median           sd        min        max</span></span>
-<span><span class="co">#&gt; (Intercept) 1.70225181 1.69947246 0.0510956242 1.64762594 1.77126235</span></span>
-<span><span class="co">#&gt; Apnea.1     0.02666961 0.02664888 0.0004020023 0.02620926 0.02721107</span></span>
-<span><span class="co">#&gt; Apnea.2     0.03728995 0.03731943 0.0004597749 0.03659937 0.03785453</span></span>
-<span><span class="co">#&gt; Depression  0.06526416 0.06534728 0.0006626912 0.06448979 0.06613911</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $cor</span></span>
-<span><span class="co">#&gt;         mean       median           sd         min        max</span></span>
-<span><span class="co">#&gt; 1 0.03019677 -0.006911876 1.941855e-01 -0.18817935 0.27143247</span></span>
-<span><span class="co">#&gt; 2 0.02825867  0.027770640 4.504029e-03  0.02327845 0.03596013</span></span>
-<span><span class="co">#&gt; 3 0.26478090  0.270856196 3.035441e-02  0.22767678 0.30154749</span></span>
-<span><span class="co">#&gt; 4 0.11000041  0.109999892 1.566710e-06  0.10999910 0.11000350</span></span>
-<span><span class="co">#&gt; 5 0.19999847  0.199999694 3.970433e-06  0.19999053 0.20000163</span></span>
-<span><span class="co">#&gt; 6 0.68003072  0.680029670 3.211680e-05  0.67998762 0.68006699</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $mean</span></span>
-<span><span class="co">#&gt;            mean median           sd      min     max</span></span>
-<span><span class="co">#&gt; Apnea.1    48.8   48.8 0.0005433328 48.79950 48.8005</span></span>
-<span><span class="co">#&gt; Apnea.2    17.3   17.3 0.0005422941 17.29951 17.3005</span></span>
-<span><span class="co">#&gt; Depression 12.6   12.6 0.0000000000 12.60000 12.6000</span></span>
-<span><span class="co">#&gt; Fatigue    10.8   10.8 0.0000000000 10.80000 10.8000</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $sd</span></span>
-<span><span class="co">#&gt;                 mean   median           sd       min      max</span></span>
-<span><span class="co">#&gt; Apnea.1    27.099562 27.09957 4.934624e-05 27.099502 27.09962</span></span>
-<span><span class="co">#&gt; Apnea.2    20.099549 20.09955 2.560180e-05 20.099512 20.09958</span></span>
-<span><span class="co">#&gt; Depression 11.299267 11.29902 3.061824e-03 11.296017 11.30352</span></span>
-<span><span class="co">#&gt; Fatigue     7.300955  7.30173 2.397808e-03  7.297086  7.30405</span></span></code></pre></div>
-<div class="sourceCode" id="cb51"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.parallel</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $between_rmse</span></span>
-<span><span class="co">#&gt;     metric         mean           sd          min          max</span></span>
-<span><span class="co">#&gt; 1 rmse_cor 1.566308e-05 7.450092e-06 6.615069e-06 2.495034e-05</span></span>
-<span><span class="co">#&gt; 2 rmse_reg 8.605793e-04 4.203199e-04 1.277508e-04 1.314759e-03</span></span>
-<span><span class="co">#&gt; 3  rmse_se 4.586747e-04 1.351313e-04 2.495015e-04 6.046591e-04</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $target_rmse</span></span>
-<span><span class="co">#&gt;     metric         mean           sd          min          max</span></span>
-<span><span class="co">#&gt; 1 rmse_cor 2.027648e-05 1.532695e-05 4.311120e-06 3.906161e-05</span></span>
-<span><span class="co">#&gt; 2 rmse_reg 2.116698e-03 3.747900e-04 1.664871e-03 2.578041e-03</span></span>
-<span><span class="co">#&gt; 3  rmse_se 7.514274e-03 3.255917e-04 7.189221e-03 7.991757e-03</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw</span></span>
-<span><span class="co">#&gt; $raw$between</span></span>
-<span><span class="co">#&gt; $raw$between$rmse_cor</span></span>
-<span><span class="co">#&gt; [1] 7.812845e-06 2.144301e-05 1.405975e-05 1.909750e-05 2.495034e-05</span></span>
-<span><span class="co">#&gt; [6] 6.615069e-06</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$between$rmse_reg</span></span>
-<span><span class="co">#&gt; [1] 0.0013147586 0.0007144410 0.0008086846 0.0001277508 0.0010645334</span></span>
-<span><span class="co">#&gt; [6] 0.0011333077</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$between$rmse_se</span></span>
-<span><span class="co">#&gt; [1] 0.0003694796 0.0005873559 0.0004436755 0.0004973767 0.0006046591</span></span>
-<span><span class="co">#&gt; [6] 0.0002495015</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$target</span></span>
-<span><span class="co">#&gt; $raw$target$rmse_cor</span></span>
-<span><span class="co">#&gt; [1] 9.958513e-06 3.906161e-05 4.311120e-06 3.681067e-05 7.210422e-06</span></span>
-<span><span class="co">#&gt; [6] 2.430657e-05</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$target$rmse_reg</span></span>
-<span><span class="co">#&gt; [1] 0.002253076 0.001738333 0.001664871 0.002013190 0.002452674 0.002578041</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $raw$target$rmse_se</span></span>
-<span><span class="co">#&gt; [1] 0.007768936 0.007191238 0.007363473 0.007991757 0.007189221 0.007581016</span></span></code></pre></div>
+<span><span class="co">#&gt;   Module: aov </span></span>
+<span><span class="co">#&gt;   Runs:   6 of 12 (stopped early)</span></span>
+<span><span class="co">#&gt;   Converged: TRUE (thresh = 0.005 )</span></span>
+<span><span class="co">#&gt;   Best objective (across runs): 0.00317099 </span></span>
+<span><span class="co">#&gt;   Mean objective (across runs): 0.00411833</span></span></code></pre></div>
+<p>6 of 12 requested runs were completed.</p>
 </div>
-<div class="section level4">
-<h4 id="rmse-distribution-1">RMSE distribution<a class="anchor" aria-label="anchor" href="#rmse-distribution-1"></a>
-</h4>
-<div class="sourceCode" id="cb52"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/graphics/plot.default.html" class="external-link">plot</a></span><span class="op">(</span><span class="va">result.parallel</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/par-plot-1.png" class="r-plt" alt="Between-run vs. target RMSE distribution across parallel MLR runs." width="800" style="display: block; margin: auto auto auto 0;"></p>
-</div>
-<div class="section level4">
-<h4 id="aggregated-target-vs-simulated-comparison-1">Aggregated target-vs-simulated comparison<a class="anchor" aria-label="anchor" href="#aggregated-target-vs-simulated-comparison-1"></a>
-</h4>
-<div class="sourceCode" id="cb53"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_summary.html">plot_summary</a></span><span class="op">(</span><span class="va">result.parallel</span>, standardised <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<p><img src="stats2data_application_files/figure-html/par-summary-plot-1.png" class="r-plt" alt="Across-run aggregated target-vs-simulated lollipop chart for parallel MLR runs." width="800" style="display: block; margin: auto auto auto 0;"></p>
-<p>The single best run is accessible via <code>$best</code> and supports
-the same S3 methods as a stand-alone result:</p>
-<div class="sourceCode" id="cb54"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">result.parallel</span><span class="op">$</span><span class="va">best</span></span>
-<span><span class="co">#&gt; stats2data MLR result</span></span>
-<span><span class="co">#&gt;   N:          60 </span></span>
-<span><span class="co">#&gt;   Equation:   Fatigue ~ Apnea.1 + Apnea.2 + Depression </span></span>
-<span><span class="co">#&gt;   Best error: 0.00050209</span></span>
-<span><span class="fu"><a href="../reference/get_rmse.html">get_rmse</a></span><span class="op">(</span><span class="va">result.parallel</span><span class="op">$</span><span class="va">best</span><span class="op">)</span></span>
-<span><span class="co">#&gt; $rmse_cor</span></span>
-<span><span class="co">#&gt; [1] 4.31112e-06</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $rmse_reg</span></span>
-<span><span class="co">#&gt; [1] 0.001664871</span></span>
-<span><span class="co">#&gt; </span></span>
-<span><span class="co">#&gt; $rmse_se</span></span>
-<span><span class="co">#&gt; [1] 0.007363473</span></span></code></pre></div>
-</div>
-</div>
-</div>
-<div class="section level2">
-<h2 id="shiny-interface">3. Shiny interface<a class="anchor" aria-label="anchor" href="#shiny-interface"></a>
-</h2>
-<p>A point-and-click interface to all three modules is launched via:</p>
-<div class="sourceCode" id="cb55"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/run_app.html">run_app</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="references">References<a class="anchor" aria-label="anchor" href="#references"></a>
 </h2>
 <ul>
-<li>Bardwell, W. A., Moore, P., Ancoli-Israel, S., &amp; Dimsdale, J. E.
-(2003). Fatigue in obstructive sleep apnea: driven by depressive
-symptoms instead of apnea severity?. The American journal of psychiatry,
-160(2), 350–355. <a href="https://doi.org/10.1176/appi.ajp.160.2.350" class="external-link uri">https://doi.org/10.1176/appi.ajp.160.2.350</a>
-</li>
 <li>Bardwell, W. A., Ancoli-Israel, S., &amp; Dimsdale, J. E. (2007).
 Comparison of the effects of depressive symptoms and apnea severity on
-fatigue in patients with obstructive sleep apnea: a replication study.
-Journal of affective disorders, 97(1-3), 181–186. <a href="https://doi.org/10.1016/j.jad.2006.06.013" class="external-link uri">https://doi.org/10.1016/j.jad.2006.06.013</a>
+fatigue in patients with obstructive sleep apnea: A replication study.
+<em>Journal of Affective Disorders, 97</em>(1-3), 181-186. <a href="https://doi.org/10.1016/j.jad.2006.06.013" class="external-link uri">https://doi.org/10.1016/j.jad.2006.06.013</a>
 </li>
-<li>Brown, N. J. L., &amp; Heathers, J. A. J. (2017). The GRIM Test: A
-Simple Technique Detects Numerous Anomalies in the Reporting of Results
-in Psychology. Social Psychological and Personality Science, 8(4),
-363–369. <a href="https://doi.org/10.1177/1948550616673876" class="external-link uri">https://doi.org/10.1177/1948550616673876</a>
+<li>Bengtsson, H. (2021). A unifying framework for parallel and
+distributed processing in R using futures. <em>The R Journal,
+13</em>(2), 208-227. <a href="https://doi.org/10.32614/RJ-2021-048" class="external-link uri">https://doi.org/10.32614/RJ-2021-048</a>
+</li>
+<li>Brown, N. J. L., &amp; Heathers, J. A. J. (2017). The GRIM test: A
+simple technique detects numerous anomalies in the reporting of results
+in psychology. <em>Social Psychological and Personality Science,
+8</em>(4), 363-369. <a href="https://doi.org/10.1177/1948550616673876" class="external-link uri">https://doi.org/10.1177/1948550616673876</a>
+</li>
+<li>Heathers, J. A., Anaya, J., van der Zee, T., &amp; Brown, N. J. L.
+(2018). Recovering data from summary statistics: Sample Parameter
+Reconstruction via Iterative TEchniques (SPRITE). <em>PeerJ Preprints,
+6</em>, e26968v1. <a href="https://doi.org/10.7287/peerj.preprints.26968v1" class="external-link uri">https://doi.org/10.7287/peerj.preprints.26968v1</a>
 </li>
 <li>Open Science Collaboration. (2015). Estimating the reproducibility
-of psychological science. Science, 349(6251), aac4716. <a href="https://doi.org/10.1126/science.aac4716" class="external-link uri">https://doi.org/10.1126/science.aac4716</a>
+of psychological science. <em>Science, 349</em>(6251), aac4716. <a href="https://doi.org/10.1126/science.aac4716" class="external-link uri">https://doi.org/10.1126/science.aac4716</a>
 </li>
 <li>Reynolds, M., &amp; Besner, D. (2008). Contextual effects on reading
-aloud: Evidence for pathway control. Journal of Experimental Psychology:
-Learning, Memory, and Cognition, 34(1), 50–64. <a href="https://doi.org/10.1037/0278-7393.34.1.50" class="external-link uri">https://doi.org/10.1037/0278-7393.34.1.50</a>
+aloud: Evidence for pathway control. <em>Journal of Experimental
+Psychology: Learning, Memory, and Cognition, 34</em>(1), 50-64. <a href="https://doi.org/10.1037/0278-7393.34.1.50" class="external-link uri">https://doi.org/10.1037/0278-7393.34.1.50</a>
 </li>
 </ul>
 </div>

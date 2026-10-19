@@ -63,7 +63,10 @@ optim_mlr(
 - target_cor:
 
   Numeric vector. Target upper-triangular (excluding diagonal)
-  correlation values for predictor and outcome variables.
+  correlation values of all variables in `target_mean`, ordered as
+  [`upper.tri()`](https://rdrr.io/r/base/lower.tri.html) of the
+  correlation matrix with rows and columns in the order of
+  `target_mean`; `NA` for unreported correlations.
 
 - target_reg:
 
@@ -86,12 +89,13 @@ optim_mlr(
 
 - weight:
 
-  Numeric vector of length 2. Weights for correlation vs. regression
-  error in the objective function. Default `c(1, 1)`.
+  Numeric in \[0, 1\]. Weight of the correlation error in the objective
+  function; the regression error is weighted by `1 - weight`. Default
+  `0.5`.
 
 - thresh:
 
-  Numeric. Convergence threshold. Default `1e-6`.
+  Numeric. Convergence threshold. Default `5e-3`.
 
 - max_iter:
 
@@ -99,7 +103,9 @@ optim_mlr(
 
 - init_temp:
 
-  Numeric. Initial SA temperature. Default `1`.
+  Numeric or `NULL`. Initial SA temperature; if `NULL`, it is set such
+  that the median objective change of 500 random swaps is accepted with
+  probability 0.5. Default `NULL`.
 
 - cooling_rate:
 
@@ -107,12 +113,12 @@ optim_mlr(
 
 - max_starts:
 
-  Integer. Number of restarts. Default `1`.
+  Integer. Number of restarts. Default `3`.
 
 - hill_climbs:
 
   Integer or NULL. Number of hill-climbing iterations for optional local
-  refinement; if NULL, skips refinement. Default `NULL`.
+  refinement; if NULL or 0, skips refinement. Default `1e4`.
 
 - progress_mode:
 
@@ -120,9 +126,9 @@ optim_mlr(
 
 ## Value
 
-A `stats2data.object` list with components:
+An object of class `stats2data_mlr`, a list with components:
 
-- best_error:
+- best_objective:
 
   Numeric. Minimum objective error achieved.
 
@@ -132,18 +138,20 @@ A `stats2data.object` list with components:
 
 - optim_vec:
 
-  The `stats2data.object` returned by the internal `optim_vec` call
+  The `stats2data_vec` object returned by the internal `optim_vec` call
   (marginal optimization results).
 
 - inputs:
 
-  List of all input parameters for reproducibility.
+  List of the input parameters as used internally: `weight` as
+  `c(weight, 1 - weight)`, `target_cor` reordered to (predictors,
+  outcome), and the set `init_temp` and `cooling_rate`.
 
-- track_error:
+- track_objective:
 
-  Numeric vector of best error at each iteration.
+  Numeric vector of best objective value at each iteration.
 
-- track_error_ratio:
+- track_objective_ratio:
 
   Numeric vector of error ratios (cor vs. reg) per iteration.
 

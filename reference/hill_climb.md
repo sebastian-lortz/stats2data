@@ -1,7 +1,7 @@
 # Perform hill-climbing optimization
 
 Executes a hill-climbing algorithm to iteratively improve a candidate
-data set by minimizing a supplied error function. Supports the LM
+data set by minimizing a supplied error function. Supports the MLR
 module.
 
 ## Usage
@@ -69,7 +69,7 @@ A list with components:
 
   The optimised candidate matrix achieving lowest error.
 
-- best_error:
+- best_objective:
 
   Numeric. The minimum objective function value found.
 

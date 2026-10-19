@@ -106,7 +106,10 @@ data; length 1 or same length as <code>target_mean</code>.</p></dd>
 
 <dt id="arg-target-cor">target_cor<a class="anchor" aria-label="anchor" href="#arg-target-cor"></a></dt>
 <dd><p>Numeric vector. Target upper-triangular (excluding
-diagonal) correlation values for predictor and outcome variables.</p></dd>
+diagonal) correlation values of all variables in <code>target_mean</code>,
+ordered as <code><a href="https://rdrr.io/r/base/lower.tri.html" class="external-link">upper.tri()</a></code> of the correlation matrix with rows and
+columns in the order of <code>target_mean</code>; <code>NA</code> for unreported
+correlations.</p></dd>
 
 
 <dt id="arg-target-reg">target_reg<a class="anchor" aria-label="anchor" href="#arg-target-reg"></a></dt>
@@ -131,12 +134,13 @@ Default <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-weight">weight<a class="anchor" aria-label="anchor" href="#arg-weight"></a></dt>
-<dd><p>Numeric vector of length 2. Weights for correlation vs.
-regression error in the objective function. Default <code>c(1, 1)</code>.</p></dd>
+<dd><p>Numeric in [0, 1]. Weight of the correlation error in the
+objective function; the regression error is weighted by
+<code>1 - weight</code>. Default <code>0.5</code>.</p></dd>
 
 
 <dt id="arg-thresh">thresh<a class="anchor" aria-label="anchor" href="#arg-thresh"></a></dt>
-<dd><p>Numeric. Convergence threshold. Default <code>1e-6</code>.</p></dd>
+<dd><p>Numeric. Convergence threshold. Default <code>5e-3</code>.</p></dd>
 
 
 <dt id="arg-max-iter">max_iter<a class="anchor" aria-label="anchor" href="#arg-max-iter"></a></dt>
@@ -144,7 +148,9 @@ regression error in the objective function. Default <code>c(1, 1)</code>.</p></d
 
 
 <dt id="arg-init-temp">init_temp<a class="anchor" aria-label="anchor" href="#arg-init-temp"></a></dt>
-<dd><p>Numeric. Initial SA temperature. Default <code>1</code>.</p></dd>
+<dd><p>Numeric or <code>NULL</code>. Initial SA temperature; if
+<code>NULL</code>, it is set such that the median objective change of 500
+random swaps is accepted with probability 0.5. Default <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-cooling-rate">cooling_rate<a class="anchor" aria-label="anchor" href="#arg-cooling-rate"></a></dt>
@@ -153,12 +159,13 @@ Default <code>NULL</code>.</p></dd>
 
 
 <dt id="arg-max-starts">max_starts<a class="anchor" aria-label="anchor" href="#arg-max-starts"></a></dt>
-<dd><p>Integer. Number of restarts. Default <code>1</code>.</p></dd>
+<dd><p>Integer. Number of restarts. Default <code>3</code>.</p></dd>
 
 
 <dt id="arg-hill-climbs">hill_climbs<a class="anchor" aria-label="anchor" href="#arg-hill-climbs"></a></dt>
 <dd><p>Integer or NULL. Number of hill-climbing iterations for
-optional local refinement; if NULL, skips refinement. Default <code>NULL</code>.</p></dd>
+optional local refinement; if NULL or 0, skips refinement.
+Default <code>1e4</code>.</p></dd>
 
 
 <dt id="arg-progress-mode">progress_mode<a class="anchor" aria-label="anchor" href="#arg-progress-mode"></a></dt>
@@ -168,23 +175,26 @@ optional local refinement; if NULL, skips refinement. Default <code>NULL</code>.
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>A <code>stats2data.object</code> list with components:</p><dl><dt>best_error</dt>
+    <p>An object of class <code>stats2data_mlr</code>, a list with components:</p><dl><dt>best_objective</dt>
 <dd><p>Numeric. Minimum objective error achieved.</p></dd>
 
   <dt>data</dt>
 <dd><p>Data frame of optimised predictor and outcome values.</p></dd>
 
   <dt>optim_vec</dt>
-<dd><p>The <code>stats2data.object</code> returned by the internal
+<dd><p>The <code>stats2data_vec</code> object returned by the internal
     <code>optim_vec</code> call (marginal optimization results).</p></dd>
 
   <dt>inputs</dt>
-<dd><p>List of all input parameters for reproducibility.</p></dd>
+<dd><p>List of the input parameters as used internally:
+    <code>weight</code> as <code>c(weight, 1 - weight)</code>, <code>target_cor</code>
+    reordered to (predictors, outcome), and the set
+    <code>init_temp</code> and <code>cooling_rate</code>.</p></dd>
 
-  <dt>track_error</dt>
-<dd><p>Numeric vector of best error at each iteration.</p></dd>
+  <dt>track_objective</dt>
+<dd><p>Numeric vector of best objective value at each iteration.</p></dd>
 
-  <dt>track_error_ratio</dt>
+  <dt>track_objective_ratio</dt>
 <dd><p>Numeric vector of error ratios (cor vs. reg)
     per iteration.</p></dd>
 

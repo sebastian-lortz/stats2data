@@ -83,7 +83,7 @@ seed is generated per run. Default <code>NULL</code>.</p></dd>
 
 <dt id="arg-stop-conv">stop_conv<a class="anchor" aria-label="anchor" href="#arg-stop-conv"></a></dt>
 <dd><p>Logical. If <code>TRUE</code>, stop launching further runs as
-soon as one run has converged, i.e. its <code>best_error</code> is below the
+soon as one run has converged, i.e. its <code>best_objective</code> is below the
 convergence threshold. Default <code>FALSE</code>.</p></dd>
 
 
@@ -101,7 +101,7 @@ always execute silently. Default <code>"console"</code>.</p></dd>
     <code>stats2data_mlr</code>, or <code>stats2data_aov</code>).</p></dd>
 
   <dt>best</dt>
-<dd><p>The single result with the lowest <code>best_error</code>.</p></dd>
+<dd><p>The single result with the lowest <code>best_objective</code>.</p></dd>
 
   <dt>module</dt>
 <dd><p>Character. One of <code>"vec"</code>, <code>"mlr"</code>, or
@@ -132,8 +132,8 @@ batches of <code>cores</code> and the convergence check happens after each batch
 Up to <code>cores - 1</code> runs may therefore complete after the first
 converged run; they are kept in <code>results</code>. With
 <code>stop_conv = FALSE</code> all runs are dispatched in a single call, as before.</p>
-<p>Convergence of a single run is judged as <code>best_error &lt; thresh</code>. For
-<code>stats2data_vec</code> results, where <code>best_error</code> is a list of
+<p>Convergence of a single run is judged as <code>best_objective &lt; thresh</code>. For
+<code>stats2data_vec</code> results, where <code>best_objective</code> is a list of
 per-variable errors, every component must be below <code>thresh</code>.</p>
     </div>
 
