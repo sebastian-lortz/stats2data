@@ -60,8 +60,14 @@ object, returned invisibly.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-res <- optim_aov(...)
-plot_cooling(res)
-} # }
+set.seed(1)
+res_aov <- optim_aov(
+  S = 20, levels = 2, target_group_means = c(4, 6),
+  target_f_list = list(effect = "Factor1", F_value = 10),
+  integer = FALSE, range = c(0, 10), formula = "outcome ~ Factor1",
+  factor_type = "between", max_iter = 200, max_starts = 1,
+  progress_mode = "off"
+)
+plot_cooling(res_aov)
+
 ```

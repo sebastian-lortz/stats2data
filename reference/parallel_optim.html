@@ -139,22 +139,71 @@ per-variable errors, every component must be below <code>thresh</code>.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="co"># Parallel ANOVA runs</span></span></span>
-<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">parallel_optim</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  FUN  <span class="op">=</span> <span class="va">optim_aov</span>,</span></span>
-<span class="r-in"><span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>S <span class="op">=</span> <span class="fl">30</span>, levels <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2</span>, <span class="fl">2</span><span class="op">)</span>, <span class="va">...</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  runs <span class="op">=</span> <span class="fl">20</span>, cores <span class="op">=</span> <span class="fl">4</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">args_mlr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  N <span class="op">=</span> <span class="fl">30</span>, target_mean <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X1 <span class="op">=</span> <span class="fl">3.93</span>, X2 <span class="op">=</span> <span class="fl">3.83</span>, Y <span class="op">=</span> <span class="fl">4.17</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  target_sd <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>X1 <span class="op">=</span> <span class="fl">1.44</span>, X2 <span class="op">=</span> <span class="fl">1.70</span>, Y <span class="op">=</span> <span class="fl">1.34</span><span class="op">)</span>, range <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">7</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  integer <span class="op">=</span> <span class="cn">TRUE</span>, target_cor <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.22</span>, <span class="fl">0.49</span>, <span class="fl">0.42</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  target_reg <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1.65</span>, <span class="fl">0.39</span>, <span class="fl">0.26</span><span class="op">)</span>, reg_equation <span class="op">=</span> <span class="st">"Y ~ X1 + X2"</span>,</span></span>
+<span class="r-in"><span>  max_iter <span class="op">=</span> <span class="fl">2000</span>, max_starts <span class="op">=</span> <span class="fl">1</span>, hill_climbs <span class="op">=</span> <span class="fl">100</span>,</span></span>
+<span class="r-in"><span>  progress_mode <span class="op">=</span> <span class="st">"off"</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">parallel_optim</span><span class="op">(</span><span class="va">optim_mlr</span>, <span class="va">args_mlr</span>, runs <span class="op">=</span> <span class="fl">3</span>, seed <span class="op">=</span> <span class="fl">2026</span>,</span></span>
+<span class="r-in"><span>                      progress_mode <span class="op">=</span> <span class="st">"off"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/summary.html" class="external-link">summary</a></span><span class="op">(</span><span class="va">res</span><span class="op">)</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> stats2data Parallel Summary</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> -----------------------------------------------</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Module: mlr  | Runs: 3 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Best objective:  0.001472 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Mean error:  0.00407244 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> SD error:    0.0045041 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Target RMSE (across runs):</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    metric     mean       sd      min      max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  rmse_cor 0.004317 0.006338 0.000658 0.011636</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  rmse_reg 0.003828 0.002670 0.002286 0.006911</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Between-run RMSE:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>    metric     mean       sd      min      max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  rmse_cor 0.005298 0.002294 0.003973 0.007946</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  rmse_reg 0.003248 0.001406 0.002436 0.004872</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Aggregated Statistics:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   reg:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               mean median       sd    min    max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 1.6489 1.6466 0.004068 1.6466 1.6536</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X1          0.3911 0.3890 0.003675 0.3890 0.3953</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X2          0.2555 0.2583 0.004832 0.2499 0.2583</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   se:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>               mean median        sd    min    max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> (Intercept) 0.7066 0.7043 0.0039186 0.7043 0.7111</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X1          0.1495 0.1495 0.0001142 0.1495 0.1497</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X2          0.1261 0.1260 0.0000963 0.1260 0.1262</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   cor:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     mean median       sd    min    max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 1 0.2160 0.2207 0.008133 0.2066 0.2207</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 2 0.4891 0.4891 0.000000 0.4891 0.4891</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> 3 0.4150 0.4200 0.008713 0.4050 0.4200</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   mean:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     mean median sd   min   max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X1 3.933  3.933  0 3.933 3.933</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X2 3.833  3.833  0 3.833 3.833</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y  4.167  4.167  0 4.167 4.167</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>   sd:</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>     mean median sd   min   max</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X1 1.437  1.437  0 1.437 1.437</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> X2 1.704  1.704  0 1.704 1.704</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> Y  1.341  1.341  0 1.341 1.341</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-in"><span></span></span>
-<span class="r-in"><span><span class="co"># Stop as soon as one run converges</span></span></span>
-<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">parallel_optim</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  FUN  <span class="op">=</span> <span class="va">optim_mlr</span>,</span></span>
-<span class="r-in"><span>  args <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>N <span class="op">=</span> <span class="fl">100</span>, thresh <span class="op">=</span> <span class="fl">1e-3</span>, <span class="va">...</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  runs <span class="op">=</span> <span class="fl">20</span>, cores <span class="op">=</span> <span class="fl">4</span>, stop_conv <span class="op">=</span> <span class="cn">TRUE</span></span></span>
-<span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
+<span class="r-in"><span><span class="co"># stop as soon as one run reaches the threshold</span></span></span>
+<span class="r-in"><span><span class="va">res</span> <span class="op">&lt;-</span> <span class="fu">parallel_optim</span><span class="op">(</span><span class="va">optim_mlr</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">args_mlr</span>, thresh <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span>, runs <span class="op">=</span> <span class="fl">3</span>,</span></span>
+<span class="r-in"><span>                      seed <span class="op">=</span> <span class="fl">2026</span>, stop_conv <span class="op">=</span> <span class="cn">TRUE</span>, progress_mode <span class="op">=</span> <span class="st">"off"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="va">res</span><span class="op">$</span><span class="va">runs</span></span></span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [1] 1</span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

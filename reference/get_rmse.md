@@ -71,12 +71,16 @@ elements:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 res <- optim_vec(
   N = 50, target_mean = c(x = 5), target_sd = c(x = 1),
   range = c(0, 10), integer = FALSE, sprite_prec = c(2, 2),
   max_iter = 1e4, max_starts = 1, progress_mode = "off"
 )
 get_rmse(res)
-} # }
+#> $rmse_mean
+#> [1] 0.004910223
+#> 
+#> $rmse_sd
+#> [1] 0.002508221
+#> 
 ```

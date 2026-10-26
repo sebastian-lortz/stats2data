@@ -45,8 +45,18 @@ A list with components:
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
 check_grim(n = 10, target_mean = 3.7, decimals = 1)
+#> $test
+#> [1] TRUE
+#> 
+#> $grim_mean
+#> [1] 3.7
+#> 
 check_grim(n = 10, target_mean = 3.74, decimals = 2)
-} # }
+#> $test
+#> [1] FALSE
+#> 
+#> $grim_mean
+#> [1] 3.7
+#> 
 ```

@@ -1265,7 +1265,7 @@ statistics.](stats2data_application_files/figure-html/par-fit-1.png)
 
 ``` r
 
-plot_fit(result_par, standardised = FALSE, error_type = "sd")
+plot_fit(result_par, standardised = TRUE)
 ```
 
 ![Across-run differences with mean plus or minus SD error

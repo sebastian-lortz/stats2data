@@ -1,10 +1,12 @@
 # stats2data: Data Simulation from Summary Statistics
 
-We introduce stats2data: A Nonparametric Approach to Data Simulation
-from Summary Statistics. The primary scope of this algorithmic framework
-is to simulate complete raw datasets using only summary statistics,
-giving researchers a way to generate plausible sample data when original
-data are unavailable.
+Simulates complete raw data sets from reported summary statistics, for
+cases where the original data are unavailable. The data are generated
+nonparametrically by simulated annealing so that they reproduce reported
+means and standard deviations, correlations and regression coefficients,
+or cell means and F-values of factorial ANOVA designs. Integer-valued
+data are supported, and a 'shiny' application provides a graphical
+interface.
 
 ## See also
 
@@ -20,3 +22,9 @@ Useful links:
 
 **Maintainer**: Sebastian A. J. Lortz <s.a.j.lortz@gmail.com>
 ([ORCID](https://orcid.org/0009-0007-0281-7996))
+
+Other contributors:
+
+- Marieke E. Timmerman \[contributor\]
+
+- Don van Ravenzwaaij \[contributor\]

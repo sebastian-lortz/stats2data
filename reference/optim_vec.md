@@ -94,8 +94,7 @@ given by `sprite_prec`.
 ## Examples
 
 ``` r
-if (FALSE) { # \dontrun{
-res <- stats2data::optim_vec(
+res <- optim_vec(
   N           = 100,
   target_mean = c(x = 10.23),
   target_sd   = c(x = 2.11),
@@ -103,7 +102,7 @@ res <- stats2data::optim_vec(
   integer     = TRUE,
   sprite_prec = c(2, 2),
   max_iter    = 50000,
-  max_starts  = 2
+  max_starts  = 2,
+  progress_mode = "off"
 )
-} # }
 ```

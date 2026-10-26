@@ -1,4 +1,4 @@
 # License
 
-    YEAR: 2025
-    COPYRIGHT HOLDER: GPL (>= 2)
+    YEAR: 2026
+    COPYRIGHT HOLDER: stats2data authors
