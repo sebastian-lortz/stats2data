@@ -9,7 +9,7 @@ Creates a chart comparing simulated and target summary statistics.
 plot_fit(
   x,
   standardised = TRUE,
-  eps = 0.000000000001,
+  eps = 1e-12,
   error_type = c("range", "sd"),
   order = c("input", "fit"),
   thresh = x$results[[1L]]$inputs$thresh,
@@ -20,7 +20,7 @@ plot_fit(
 plot_fit(
   x,
   standardised = TRUE,
-  eps = 0.000000000001,
+  eps = 1e-12,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...
@@ -30,7 +30,7 @@ plot_fit(
 plot_fit(
   x,
   standardised = TRUE,
-  eps = 0.000000000001,
+  eps = 1e-12,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...
@@ -40,7 +40,7 @@ plot_fit(
 plot_fit(
   x,
   standardised = TRUE,
-  eps = 0.000000000001,
+  eps = 1e-12,
   order = c("input", "fit"),
   thresh = x$inputs$thresh,
   ...

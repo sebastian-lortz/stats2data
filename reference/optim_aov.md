@@ -122,12 +122,12 @@ summary(res)
 #> stats2data ANOVA Summary
 #> -----------------------------------------------
 #> Design:     2 x 2 (between, between)
-#> Subjects:   40 
-#> Best objective: 4.85143e-12 
+#> Subjects:   
+#> Best objective: 5.65762e-12 
 #> 
 #> RMSE
-#>   F-statistics: 1.446e-11 
-#>   Group means:  9.431e-13 
+#>   F-statistics: 1.667e-11 
+#>   Group means:  9.397e-13 
 #> 
 #> -----------------------------------------------
 #> F-values (Target vs. Simulated):

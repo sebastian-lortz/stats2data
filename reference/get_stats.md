@@ -60,14 +60,13 @@ The result is a named list of data frames, one per component (e.g.,
 
 ## Cell ordering for `stats2data_aov`
 
-The vector `$mean` is returned in \*\*sorted-key\*\* cell order (Factor1
-fastest, then Factor2, then Factor3, ...). This matches the order the
-optimiser uses internally and the order in which `target_group_means` is
-consumed by
+The vector `$mean` is returned in lexicographic cell order (Factor1
+slowest, last factor fastest), the same order in which
+`target_group_means` is consumed by
 [`optim_aov`](https://sebastian-lortz.github.io/stats2data/reference/optim_aov.md).
-The returned vector is named with the cell identifier (e.g. `"1_1"`,
-`"1_2"`, `"2_1"`, ...) so the cell each value belongs to is unambiguous
-downstream.
+The vector is named with the cell identifier (e.g. `"1_1"`, `"1_2"`,
+`"2_1"`, `"2_2"` for a 2x2) so the cell each value belongs to is
+unambiguous downstream.
 
 ## Model formula
 

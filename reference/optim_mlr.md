@@ -24,7 +24,7 @@ optim_mlr(
   target_se = NULL,
   weight = 0.5,
   thresh = 0.005,
-  max_iter = 100000,
+  max_iter = 1e+05,
   init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
@@ -80,7 +80,9 @@ optim_mlr(
 - sprite_prec:
 
   Integer vector of length 2. Decimal precision for mean and SD when
-  using SPRITE for integer data. Default `c(2, 2)`.
+  using SPRITE for integer data; must be at least the number of decimals
+  of the means and SDs of the integer variables, because SPRITE does not
+  round the targets. Default `c(2, 2)`.
 
 - target_se:
 
@@ -154,6 +156,16 @@ An object of class `stats2data_mlr`, a list with components:
 - track_objective_ratio:
 
   Numeric vector of error ratios (cor vs. reg) per iteration.
+
+## Details
+
+The marginals are generated first by
+[`optim_vec`](https://sebastian-lortz.github.io/stats2data/reference/optim_vec.md);
+its warnings are passed on with the prefix "Marginal step" (e.g. a
+continuous variable that did not converge, or an integer variable for
+which SPRITE found only an approximate distribution). If no data could
+be generated for a variable, `optim_mlr()` stops and names the variable
+and the reason.
 
 ## Examples
 

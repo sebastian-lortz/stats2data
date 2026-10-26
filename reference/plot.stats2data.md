@@ -35,8 +35,9 @@ plot(x, which = c("stability", "fit"), ...)
 
 ## Value
 
-A [`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html)
-object, returned invisibly.
+The plot is drawn as a side effect; the
+[`ggplot`](https://ggplot2.tidyverse.org/reference/ggplot.html) object
+is returned invisibly.
 
 ## Details
 
