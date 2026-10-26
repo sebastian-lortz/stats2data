@@ -4,7 +4,7 @@
 \name{stats2data-package}
 \alias{stats2data}
 \alias{stats2data-package}
-\title{stats2data: Data Simulation from Summary Statistics}
+\title{stats2data: Nonparametric Data Simulation from Reported Summary Statistics}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
@@ -14,7 +14,6 @@ Simulates complete raw data sets from reported summary statistics, for cases whe
 Useful links:
 \itemize{
   \item \url{https://github.com/sebastian-lortz/stats2data}
-  \item \url{https://sebastian-lortz.github.io/stats2data/}
   \item Report bugs at \url{https://github.com/sebastian-lortz/stats2data/issues}
 }
 

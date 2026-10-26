@@ -19,14 +19,17 @@ system("gfortran --version")# Fortran compiler
 R.version.string
 # Test your app
 devtools::document()
-devtools::run_examples()
-devtools::check(remote = TRUE, manual = TRUE)
+
 
 ## Run checks ----
 ## Check the package before sending to prod
 Sys.setenv('_R_CHECK_SYSTEM_CLOCK_' = 0)
 devtools::test()
 devtools::check()
+devtools::run_examples()
+devtools::check(remote = TRUE, manual = TRUE)
+urlchecker::url_check()
+
 # rhub::check_for_cran()
 
 # Deploy
