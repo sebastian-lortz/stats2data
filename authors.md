@@ -11,13 +11,13 @@ Source:
 [`DESCRIPTION`](https://github.com/sebastian-lortz/stats2data/blob/main/DESCRIPTION)
 
 Lortz SAJ (2026). *stats2data: Data Simulation from Summary Statistics*.
-R package version 0.0.1.000,
+R package version 0.1.0,
 <https://github.com/sebastian-lortz/stats2data>.
 
     @Manual{,
       title = {stats2data: Data Simulation from Summary Statistics},
       author = {Sebastian A. J. Lortz},
       year = {2026},
-      note = {R package version 0.0.1.000},
+      note = {R package version 0.1.0},
       url = {https://github.com/sebastian-lortz/stats2data},
     }
