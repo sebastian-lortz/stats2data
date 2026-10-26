@@ -60,7 +60,7 @@ parallel_optim(
 
 ## Value
 
-An object of class `stats2data_parallel` — a list with:
+An object of class `stats2data_parallel`, a list with:
 
 - results:
 
