@@ -20,7 +20,7 @@
 #'   \code{"off"}. Controls the outer progress bar only; individual runs
 #'   always execute silently. Default \code{"console"}.
 #'
-#' @return An object of class \code{stats2data_parallel} — a list with:
+#' @return An object of class \code{stats2data_parallel}, a list with:
 #' \describe{
 #'   \item{results}{List of completed runs. Each element is the object
 #'     returned by \code{FUN} (class \code{stats2data_vec},
