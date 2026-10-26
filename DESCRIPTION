@@ -1,7 +1,7 @@
 Package: stats2data
 Title: Data Simulation from Summary Statistics
-Version: 0.0.1.000
-Date: 2025-06-27
+Version: 0.1.0
+Date: 2025-10-26
 Authors@R:
     person(c("Sebastian", "A.", "J."), "Lortz", , "s.a.j.lortz@gmail.com", role = c("aut", "cre"),
            comment = c(ORCID = "0009-0007-0281-7996"))
