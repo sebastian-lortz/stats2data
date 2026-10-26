@@ -6,11 +6,11 @@
 <!-- badges:start -->
 
 [![Lifecycle:
-experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges:end -->
 
-We introduce the stats2data package for nonparametric data simulation
-from summary statistics.
+We introduce the stats2data package: Nonparametric Data Simulation from
+Reported Summary Statistics.
 
 ## Usage
 
@@ -22,25 +22,12 @@ You can use the app at
 <https://sebastian-lortz.shinyapps.io/stats2data/>. Expect longer
 computation time compared to running the app locally.
 
-### System Requirements
-
-The `stats2data` package was build under R Version 4.4.2 using Apple
-clang version 16.0.0 (clang-1600.0.26.6) and GNU Fortran (GCC) 14.2.0.
-To compile R from source, install the appropriate toolchain  
-- macOS: see <https://mac.r-project.org/tools/>  
-- windows: see <https://cran.r-project.org/bin/windows/Rtools/>
-
 ### Installation
 
-You can install the latest version of the R package `stats2data` like
-so:
+Install the released version from CRAN:
 
 ``` r
-# install devtools if needed
-if (!requireNamespace("devtools")) {install.packages("devtools")}
-
-# install from GitHub
-devtools::install_github("sebastian-lortz/stats2data")
+   install.packages("stats2data")
 ```
 
 ### Run
@@ -55,22 +42,19 @@ stats2data::run_app()
 
 Please cite `stats2data` if you use it. To cite the software, use:
 
-Lortz SAJ (2025). *stats2data: Data Simulation from Summary Statistics*.
-R package version 0.0.1.000,
-<https://sebastian-lortz.github.io/stats2data/>,
+Lortz SAJ (2026). *stats2data: Nonparametric Data Simulation from
+Reported Summary Statistics*. R package version 0.1.0,
 <https://github.com/sebastian-lortz/stats2data>.
 
 Or copy the reference information to your BibTeX file:
 
-``` bibtex
-@Manual{stats2data,
-  title        = {stats2data: Non-Parametric Data Simulation from Summary Statistics},
-  author       = {S. A. J. Lortz},
-  year         = {2026},
-  note         = {R package version 0.0.1.000},
-  url          = {https://github.com/sebastian-lortz/stats2data}
-}
-```
+    @Manual{,
+      title = {stats2data: Nonparametric Data Simulation from Reported Summary Statistics},
+      author = {Sebastian A. J. Lortz},
+      year = {2026},
+      note = {R package version 0.1.0},
+      url = {https://github.com/sebastian-lortz/stats2data},
+    }
 
 ## Code of Conduct
 
@@ -79,6 +63,6 @@ Conduct.
 
 ## About
 
-You are reading the doc about version: 0.0.1.000
+You are reading the doc about version: 0.1.0
 
-This README has been compiled on 2026-05-03 22:06:10.
+This README has been compiled on 2026-10-26 16:19:57.

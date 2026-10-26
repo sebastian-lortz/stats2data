@@ -29,3 +29,4 @@
 ^vignettes/.*\.orig$
 ^vignettes/precompute\.R$
 ^cran-comments\.md$
+^R/_disable_autoload\.R$

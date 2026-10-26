@@ -16,7 +16,7 @@ output: github_document
 # stats2data <a href="https://sebastian-lortz.github.io/stats2data/"><img src="man/figures/logo.png" align="right" height="150" alt-text="stats2data logo"/></a>
 
 <!-- badges:start -->
-[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](https://www.tidyverse.org/lifecycle/#experimental)
+[![Lifecycle: experimental](https://img.shields.io/badge/lifecycle-experimental-orange.svg)](  https://lifecycle.r-lib.org/articles/stages.html#experimental)
 <!-- badges:end -->
 
 We introduce the stats2data package: Nonparametric Data Simulation from Reported Summary Statistics.

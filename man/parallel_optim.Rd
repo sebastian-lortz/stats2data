@@ -39,7 +39,7 @@ convergence threshold. Default \code{FALSE}.}
 always execute silently. Default \code{"console"}.}
 }
 \value{
-An object of class \code{stats2data_parallel} — a list with:
+An object of class \code{stats2data_parallel}, a list with:
 \describe{
   \item{results}{List of completed runs. Each element is the object
     returned by \code{FUN} (class \code{stats2data_vec},

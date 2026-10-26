@@ -28,7 +28,7 @@ devtools::test()
 devtools::check()
 devtools::run_examples()
 devtools::check(remote = TRUE, manual = TRUE)
-urlchecker::url_check()
+devtools::check_win_devel()
 
 # rhub::check_for_cran()
 
