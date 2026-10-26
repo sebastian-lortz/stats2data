@@ -10,11 +10,17 @@
 
 ## About the Project
 
-We introduce a new method: Non-parametric Data Simulation from Summary
-Statistics. The method is implemented as a compiled R package stats2data
-available at the Comprehensive R Archive Network (CRAN), and as a
-ShinyApp. For detalis see the Github page:
+We introduce a new method: Non-parametric Data Simulation from Reported
+Summary Statistics. The method is implemented as a compiled R package
+stats2data available at the Comprehensive R Archive Network (CRAN), and
+as a ShinyApp. For detalis see the Github page:
 <https://sebastian-lortz.github.io/stats2data/>
+
+### Contributors
+
+- Sebastian A. J. Lortz (Author, Maintainer)
+- Marieke Timmerman (Contributor)
+- Don van Ravenzwaaij (Contributor)
 
 ### Publications
 
@@ -22,10 +28,6 @@ The method is introduced in the research project titled ‘Simulating Raw
 Data from Reported Summary Statistics: A Non-parametric Approach’,
 authored by Sebastian A. J. Lortz, Marieke E. Timmerman, Don van
 Ravenzwaaij.
-
-### Contributors
-
-- Sebastian A. J. Lortz
 
 ### Questions and Comments
 
