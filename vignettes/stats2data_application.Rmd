@@ -797,7 +797,7 @@ plot_fit(result_par, standardised = FALSE)
 ```
 
 ```{r par-fit-sd, fig.width = 7, fig.height = 5, fig.alt = "Across-run differences with mean plus or minus SD error bars."}
-plot_fit(result_par, standardised = FALSE, error_type = "sd")
+plot_fit(result_par, standardised = TRUE)
 ```
 
 `plot()` draws `plot_stability()` by default and `plot_fit()` with

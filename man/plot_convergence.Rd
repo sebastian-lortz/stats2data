@@ -106,32 +106,24 @@ correlation-to-regression error ratio instead of the total error.
 
 }}
 \examples{
-\dontrun{
-res <- optim_aov(...)
-plot_convergence(res)
-plot_convergence(res, log_y = TRUE)
-}
+set.seed(1)
+res_vec <- optim_vec(
+  N = 50, target_mean = c(x = 5), target_sd = c(x = 1), range = c(0, 10),
+  integer = FALSE, max_iter = 1e4, max_starts = 1, progress_mode = "off"
+)
+plot_convergence(res_vec)
 
-\dontrun{
-res <- optim_mlr(...)
-plot_convergence(res)
-plot_convergence(res, log_y = TRUE)
-plot_convergence(res, ratio = TRUE)
-plot_convergence(res, ratio = TRUE, show_mean = FALSE)
-}
-
-\dontrun{
-res <- optim_vec(...)
-plot_convergence(res)
-plot_convergence(res, log_y = TRUE)
-}
-
-\dontrun{
-res <- optim_mlr(...)
-plot_convergence(res)
-plot_convergence(res, ratio = TRUE)
-plot_convergence(res, run = 2, first_iter = 500)
-}
+args_mlr <- list(
+  N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+  target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+  integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+  target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+  max_iter = 2000, max_starts = 1, hill_climbs = 100,
+  progress_mode = "off"
+)
+res_mlr <- do.call(optim_mlr, args_mlr)
+plot_convergence(res_mlr, log_y = TRUE)
+plot_convergence(res_mlr, ratio = TRUE, show_mean = FALSE)
 
 }
 \seealso{

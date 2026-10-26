@@ -255,14 +255,6 @@
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @examples
-#' \dontrun{
-#' res <- optim_mlr(...)
-#' plot_fit(res)
-#' plot_fit(res, standardised = FALSE)
-#' plot_fit(res, order = "fit")
-#' }
-#'
 #' @export
 plot_fit.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12,
                                     order = c("input", "fit"),
@@ -360,12 +352,6 @@ plot_fit.stats2data_mlr <- function(x, standardised = TRUE, eps = 1e-12,
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @examples
-#' \dontrun{
-#' res <- optim_aov(...)
-#' plot_fit(res)
-#' }
-#'
 #' @export
 plot_fit.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12,
                                     order = c("input", "fit"),
@@ -424,12 +410,6 @@ plot_fit.stats2data_aov <- function(x, standardised = TRUE, eps = 1e-12,
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' res <- optim_vec(...)
-#' plot_fit(res)
-#' }
 #'
 #' @export
 plot_fit.stats2data_vec <- function(x, standardised = TRUE, eps = 1e-12,

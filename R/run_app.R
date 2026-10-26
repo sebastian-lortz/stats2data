@@ -3,6 +3,7 @@
 #' @param ... arguments to pass to golem_opts.
 #' See `?golem::get_golem_options` for more details.
 #' @inheritParams shiny::shinyApp
+#' @return A 'shiny' app object; printing it launches the application.
 #'
 #' @export
 #' @importFrom shiny shinyApp

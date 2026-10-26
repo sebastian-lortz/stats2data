@@ -380,13 +380,6 @@
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
 #'
-#' @examples
-#' \dontrun{
-#' res <- optim_aov(...)
-#' plot_convergence(res)
-#' plot_convergence(res, log_y = TRUE)
-#' }
-#'
 #' @importFrom rlang .data
 #' @importFrom ggplot2 ggplot aes geom_step geom_hline geom_point labs
 #'   scale_color_manual scale_linetype_manual scale_y_log10 coord_cartesian
@@ -442,15 +435,6 @@ plot_convergence.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 #'   run, \code{x$inputs$thresh}; \code{NULL} suppresses the shading.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' res <- optim_mlr(...)
-#' plot_convergence(res)
-#' plot_convergence(res, log_y = TRUE)
-#' plot_convergence(res, ratio = TRUE)
-#' plot_convergence(res, ratio = TRUE, show_mean = FALSE)
-#' }
 #'
 #' @export
 plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
@@ -535,13 +519,6 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 #'   run, \code{x$inputs$thresh}; \code{NULL} suppresses the shading.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' res <- optim_vec(...)
-#' plot_convergence(res)
-#' plot_convergence(res, log_y = TRUE)
-#' }
 #'
 #' @export
 plot_convergence.stats2data_vec <- function(x, run = 1L, show_best = TRUE,

@@ -73,7 +73,7 @@ usethis::use_data_raw(name = "data_lm", open = FALSE)
 ## Add one line by test you want to create
 usethis::use_test("app")
 spelling::update_wordlist()
-# Documentation
+Ye# Documentation
 
 ## Vignette ----
 usethis::use_vignette("stats2data_application")
@@ -134,4 +134,8 @@ rstudioapi::navigateToFile("dev/03_deploy.R")
 install.packages("renv")
 renv::install(c("Rcpp", "RcppArmadillo"))
 
+usethis::use_cran_comments()
 
+devtools::build_rmd("vignettes/stats2data_application.Rmd",
+                    output_format = "word_document")
+devtools::build_rmd("vignettes/stats2data_application.Rmd")

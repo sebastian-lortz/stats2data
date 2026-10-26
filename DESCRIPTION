@@ -1,14 +1,21 @@
 Package: stats2data
-Title: Data Simulation from Summary Statistics
+Title: Nonparametric Data Simulation from Reported Summary Statistics
 Version: 0.1.0
 Date: 2026-10-26
-Authors@R:
+Authors@R: c(
     person(c("Sebastian", "A.", "J."), "Lortz", , "s.a.j.lortz@gmail.com", role = c("aut", "cre"),
-           comment = c(ORCID = "0009-0007-0281-7996"))
-Description: We introduce stats2data: A Nonparametric Approach to Data Simulation from Summary Statistics. The primary scope of this algorithmic framework is to simulate complete raw datasets using only summary statistics, giving researchers a way to generate plausible sample data when original data are unavailable.
+           comment = c(ORCID = "0009-0007-0281-7996")),
+    person(c("Marieke", "E."), "Timmerman", role = "ctb"),
+    person("Don", "van Ravenzwaaij", role = "ctb")
+  )
+Description: Simulates complete raw data sets from reported summary statistics,
+    for cases where the original data are unavailable. The data are generated
+    nonparametrically by simulated annealing so that they reproduce reported
+    means and standard deviations, correlations and regression coefficients, or
+    cell means and F-values of factorial ANOVA designs. Integer-valued data are 
+    supported, and a 'shiny' application provides a graphical interface.
 License: MIT + file LICENSE
-URL: https://github.com/sebastian-lortz/stats2data,
-    https://sebastian-lortz.github.io/stats2data/
+URL: https://github.com/sebastian-lortz/stats2data
 BugReports: https://github.com/sebastian-lortz/stats2data/issues
 Imports: 
     afex,
@@ -44,11 +51,8 @@ LinkingTo:
     RcppArmadillo
 VignetteBuilder: 
     knitr
-Remotes:
-    github::sebastian-lortz/stats2data
 Config/testthat/edition: 3
 Encoding: UTF-8
 Language: en-US
-LazyData: true
 RoxygenNote: 7.3.3
 SystemRequirements: BLAS, LAPACK

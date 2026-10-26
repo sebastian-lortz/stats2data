@@ -34,8 +34,7 @@
 #'   the mean and SD at the precision given by \code{sprite_prec}.
 #'
 #' @examples
-#' \dontrun{
-#' res <- stats2data::optim_vec(
+#' res <- optim_vec(
 #'   N           = 100,
 #'   target_mean = c(x = 10.23),
 #'   target_sd   = c(x = 2.11),
@@ -43,9 +42,10 @@
 #'   integer     = TRUE,
 #'   sprite_prec = c(2, 2),
 #'   max_iter    = 50000,
-#'   max_starts  = 2
+#'   max_starts  = 2,
+#'   progress_mode = "off"
 #' )
-#' }
+#'
 #' @export
 optim_vec <- function(N,
                       target_mean,

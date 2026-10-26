@@ -73,7 +73,6 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
 #' res <- optim_mlr(
 #'   N            = 100,
 #'   target_mean  = c(X1 = 5, X2 = 3, Y = 10),
@@ -84,9 +83,10 @@
 #'   target_reg   = c(2.1, 1.2, -0.8),
 #'   reg_equation = "Y ~ X1 + X2",
 #'   max_iter     = 10000,
-#'   hill_climbs  = 50
+#'   hill_climbs  = 50,
+#'   max_starts   = 1,
+#'   progress_mode = "off"
 #' )
-#' }
 #' @export
 optim_mlr <- function(
     N,

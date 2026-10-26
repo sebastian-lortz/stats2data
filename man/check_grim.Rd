@@ -31,9 +31,7 @@ Performs the GRIM (Granularity-Related Inconsistency of Means) test
 possible given the sample size and number of decimal places.
 }
 \examples{
-\dontrun{
 check_grim(n = 10, target_mean = 3.7, decimals = 1)
 check_grim(n = 10, target_mean = 3.74, decimals = 2)
-}
 
 }

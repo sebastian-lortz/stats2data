@@ -314,12 +314,6 @@ print.summary.stats2data_parallel <- function(x, ...) {
 #'   (\code{stats2data_parallel}). Box-and-jitter distributions of run-to-run
 #'   and against-target RMSE, faceted by metric.
 #'
-#' @examples
-#' \dontrun{
-#' res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
-#' plot_stability(res)
-#' }
-#'
 #' @importFrom rlang .data
 #' @export
 plot_stability.stats2data_parallel <- function(x, ...) {
@@ -414,13 +408,6 @@ plot_stability.stats2data_parallel <- function(x, ...) {
 #' @param ... Currently unused.
 #'
 #' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
-#'
-#' @examples
-#' \dontrun{
-#' res <- parallel_optim(FUN = optim_mlr, args = list(...), runs = 20)
-#' plot_fit(res)
-#' plot_fit(res, standardised = FALSE, error_type = "sd")
-#' }
 #'
 #' @importFrom rlang .data
 #' @export

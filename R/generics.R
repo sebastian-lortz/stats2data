@@ -22,14 +22,12 @@
 #'   }
 #'
 #' @examples
-#' \dontrun{
 #' res <- optim_vec(
 #'   N = 50, target_mean = c(x = 5), target_sd = c(x = 1),
 #'   range = c(0, 10), integer = FALSE, sprite_prec = c(2, 2),
 #'   max_iter = 1e4, max_starts = 1, progress_mode = "off"
 #' )
 #' get_stats(res)
-#' }
 #'
 #' @export
 get_stats <- function(result, ...) UseMethod("get_stats")
@@ -56,14 +54,12 @@ get_stats <- function(result, ...) UseMethod("get_stats")
 #'   }
 #'
 #' @examples
-#' \dontrun{
 #' res <- optim_vec(
 #'   N = 50, target_mean = c(x = 5), target_sd = c(x = 1),
 #'   range = c(0, 10), integer = FALSE, sprite_prec = c(2, 2),
 #'   max_iter = 1e4, max_starts = 1, progress_mode = "off"
 #' )
 #' get_rmse(res)
-#' }
 #'
 #' @export
 get_rmse <- function(result, ...) UseMethod("get_rmse")
@@ -89,12 +85,24 @@ get_rmse <- function(result, ...) UseMethod("get_rmse")
 #'   \code{\link{plot_cooling}}
 #'
 #' @examples
-#' \dontrun{
-#' res <- optim_mlr(...)
-#' plot_convergence(res)
-#' plot_convergence(res, ratio = TRUE)
-#' plot_convergence(res, run = 2, first_iter = 500)
-#' }
+#' set.seed(1)
+#' res_vec <- optim_vec(
+#'   N = 50, target_mean = c(x = 5), target_sd = c(x = 1), range = c(0, 10),
+#'   integer = FALSE, max_iter = 1e4, max_starts = 1, progress_mode = "off"
+#' )
+#' plot_convergence(res_vec)
+#'
+#' args_mlr <- list(
+#'   N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+#'   target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+#'   integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+#'   target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+#'   max_iter = 2000, max_starts = 1, hill_climbs = 100,
+#'   progress_mode = "off"
+#' )
+#' res_mlr <- do.call(optim_mlr, args_mlr)
+#' plot_convergence(res_mlr, log_y = TRUE)
+#' plot_convergence(res_mlr, ratio = TRUE, show_mean = FALSE)
 #'
 #' @export
 plot_convergence <- function(x, ...) UseMethod("plot_convergence")
@@ -113,10 +121,15 @@ plot_convergence <- function(x, ...) UseMethod("plot_convergence")
 #' @seealso \code{\link{plot_convergence}}
 #'
 #' @examples
-#' \dontrun{
-#' res <- optim_aov(...)
-#' plot_cooling(res)
-#' }
+#' set.seed(1)
+#' res_aov <- optim_aov(
+#'   S = 20, levels = 2, target_group_means = c(4, 6),
+#'   target_f_list = list(effect = "Factor1", F_value = 10),
+#'   integer = FALSE, range = c(0, 10), formula = "outcome ~ Factor1",
+#'   factor_type = "between", max_iter = 200, max_starts = 1,
+#'   progress_mode = "off"
+#' )
+#' plot_cooling(res_aov)
 #'
 #' @export
 plot_cooling <- function(x, ...) UseMethod("plot_cooling")
@@ -136,11 +149,28 @@ plot_cooling <- function(x, ...) UseMethod("plot_cooling")
 #' @seealso \code{\link{plot_convergence}}, \code{\link{plot_cooling}}
 #'
 #' @examples
-#' \dontrun{
-#' res <- optim_vec(...)
-#' plot_fit(res)
-#' plot_fit(res, standardised = FALSE)
-#' }
+#' set.seed(1)
+#' res_vec <- optim_vec(
+#'   N = 50, target_mean = c(x = 5), target_sd = c(x = 1), range = c(0, 10),
+#'   integer = FALSE, max_iter = 1e4, max_starts = 1, progress_mode = "off"
+#' )
+#' plot_fit(res_vec)
+#' plot_fit(res_vec, standardised = FALSE)
+#'
+#' args_mlr <- list(
+#'   N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+#'   target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+#'   integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+#'   target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+#'   max_iter = 2000, max_starts = 1, hill_climbs = 100,
+#'   progress_mode = "off"
+#' )
+#' res_mlr <- do.call(optim_mlr, args_mlr)
+#' plot_fit(res_mlr, order = "fit")
+#'
+#' res_par <- parallel_optim(optim_mlr, args_mlr, runs = 3, seed = 2026,
+#'                           progress_mode = "off")
+#' plot_fit(res_par, error_type = "sd")
 #'
 #' @export
 plot_fit <- function(x, ...) UseMethod("plot_fit")
@@ -162,10 +192,17 @@ plot_fit <- function(x, ...) UseMethod("plot_fit")
 #'   \code{\link{plot.stats2data}}
 #'
 #' @examples
-#' \dontrun{
-#' res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
-#' plot_stability(res)
-#' }
+#' args_mlr <- list(
+#'   N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+#'   target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+#'   integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+#'   target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+#'   max_iter = 2000, max_starts = 1, hill_climbs = 100,
+#'   progress_mode = "off"
+#' )
+#' res_par <- parallel_optim(optim_mlr, args_mlr, runs = 3, seed = 2026,
+#'                           progress_mode = "off")
+#' plot_stability(res_par)
 #'
 #' @export
 plot_stability <- function(x, ...) UseMethod("plot_stability")

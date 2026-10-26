@@ -74,21 +74,21 @@ Convergence of a single run is judged as \code{best_objective < thresh}. For
 per-variable errors, every component must be below \code{thresh}.
 }
 \examples{
-\dontrun{
-# Parallel ANOVA runs
-res <- parallel_optim(
-  FUN  = optim_aov,
-  args = list(S = 30, levels = c(2, 2), ...),
-  runs = 20, cores = 4
+args_mlr <- list(
+  N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+  target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+  integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+  target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+  max_iter = 2000, max_starts = 1, hill_climbs = 100,
+  progress_mode = "off"
 )
+res <- parallel_optim(optim_mlr, args_mlr, runs = 3, seed = 2026,
+                      progress_mode = "off")
 summary(res)
 
-# Stop as soon as one run converges
-res <- parallel_optim(
-  FUN  = optim_mlr,
-  args = list(N = 100, thresh = 1e-3, ...),
-  runs = 20, cores = 4, stop_conv = TRUE
-)
-}
+# stop as soon as one run reaches the threshold
+res <- parallel_optim(optim_mlr, c(args_mlr, thresh = 0.05), runs = 3,
+                      seed = 2026, stop_conv = TRUE, progress_mode = "off")
+res$runs
 
 }

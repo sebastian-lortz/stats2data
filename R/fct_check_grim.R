@@ -19,10 +19,8 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
 #' check_grim(n = 10, target_mean = 3.7, decimals = 1)
 #' check_grim(n = 10, target_mean = 3.74, decimals = 2)
-#' }
 #'
 #' @export
 check_grim <- function(n,

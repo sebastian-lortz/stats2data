@@ -32,15 +32,17 @@ and against-target RMSE, faceted by metric.
 
 }}
 \examples{
-\dontrun{
-res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
-plot_stability(res)
-}
-
-\dontrun{
-res <- parallel_optim(FUN = optim_aov, args = list(...), runs = 20)
-plot_stability(res)
-}
+args_mlr <- list(
+  N = 30, target_mean = c(X1 = 3.93, X2 = 3.83, Y = 4.17),
+  target_sd = c(X1 = 1.44, X2 = 1.70, Y = 1.34), range = c(1, 7),
+  integer = TRUE, target_cor = c(0.22, 0.49, 0.42),
+  target_reg = c(1.65, 0.39, 0.26), reg_equation = "Y ~ X1 + X2",
+  max_iter = 2000, max_starts = 1, hill_climbs = 100,
+  progress_mode = "off"
+)
+res_par <- parallel_optim(optim_mlr, args_mlr, runs = 3, seed = 2026,
+                          progress_mode = "off")
+plot_stability(res_par)
 
 }
 \seealso{

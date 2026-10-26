@@ -31,23 +31,12 @@ The method is available as R package and comprehensive ShinyApp.
 You can use the app at [https://sebastian-lortz.shinyapps.io/stats2data/](https://sebastian-lortz.shinyapps.io/stats2data/). Expect longer computation time compared to running the app locally.
 
 
-### System Requirements
-
-The `stats2data` package was build under R Version 4.4.2 using Apple clang version 16.0.0 (clang-1600.0.26.6) and GNU Fortran (GCC) 14.2.0. To compile R from source, install the appropriate toolchain  
- - macOS: see https://mac.r-project.org/tools/  
- - windows: see https://cran.r-project.org/bin/windows/Rtools/
-
 ### Installation
 
-You can install the latest version of the R package `stats2data` like so:
+Install the released version from CRAN:
 
-```{r install-from-github, eval = FALSE, echo = TRUE}
-# install devtools if needed
-if (!requireNamespace("devtools")) {install.packages("devtools")}
-
-# install from GitHub
-devtools::install_github("sebastian-lortz/stats2data")
-
+```{r install, eval = FALSE}
+   install.packages("stats2data")
 ```
 
 ### Run
@@ -68,14 +57,8 @@ print(citation("stats2data"), style = "text")
 
 Or copy the reference information to your BibTeX file:
 
-```bibtex
-@Manual{stats2data,
-  title        = {stats2data: Non-Parametric Data Simulation from Summary Statistics},
-  author       = {S. A. J. Lortz},
-  year         = {2026},
-  note         = {R package version 0.0.1.000},
-  url          = {https://github.com/sebastian-lortz/stats2data}
-}
+```{r echo = FALSE, comment = ""}
+toBibtex(citation("stats2data"))
 ```
 
 ## Code of Conduct
