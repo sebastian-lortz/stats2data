@@ -123,11 +123,11 @@ summary(res)
 #> -----------------------------------------------
 #> Design:     2 x 2 (between, between)
 #> Subjects:   
-#> Best objective: 5.65762e-12 
+#> Best objective: 5.65992e-12 
 #> 
 #> RMSE
-#>   F-statistics: 1.667e-11 
-#>   Group means:  9.397e-13 
+#>   F-statistics: 1.666e-11 
+#>   Group means:  9.395e-13 
 #> 
 #> -----------------------------------------------
 #> F-values (Target vs. Simulated):

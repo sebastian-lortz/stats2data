@@ -52,7 +52,8 @@
   : Run the Shiny Application
 - [`stats2data`](https://sebastian-lortz.github.io/stats2data/reference/stats2data-package.md)
   [`stats2data-package`](https://sebastian-lortz.github.io/stats2data/reference/stats2data-package.md)
-  : stats2data: Data Simulation from Summary Statistics
+  : stats2data: Nonparametric Data Simulation from Reported Summary
+  Statistics
 - [`summary(`*`<stats2data_aov>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_aov.md)
   : Summarize a stats2data ANOVA result
 - [`summary(`*`<stats2data_mlr>`*`)`](https://sebastian-lortz.github.io/stats2data/reference/summary.stats2data_mlr.md)

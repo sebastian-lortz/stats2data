@@ -1,4 +1,4 @@
-# stats2data: Data Simulation from Summary Statistics
+# stats2data: Nonparametric Data Simulation from Reported Summary Statistics
 
 Simulates complete raw data sets from reported summary statistics, for
 cases where the original data are unavailable. The data are generated
@@ -13,8 +13,6 @@ interface.
 Useful links:
 
 - <https://github.com/sebastian-lortz/stats2data>
-
-- <https://sebastian-lortz.github.io/stats2data/>
 
 - Report bugs at <https://github.com/sebastian-lortz/stats2data/issues>
 
