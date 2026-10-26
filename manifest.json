@@ -5315,7 +5315,7 @@
     "docs/reference/stats2data.html": {
       "checksum": "4c48f7425c74321713fe5d3d161c1aa9"
     },
-    "docs/reference/figures/logo-comp.png": {
+    "docs/reference/figures/logo.png": {
       "checksum": "2277bfe3f31c7027b2faebf3b59db68c"
     },
     "docs/reference/figures/logo.png": {
@@ -5429,7 +5429,7 @@
     "inst/app/www/favicon.ico": {
       "checksum": "4334995dba5783e1659ab7cef73bd58b"
     },
-    "inst/app/www/logo-comp.png": {
+    "inst/app/www/logo.png": {
       "checksum": "2277bfe3f31c7027b2faebf3b59db68c"
     },
     "inst/app/www/logo.png": {

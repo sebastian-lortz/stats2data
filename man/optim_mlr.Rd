@@ -17,7 +17,7 @@ optim_mlr(
   target_se = NULL,
   weight = 0.5,
   thresh = 0.005,
-  max_iter = 100000,
+  max_iter = 1e+05,
   init_temp = NULL,
   cooling_rate = NULL,
   max_starts = 3,
@@ -54,7 +54,9 @@ intercept, matching terms in \code{reg_equation}.}
 (e.g., \code{"Y ~ X1 + X2 + X1:X2"}).}
 
 \item{sprite_prec}{Integer vector of length 2. Decimal precision for mean
-and SD when using SPRITE for integer data. Default \code{c(2, 2)}.}
+and SD when using SPRITE for integer data; must be at least the number of
+decimals of the means and SDs of the integer variables, because SPRITE
+does not round the targets. Default \code{c(2, 2)}.}
 
 \item{target_se}{Numeric vector or NULL. Target standard errors for
 regression coefficients (same length as \code{target_reg}).
@@ -107,6 +109,14 @@ under a given regression model. Internally calls \code{\link{optim_vec}} to
 first generate marginals matching target means and standard deviations,
 then optimizes predictor orderings via simulated annealing (and
 hill climbing) to match correlation and regression targets.
+}
+\details{
+The marginals are generated first by \code{\link{optim_vec}};
+  its warnings are passed on with the prefix "Marginal step" (e.g. a
+  continuous variable that did not converge, or an integer variable for which
+  SPRITE found only an approximate distribution). If no data could be
+  generated for a variable, \code{optim_mlr()} stops and names the variable
+  and the reason.
 }
 \examples{
 \dontrun{

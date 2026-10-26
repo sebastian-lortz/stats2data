@@ -26,13 +26,12 @@ test_that("hill_climb does not increase the error", {
   expect_equal(dim(res$best_candidate), dim(cand))
 })
 
-test_that("hill_climb stops at a perfect solution and reports to the console", {
+test_that("hill_climb stops at a perfect solution without console output", {
   set.seed(42)
   cand <- matrix(c(1, 2, 3, 4), ncol = 1)
-  expect_output(
+  expect_silent(
     res <- hill_climb(cand, err_fn, N = 4, hill_climbs = 10, num_preds = 1,
-                      progress_mode = "console"),
-    "Hill climbing best objective"
+                      progress_mode = "console")
   )
   expect_equal(res$best_objective, 0)
 })

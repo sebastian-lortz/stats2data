@@ -24,7 +24,8 @@
 \item{...}{Further arguments passed to the underlying plotting function.}
 }
 \value{
-A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+The plot is drawn as a side effect; the
+  \code{\link[ggplot2]{ggplot}} object is returned invisibly.
 }
 \description{
 Convenience \code{\link[base]{plot}} methods so that \code{plot(res)} works

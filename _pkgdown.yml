@@ -2,8 +2,8 @@ url: https://sebastian-lortz.github.io/stats2data/
 template:
   bootstrap: 5
 
-logo: man/figures/logo-comp.png
-favicon: man/figures/logo-comp.png
+logo: man/figures/logo.png
+favicon: man/figures/logo.png
 
 navbar:
   structure:

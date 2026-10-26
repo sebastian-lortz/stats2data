@@ -16,7 +16,9 @@
 #' @param pb_interval Integer or NULL. Interval (in iterations) between
 #'   progressor calls. Default \code{NULL}.
 #' @param progress_mode Character: \code{"console"}, \code{"shiny"}, or
-#'   \code{"off"}. Default \code{"console"}.
+#'   \code{"off"}. Kept for consistency with the \code{optim_*} functions;
+#'   progress is reported only through \code{progressor}. Default
+#'   \code{"console"}.
 #'
 #' @return A list with components:
 #' \describe{
@@ -25,15 +27,22 @@
 #' }
 #'
 #' @examples
-#' \dontrun{
-#' hill_climb(
-#'   current_candidate = matrix(rnorm(200), 100, 2),
-#'   error_function = function(cand) list(total_error = sum(cand^2)),
-#'   N = 100,
-#'   hill_climbs = 100,
-#'   num_preds = 2
-#' )
+#' # reorder two predictors toward target correlations with an outcome
+#' set.seed(2026)
+#' y <- rnorm(50)
+#' x <- matrix(rnorm(100), ncol = 2)
+#' cor_error <- function(cand) {
+#'   list(total_error = sqrt(mean((stats::cor(cand, y)[, 1] - c(0.5, -0.3))^2)))
 #' }
+#' res <- hill_climb(
+#'   current_candidate = x,
+#'   error_function    = cor_error,
+#'   N                 = 50,
+#'   hill_climbs       = 200,
+#'   num_preds         = 2,
+#'   progress_mode     = "off"
+#' )
+#' c(start = cor_error(x)$total_error, refined = res$best_objective)
 #' @export
 hill_climb <- function(current_candidate, error_function, N,
                        hill_climbs = 1e2,
@@ -115,10 +124,6 @@ hill_climb <- function(current_candidate, error_function, N,
      }
 
     if (is.finite(best_err) && best_err < .Machine$double.eps) break
-  }
-
-  if (progress_mode == "console") {
-    cat("\nHill climbing best objective:", best_err, "\n")
   }
 
   list(best_candidate = best_cand, best_objective = best_err)

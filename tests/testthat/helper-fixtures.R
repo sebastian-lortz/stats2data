@@ -68,7 +68,7 @@ fx_aov <- function(shift = 0) {
     best_objective = 0.03,
     data = d,
     inputs = list(
-      N = 6, levels = 2, target_group_means = c(3.5, 6.17),
+      S = 6, levels = 2, target_group_means = c(3.5, 6.17),
       target_f_list = list(effect = "Factor1", F_value = 20),
       integer = FALSE, range = c(0, 10),
       formula = "~ Factor1 + Error(ID/Factor1)",

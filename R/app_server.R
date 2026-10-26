@@ -6,7 +6,7 @@
 #' @noRd
 app_server <- function(input, output, session) {
   observeEvent(input$show_workflow, {
-    updateNavbarPage(session, "main", selected = "High Level Workflow")
+    updateNavbarPage(session, "main", selected = "Workflow")
   })
 
   observeEvent(input$go_to_tab, {

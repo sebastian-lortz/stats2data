@@ -1,5 +1,7 @@
+# target SD 0.94: with N = 10 integers in [1, 5] and mean 3, no SD rounds to
+# 1.00 (attainable: 0.9428, 1.0541), so SPRITE would only find the closest one
 vec_args <- list(
-  N = 10, target_mean = c(x = 3), target_sd = c(x = 1), range = c(1, 5),
+  N = 10, target_mean = c(x = 3), target_sd = c(x = 0.94), range = c(1, 5),
   integer = TRUE, thresh = 0.05, sprite_prec = c(2, 2), max_iter = 10,
   init_temp = 0.1, cooling_rate = 0.9, max_starts = 1, progress_mode = "off"
 )
@@ -47,7 +49,7 @@ test_that("optim_vec handles the binary range shortcut", {
 test_that("optim_vec optimises continuous data and per-variable settings", {
   set.seed(12)
   res <- run_vec(
-    target_mean = c(x = 3, y = 3), target_sd = c(x = 1, y = 1),
+    target_mean = c(x = 3, y = 3), target_sd = c(x = 0.94, y = 1),
     range = matrix(c(1, 5, 1, 5), nrow = 2), integer = c(TRUE, FALSE),
     max_iter = 20, cooling_rate = NULL, init_temp = NULL
   )

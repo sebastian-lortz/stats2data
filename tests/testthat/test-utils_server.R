@@ -2,6 +2,7 @@ test_that("name_with_info returns html", {
   x <- with_mock_session(name_with_info("Sample Size", "the N"))
   expect_s3_class(x, "html")
   expect_match(as.character(x), "Sample Size")
+  # the info icon brings its Font Awesome dependency along
   expect_true(length(htmltools::findDependencies(x)) > 0)
 })
 
@@ -40,6 +41,29 @@ test_that("s2d_targets_table writes out the headers but keeps the names", {
   expect_identical(tb$x$colHeaders, c("Variable", "Mean", "SD", "Min", "Max", "Integer"))
   expect_identical(unlist(tb$x$rColnames), names(df))
   expect_identical(tb$x$columns[[6]]$type, "checkbox")
+})
+
+test_that("s2d_decimals counts the decimals of each value", {
+  expect_identical(s2d_decimals(c(10.53, 0.27, 3, 11.896, NA, 1e-4)),
+                   c(2L, 2L, 0L, 3L, NA, 4L))
+})
+
+test_that("s2d_sprite_needed uses the integer variables only", {
+  tg <- data.frame(target_mean = c(1.234, 2.5), target_sd = c(1.1, 0.25),
+                   integer = c(FALSE, TRUE))
+  expect_identical(s2d_sprite_needed(tg), c(mean = 1L, sd = 2L))
+  tg$integer <- FALSE
+  expect_null(s2d_sprite_needed(tg))
+})
+
+test_that("s2d_sprite_prec_ok blocks decimals below the table decimals", {
+  tg <- data.frame(target_mean = 10.53, target_sd = 7.8, integer = TRUE)
+  expect_true(with_mock_session(s2d_sprite_prec_ok(c(2, 1), tg)))
+  expect_true(with_mock_session(s2d_sprite_prec_ok(c(3, 2), tg)))
+  expect_false(with_mock_session(s2d_sprite_prec_ok(c(1, 1), tg)))
+  expect_false(with_mock_session(s2d_sprite_prec_ok(c(NA, 1), tg)))
+  tg$integer <- FALSE
+  expect_true(with_mock_session(s2d_sprite_prec_ok(NULL, tg)))
 })
 
 test_that("check_vec_inputs accepts valid input and rejects invalid input", {

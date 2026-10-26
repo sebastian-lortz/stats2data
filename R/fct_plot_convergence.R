@@ -23,7 +23,7 @@
 .step_points <- function(y) {
   n <- length(y)
   if (n <= 1L) return(seq_len(n))
-   same <- y[-1L] == y[-n]
+  same <- y[-1L] == y[-n]
   same[is.na(same)] <- FALSE
   sort(unique(c(1L, which(!same) + 1L, n)))
 }
@@ -46,9 +46,9 @@
 #' @noRd
 .plot_convergence_engine <- function(err_vec,
                                      show_best  = TRUE,
-                                     first_iter = 1L,
+                                     first_iter = 0L,
                                      y_lab      = "Objective value",
-                                      log_y      = FALSE,
+                                     log_y      = FALSE,
                                      thresh     = NULL) {
 
   n <- length(err_vec)
@@ -62,7 +62,7 @@
   if (first_iter >= n) {
     stop(
       sprintf(
-   "`first_iter` (%d) must be smaller than the length of the track_objective vector (%d).",
+        "`first_iter` (%d) must be smaller than the length of the track_objective vector (%d).",
         first_iter, n
       ),
       call. = FALSE
@@ -72,7 +72,7 @@
     stop("`log_y` must be a single logical value.", call. = FALSE)
   }
   if (!is.null(thresh)) {
-      if (!is.numeric(thresh) || length(thresh) != 1L || !is.finite(thresh) ||
+    if (!is.numeric(thresh) || length(thresh) != 1L || !is.finite(thresh) ||
         thresh < 0) {
       stop("`thresh` must be NULL or a single non-negative finite number.",
            call. = FALSE)
@@ -90,7 +90,7 @@
 
   drop <- !is.finite(df$Error) | (log_y & df$Error <= 0)
   if (any(drop)) {
-       warning(
+    warning(
       sprintf("%d objective value%s could not be plotted and %s dropped.",
               sum(drop), if (sum(drop) == 1L) "" else "s",
               if (sum(drop) == 1L) "was" else "were"),
@@ -106,7 +106,7 @@
   best_objective <- err_vec[best_idx]
 
   # plot
-    band_layer <- NULL
+  band_layer <- NULL
   if (!is.null(thresh) && thresh > 0) {
     band_ymin <- if (log_y) min(c(df$Error[df$Error > 0], thresh)) else 0
     band_layer <- ggplot2::annotate(
@@ -132,7 +132,7 @@
   )) +
     band_layer +
     zero_layer +
-     ggplot2::geom_step(
+    ggplot2::geom_step(
       color     = .s2d_series[["trajectory"]],
       linewidth = 1,
       direction = "hv"
@@ -154,7 +154,7 @@
   }
 
   if (show_best && is.finite(best_objective) && (!log_y || best_objective > 0)) {
-     best_df <- data.frame(Iteration = best_idx, Error = best_objective)
+    best_df <- data.frame(Iteration = best_idx, Error = best_objective)
     p <- p +
       ggplot2::geom_point(
         data    = best_df,
@@ -182,11 +182,11 @@
 #'
 #' @noRd
 .plot_convergence_ratio_engine <- function(ratio_vec,
-                                     first_iter  = 1L,
-                                     show_mean   = TRUE,
-                                     show_median = TRUE,
-                                     show_final  = TRUE,
-                                     log_y       = FALSE) {
+                                           first_iter  = 0L,
+                                           show_mean   = TRUE,
+                                           show_median = TRUE,
+                                           show_final  = TRUE,
+                                           log_y       = FALSE) {
 
   n <- length(ratio_vec)
   if (n == 0L) {
@@ -233,7 +233,7 @@
   }
 
   mean_val   <- round(mean(ratio_vec), 1)
-   median_val <- round(stats::median(ratio_vec), 1)
+  median_val <- round(stats::median(ratio_vec), 1)
   final_val  <- round(ratio_vec[n], 1)
 
   p <- ggplot2::ggplot(df, ggplot2::aes(
@@ -246,7 +246,7 @@
     ) +
     ggplot2::labs(x = "Iteration", y = "Objective Ratio Cor/Reg") +
     theme_stats2data() +
-   ggplot2::coord_cartesian(clip = "off")
+    ggplot2::coord_cartesian(clip = "off")
 
   if (nrow(df) == 1L) {
     p <- p + ggplot2::geom_point(
@@ -268,7 +268,7 @@
   }
   if (show_median) {
     ref_stats  <- c(ref_stats,  paste0("Median: ", median_val))
-     ref_vals   <- c(ref_vals,   median_val)
+    ref_vals   <- c(ref_vals,   median_val)
     ref_ltypes <- c(ref_ltypes, "dotted")
   }
   if (show_final) {
@@ -280,14 +280,14 @@
   if (length(ref_stats) > 0L) {
     df_ref <- data.frame(
       stat     = ref_stats,
-       y        = ref_vals,
+      y        = ref_vals,
       linetype = ref_ltypes,
       stringsAsFactors = FALSE
     )
     p <- p +
       ggplot2::geom_hline(
         data    = df_ref,
-    mapping = ggplot2::aes(
+        mapping = ggplot2::aes(
           yintercept = .data$y,
           color      = .data$stat,
           linetype   = .data$stat
@@ -301,7 +301,7 @@
         ),
         breaks = df_ref$stat
       ) +
-       ggplot2::scale_linetype_manual(
+      ggplot2::scale_linetype_manual(
         name   = "",
         values = stats::setNames(df_ref$linetype, df_ref$stat),
         breaks = df_ref$stat
@@ -338,13 +338,13 @@
         sprintf(
           "`run` = %d is out of bounds. There %s only %d run%s available.",
           run,
-       if (n_runs == 1L) "is" else "are",
+          if (n_runs == 1L) "is" else "are",
           n_runs,
           if (n_runs == 1L) "" else "s"
         ),
         call. = FALSE
       )
-      }
+    }
     return(track_objective[[run]])
   }
 
@@ -405,7 +405,7 @@ plot_convergence.stats2data_aov <- function(x, run = 1L, show_best = TRUE,
 
   p <- .plot_convergence_engine(
     err_vec    = err_vec,
-     show_best  = show_best,
+    show_best  = show_best,
     first_iter = first_iter,
     log_y      = log_y,
     thresh     = thresh
@@ -477,7 +477,7 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
     if (!is.logical(show_mean) || length(show_mean) != 1L) {
       stop("`show_mean` must be a single logical value.", call. = FALSE)
     }
-     if (!is.logical(show_median) || length(show_median) != 1L) {
+    if (!is.logical(show_median) || length(show_median) != 1L) {
       stop("`show_median` must be a single logical value.", call. = FALSE)
     }
     if (!is.logical(show_final) || length(show_final) != 1L) {
@@ -489,7 +489,7 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
     p <- .plot_convergence_ratio_engine(
       ratio_vec   = ratio_vec,
       first_iter  = first_iter,
-       show_mean   = show_mean,
+      show_mean   = show_mean,
       show_median = show_median,
       show_final  = show_final,
       log_y       = log_y
@@ -507,7 +507,7 @@ plot_convergence.stats2data_mlr <- function(x, run = 1L, show_best = TRUE,
 
   p <- .plot_convergence_engine(
     err_vec    = err_vec,
-     show_best  = show_best,
+    show_best  = show_best,
     first_iter = first_iter,
     log_y      = log_y,
     thresh     = thresh
@@ -549,7 +549,7 @@ plot_convergence.stats2data_vec <- function(x, run = 1L, show_best = TRUE,
                                             thresh = x$inputs$thresh, ...) {
 
   if (is.null(x$track_objective)) {
- stop(
+    stop(
       "No `track_objective` element found in this stats2data_vec object. ",
       "PSO routines for continuous data do not track per-iteration objective value.",
       call. = FALSE
@@ -558,10 +558,21 @@ plot_convergence.stats2data_vec <- function(x, run = 1L, show_best = TRUE,
 
   err_vec <- .extract_error_vec(x$track_objective, run = run)
 
+  var_name <- if (is.list(x$track_objective)) names(x$track_objective)[run] else NULL
+  if (is.null(var_name) || is.na(var_name) || !nzchar(var_name)) {
+    var_name <- colnames(x$data)[run]
+  }
+  y_lab <- if (is.null(var_name) || is.na(var_name)) {
+    "Objective value"
+  } else {
+    paste0("Objective value (", var_name, ")")
+  }
+
   p <- .plot_convergence_engine(
-     err_vec    = err_vec,
+    err_vec    = err_vec,
     show_best  = show_best,
     first_iter = first_iter,
+    y_lab      = y_lab,
     log_y      = log_y,
     thresh     = thresh
   )

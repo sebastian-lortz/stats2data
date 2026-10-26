@@ -21,9 +21,9 @@ test_that(".validate_cooling_inputs reports missing parameters", {
 })
 
 test_that("plot_cooling methods dispatch for every module", {
-  expect_match(quiet_plot(plot_cooling(fx_vec()))$labels$title, "Descriptives")
-  expect_match(quiet_plot(plot_cooling(fx_mlr()))$labels$title, "MLR")
-  expect_match(quiet_plot(plot_cooling(fx_aov()))$labels$title, "ANOVA")
+  expect_equal(nrow(quiet_plot(plot_cooling(fx_vec()))$data), fx_vec()$inputs$max_iter)
+  expect_equal(nrow(quiet_plot(plot_cooling(fx_mlr()))$data), fx_mlr()$inputs$max_iter)
+  expect_equal(nrow(quiet_plot(plot_cooling(fx_aov()))$data), fx_aov()$inputs$max_iter)
 })
 
 test_that("plot_cooling errors when the schedule is incomplete", {

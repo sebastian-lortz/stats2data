@@ -18,7 +18,7 @@ test_that(".aov_formula_from_inputs rebuilds a two-sided formula", {
   )
   expect_equal(
     deparse(.aov_formula_from_inputs(list(formula = stats::as.formula("y ~ Factor1")))),
-    "outcome ~ Factor1"
+    "outcome ~ Factor1 + Error(ID)"
   )
   expect_error(.aov_formula_from_inputs(list()), "missing")
   expect_error(.aov_formula_from_inputs(list(formula = 1)), "not a formula")

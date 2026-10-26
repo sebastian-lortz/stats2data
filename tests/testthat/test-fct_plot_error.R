@@ -23,7 +23,7 @@ test_that(".plot_convergence_engine supports a log y axis", {
                  "could not be plotted")
   expect_error(
     suppressWarnings(.plot_convergence_engine(c(0, 0), first_iter = 0L, log_y = TRUE)),
-    "No plottable error values"
+    "No plottable objective values"
   )
   expect_error(.plot_convergence_engine(c(1, 2), log_y = "yes"), "single logical")
 })
@@ -55,7 +55,7 @@ test_that(".plot_convergence_ratio_engine builds a ratio plot", {
   expect_equal(nrow(p$data), 3)
   expect_s3_class(
     .plot_convergence_ratio_engine(c(3, 2, 1), show_mean = FALSE, show_median = FALSE,
-                             show_final = FALSE),
+                                   show_final = FALSE),
     "ggplot"
   )
 })
@@ -67,22 +67,22 @@ test_that(".plot_convergence_ratio_engine validates the ratio vector", {
   expect_error(.plot_convergence_ratio_engine(c(1, 2), first_iter = 2), "must be smaller")
 })
 
-test_that(".extract_error_vec selects the requested run", {
-  expect_equal(.extract_error_vec(list(a = 1:3, b = 4:6), run = 2), 4:6)
-  expect_equal(.extract_error_vec(1:3), 1:3)
-  expect_error(.extract_error_vec(list(1:3), run = 0), "positive integer")
-  expect_error(.extract_error_vec(list(1:3), run = 2), "out of bounds")
-  expect_error(.extract_error_vec(list(1:3, 4:6), run = 3), "are only 2 runs")
-  expect_error(.extract_error_vec(1:3, run = 2), "Only 1 run")
+test_that("plot_convergence.stats2data_vec selects the requested variable", {
+  p <- quiet_plot(plot_convergence(fx_vec()))
+  expect_s3_class(p, "ggplot")
+  expect_equal(p$data$Error, c(1, 0.5, 0.1))
+  x <- fx_vec()
+  names(x$track_objective) <- NULL
+  expect_equal(quiet_plot(plot_convergence(x, run = 2))$data$Error, c(2, 0.4, 0.2))
 })
 
 test_that("plot_convergence.stats2data_vec labels the variable", {
   p <- quiet_plot(plot_convergence(fx_vec()))
   expect_s3_class(p, "ggplot")
-  expect_match(p$labels$title, "V1")
+  expect_match(p$labels$y, "V1")
   x <- fx_vec()
   names(x$track_objective) <- NULL
-  expect_match(quiet_plot(plot_convergence(x, run = 2))$labels$title, "V2")
+  expect_match(quiet_plot(plot_convergence(x, run = 2))$labels$y, "V2")
 })
 
 test_that("plot_convergence.stats2data_vec requires track_objective", {
@@ -102,7 +102,7 @@ test_that("plot_convergence.stats2data_mlr plots errors and ratios", {
   expect_s3_class(quiet_plot(plot_convergence(fx_mlr())), "ggplot")
   p <- quiet_plot(plot_convergence(fx_mlr(), ratio = TRUE))
   expect_s3_class(p, "ggplot")
-  expect_match(p$labels$title, "Error Ratio")
+  expect_match(p$labels$y, "Objective Ratio")
 })
 
 test_that("plot_convergence.stats2data_mlr validates its flags", {

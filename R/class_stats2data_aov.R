@@ -56,7 +56,7 @@ print.stats2data_aov <- function(x, ...) {
 
   cat("stats2data ANOVA result\n")
    cat("  Design:    ", design_str, " (", type_str, ")\n", sep = "")
-  cat("  Subjects:  ", inp$N, "\n")
+  cat("  Subjects:  ", inp$S, "\n")
   cat("  Effects:   ", paste(inp$target_f_list$effect, collapse = ", "), "\n")
   cat("  Best objective:", format(x$best_objective, digits = 6), "\n")
   invisible(x)
@@ -89,13 +89,12 @@ print.stats2data_aov <- function(x, ...) {
 #' @rdname get_stats
 #'
 #' @section Cell ordering for \code{stats2data_aov}:
-#' The vector \code{$mean} is returned in **sorted-key** cell order
-#' (Factor1 fastest, then Factor2, then Factor3, ...). This matches the
-#' order the optimiser uses internally and the order in which
-#' \code{target_group_means} is consumed by \code{\link{optim_aov}}. The
-#' returned vector is named with the cell identifier (e.g. \code{"1_1"},
-#' \code{"1_2"}, \code{"2_1"}, ...) so the cell each value belongs to is
-#' unambiguous downstream.
+#' The vector \code{$mean} is returned in lexicographic cell order
+#' (Factor1 slowest, last factor fastest), the same order in which
+#' \code{target_group_means} is consumed by \code{\link{optim_aov}}.
+#' The vector is named with the cell identifier (e.g. \code{"1_1"},
+#' \code{"1_2"}, \code{"2_1"}, \code{"2_2"} for a 2x2) so the cell each
+#' value belongs to is unambiguous downstream.
 #'
 #' @section Model formula:
 #' \code{get_stats} reuses the formula stored in
@@ -131,12 +130,11 @@ get_stats.stats2data_aov <- function(result, ...) {
   }, numeric(1))
 
   factor_cols <- grep("^Factor", names(d), value = TRUE)
-  group_id    <- apply(d[, factor_cols, drop = FALSE], 1, paste0, collapse = "_")
-  obs_means   <- tapply(d$outcome, group_id, mean)
-  obs_means   <- obs_means[order(names(obs_means))]
-  nm          <- names(obs_means)
-   obs_means   <- as.numeric(obs_means)
-  names(obs_means) <- nm
+  fac_int     <- lapply(d[factor_cols], function(f) as.integer(as.character(f)))
+   group_id    <- do.call(paste, c(fac_int, sep = "_"))
+  cell_levels <- unique(group_id[do.call(order, fac_int)])
+   obs_means   <- tapply(d$outcome, factor(group_id, levels = cell_levels), mean)
+  obs_means   <- stats::setNames(as.numeric(obs_means), names(obs_means))
 
   list(
     model   = tab,
@@ -209,7 +207,7 @@ summary.stats2data_aov <- function(object, ...) {
     means_comparison    = means_comparison,
     rmse                = rmse,
      best_objective          = object$best_objective,
-    N                   = inp$N,
+    N                   = inp$S,
     design              = design_str,
     factor_type         = type_str
   )
@@ -237,7 +235,7 @@ print.summary.stats2data_aov <- function(x, ...) {
   cat("stats2data ANOVA Summary\n")
   cat(rule, "\n", sep = "")
   cat("Design:     ", x$design, " (", x$factor_type, ")\n", sep = "")
-  cat("Subjects:  ", x$N, "\n")
+  cat("Subjects:  ", x$S, "\n")
    cat("Best objective:", format(x$best_objective, digits = 6), "\n")
 
   cat("\nRMSE\n")

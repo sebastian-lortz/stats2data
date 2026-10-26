@@ -156,17 +156,20 @@ parallel_optim <- function(FUN,
   # per-run rng
   seeds <- NULL
   if (!is.null(seed)) {
-    old_seed <- if (exists(".Random.seed", envir = globalenv(), inherits = FALSE))
-      get(".Random.seed", envir = globalenv()) else NULL
-     old_kind <- RNGkind("L'Ecuyer-CMRG")[1L]
+    had_seed <- exists(".Random.seed", envir = globalenv(), inherits = FALSE)
+    old_seed <- if (had_seed) get(".Random.seed", envir = globalenv()) else NULL
+    old_kind <- RNGkind("L'Ecuyer-CMRG")[1L]
     on.exit({
       RNGkind(old_kind)
-      if (!is.null(old_seed))
+      if (had_seed) {
         assign(".Random.seed", old_seed, envir = globalenv())
+      } else if (exists(".Random.seed", envir = globalenv(), inherits = FALSE)) {
+        rm(".Random.seed", envir = globalenv())
+      }
     }, add = TRUE)
 
     set.seed(as.integer(seed))
-     seeds <- vector("list", runs)
+    seeds <- vector("list", runs)
     s     <- get(".Random.seed", envir = globalenv())
     for (i in seq_len(runs)) {
       seeds[[i]] <- s
@@ -240,15 +243,15 @@ parallel_optim <- function(FUN,
     args$progress_mode <- progress_mode
 
     if (progress_mode != "off") {
-      cat(sprintf("Running %d sequential replications...\n", runs))
+      message(sprintf("Running %d sequential replications...", runs))
     }
       for (i in seq_len(runs)) {
       if (!is.null(seeds)) {
         assign(".Random.seed", seeds[[i]], envir = globalenv())
       }
-      if (progress_mode != "off") {
-        cat(sprintf("\n--- Run %d / %d ---\n", i, runs))
-      }
+        if (progress_mode != "off") {
+          message(sprintf("--- Run %d / %d ---", i, runs))
+        }
       results[[i]] <- run_one(i)
       n_done       <- i
 
@@ -262,9 +265,9 @@ parallel_optim <- function(FUN,
   # drop slots
   results <- results[seq_len(n_done)]
 
-    if (converged && progress_mode != "off") {
-    cat(sprintf("\nConverged after %d of %d runs (thresh = %s).\n",
-                n_done, runs, format(thresh)))
+  if (converged && progress_mode != "off") {
+    message(sprintf("Converged after %d of %d runs (thresh = %s).",
+                    n_done, runs, format(thresh)))
   }
 
   # identify module

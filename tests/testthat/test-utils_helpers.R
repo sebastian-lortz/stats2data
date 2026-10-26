@@ -1,9 +1,3 @@
-test_that("count_decimals counts digits after the separator", {
-  expect_equal(unname(count_decimals(c(1.23, 5, 0.1))), c(2, 0, 1))
-  expect_equal(unname(count_decimals(5, min_decimals = 2)), 2)
-  expect_equal(unname(count_decimals(1.2, min_decimals = 3)), 3)
-})
-
 test_that("get_design maps model terms onto design columns", {
   cand <- matrix(1:8, ncol = 2, dimnames = list(NULL, c("X1", "X2")))
   d <- get_design(cand, "Y ~ X1 + X2", stats::terms(stats::as.formula("Y ~ X1 + X2")))
@@ -45,21 +39,6 @@ test_that("heuristic_move_cont preserves the sum and the bounds", {
 test_that("heuristic_move_cont returns the candidate when no move is possible", {
   expect_equal(heuristic_move_cont(rep(0, 4), 1, c(0, 10)), rep(0, 4))
   expect_equal(heuristic_move_cont(rep(10, 4), 1, c(0, 10)), rep(10, 4))
-})
-
-test_that("sprite_start_vector produces integers close to the target mean", {
-  set.seed(2)
-  v <- sprite_start_vector(tMean = 3, n = 20, range = c(1, 5), thresh = 0.05)
-  expect_length(v, 20)
-  expect_equal(v, as.integer(v))
-  expect_lt(abs(mean(v) - 3), 0.2)
-  expect_true(all(v >= 1 & v <= 5))
-})
-
-test_that("sprite_start_vector validates its arguments", {
-  expect_error(sprite_start_vector(3, 10, c(5, 5), 0.05), "range")
-  expect_error(sprite_start_vector(9, 10, c(1, 5), 0.05), "outside")
-  expect_error(sprite_start_vector(3, 1, c(1, 5), 0.05), "n must be")
 })
 
 test_that("sprite_start_vector_cont hits the target mean", {
@@ -263,31 +242,91 @@ test_that("remap_target_cor validates lengths and names", {
                "not found")
 })
 
-test_that("move_within_paired keeps the total constant", {
-  set.seed(6)
-  s <- build_aov_structure(4, 2, "within")
-  x <- rep(5, 8)
-  expect_equal(sum(move_within_paired(x, TRUE, s, c(0, 10))), sum(x))
-  expect_equal(sum(move_within_paired(x, FALSE, s, c(0, 10))), sum(x))
-  expect_equal(move_within_paired(rep(0, 8), TRUE, s, c(0, 10)), rep(0, 8))
-  b <- build_aov_structure(8, 2, "between")
-  expect_equal(move_within_paired(rep(5, 8), TRUE, b, c(0, 10)), rep(5, 8))
+test_that("n_decimals counts the decimals of each value", {
+  expect_identical(n_decimals(c(10.53, 0.27, 3, 11.896, NA, 1e-4)),
+                   c(2L, 2L, 0L, 3L, NA, 4L))
 })
 
-test_that("move_within_interaction keeps the total constant", {
-  set.seed(7)
-  s <- build_aov_structure(4, c(2, 2), c("within", "within"))
-  x <- rep(5, nrow(s$df))
-  expect_equal(sum(move_within_interaction(x, TRUE, s, c(0, 10))), sum(x))
-  expect_equal(sum(move_within_interaction(x, FALSE, s, c(0, 10))), sum(x))
-  expect_equal(move_within_interaction(rep(0, nrow(s$df)), TRUE, s, c(0, 10)),
-               rep(0, nrow(s$df)))
+test_that("check_sprite_prec stops when sprite_prec has fewer decimals than the targets", {
+  expect_error(
+    check_sprite_prec(c(A = 10.537), c(A = 7.82), TRUE, c(0, 36), c(2, 2)),
+    "set `sprite_prec = c\\(3, 2\\)`"
+  )
+  expect_error(
+    check_sprite_prec(c(A = 10.5, B = 4.123), c(A = 7.825, B = 1), TRUE, c(0, 36), c(2, 2)),
+    "mean of 'B' \\(4.123\\) and the SD of 'A' \\(7.825\\)"
+  )
+  # continuous variables, binary variables and fewer decimals are fine
+  expect_true(check_sprite_prec(c(A = 10.537), c(A = 7.82), FALSE, c(0, 36), c(2, 2)))
+  expect_true(check_sprite_prec(c(B = 0.274), c(B = 0.45), TRUE, c(0, 1), c(2, 2)))
+  expect_true(check_sprite_prec(c(A = 10.5), c(A = 7.8), TRUE, c(0, 36), c(2, 2)))
+  expect_true(check_sprite_prec(c(A = 10.5), c(A = 7.8), TRUE, c(0, 36), NULL))
 })
 
-test_that("move_within_interaction returns early on unusable designs", {
-  s1 <- build_aov_structure(4, 2, "within")
-  expect_equal(move_within_interaction(rep(5, 8), TRUE, s1, c(0, 10)), rep(5, 8))
-  s2 <- build_aov_structure(4, c(1, 2), c("within", "within"))
-  x <- rep(5, nrow(s2$df))
-  expect_equal(move_within_interaction(x, TRUE, s2, c(0, 10)), x)
+test_that("optim_vec and optim_mlr check sprite_prec before running", {
+  expect_error(
+    optim_vec(N = 50, target_mean = c(A = 10.537), target_sd = c(A = 7.82),
+              range = c(0, 36), integer = TRUE, sprite_prec = c(2, 2), progress_mode = "off"),
+    "fewer decimals"
+  )
+  expect_error(
+    optim_mlr(N = 50, target_mean = c(A = 10.537, Y = 5), target_sd = c(A = 7.82, Y = 2),
+              range = c(0, 36), integer = c(TRUE, FALSE), target_cor = 0.3,
+              target_reg = c(1, 0.4), reg_equation = "Y ~ A", progress_mode = "off"),
+    "fewer decimals"
+  )
+})
+
+test_that("optim_vec warns about variables without data, with the GRIM hint", {
+  expect_warning(
+    res <- optim_vec(N = 50, target_mean = c(A = 10.53), target_sd = c(A = 7.82),
+                     range = c(0, 36), integer = TRUE, sprite_prec = c(2, 2),
+                     progress_mode = "off"),
+    "no data generated.*GRIM test.*10.52"
+  )
+  expect_true(all(is.na(res$data$A)))
+  expect_match(res$error_msgs[[1]], "GRIM test")
+})
+
+test_that("optim_vec warns when SPRITE returns only the closest distribution", {
+  expect_warning(
+    optim_vec(N = 12, target_mean = c(A = 3), target_sd = c(A = 1), range = c(1, 5),
+              integer = TRUE, sprite_prec = c(2, 2), progress_mode = "off"),
+    "closest one found is used"
+  )
+})
+
+test_that("optim_vec warns about continuous variables that did not converge", {
+  set.seed(1)
+  expect_warning(
+    optim_vec(N = 50, target_mean = c(C = 10), target_sd = c(C = 3), range = c(0, 36),
+              integer = FALSE, max_iter = 20, max_starts = 1, progress_mode = "off"),
+    "Variable 'C' did not converge.*increasing max_iter"
+  )
+  expect_warning(
+    optim_vec(N = 50, target_mean = c(C = 5), target_sd = c(C = 20), range = c(0, 10),
+              integer = FALSE, max_iter = 20, max_starts = 1, progress_mode = "off"),
+    "exceeds the largest SD attainable"
+  )
+})
+
+test_that("optim_mlr reports the marginal step", {
+  mlr_base <- list(N = 50, target_sd = c(A = 7.82, Y = 2), range = c(0, 36),
+                   integer = c(TRUE, FALSE), target_cor = 0.3, target_reg = c(1, 0.4),
+                   reg_equation = "Y ~ A", max_iter = 50, hill_climbs = 0,
+                   progress_mode = "off")
+  # no data for a marginal: stop with the variable and the reason
+  expect_error(
+    do.call(optim_mlr, c(mlr_base, list(target_mean = c(A = 10.53, Y = 5)))),
+    "Marginal step \\(optim_vec\\): no data generated for 'A'.*GRIM test"
+  )
+  # a marginal that did not converge: warning with the marginal-step prefix
+  set.seed(2)
+  expect_warning(
+    optim_mlr(N = 50, target_mean = c(A = 5, Y = 5), target_sd = c(A = 20, Y = 2),
+              range = c(0, 10), integer = FALSE, target_cor = 0.3, target_reg = c(1, 0.4),
+              reg_equation = "Y ~ A", sprite_prec = NULL, max_iter = 50, hill_climbs = 0,
+              progress_mode = "off"),
+    "Marginal step \\(optim_vec\\): Variable 'A' did not converge"
+  )
 })

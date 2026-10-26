@@ -1,7 +1,7 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
-# stats2data <a href="https://sebastian-lortz.github.io/stats2data/"><img src="man/figures/logo-comp.png" align="right" height="150" alt-text="stats2data logo"/></a>
+# stats2data <a href="https://sebastian-lortz.github.io/stats2data/"><img src="man/figures/logo.png" align="right" height="150" alt-text="stats2data logo"/></a>
 
 <!-- badges:start -->
 

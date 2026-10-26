@@ -23,8 +23,8 @@ test_that("parallel_optim runs sequentially and identifies the module", {
 })
 
 test_that("parallel_optim reports progress on the console", {
-  expect_output(parallel_optim(fake_vec, list(), runs = 1,
-                               progress_mode = "console"), "Run 1")
+  expect_message(parallel_optim(fake_vec, list(), runs = 1,
+                                progress_mode = "console"), "Run 1")
 })
 
 test_that("parallel_optim stops early on convergence", {

@@ -78,7 +78,6 @@ spelling::update_wordlist()
 ## Vignette ----
 usethis::use_vignette("stats2data_application")
 devtools::build_vignettes()
-source("vignettes/precompute.R")
 
 ## Code Coverage----
 ## Set the code coverage service ("codecov" or "coveralls")

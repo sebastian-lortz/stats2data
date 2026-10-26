@@ -32,7 +32,7 @@ app_ui <- function(request) {
                   "
                       )),
                    h3("Modular Structure"),
-                   p("The package is composed of three simulation modules, Descriptives, ANOVA and multiple linear regression (MLR). The modules are tailored to different data structures and statistical models, each following a similar high-level workflow."),
+                   p("The package is composed of three simulation modules, Descriptives, ANOVA and multiple linear regression (MLR). The modules are tailored to different data structures and statistical models, each following a similar workflow."),
                     br(),
                    tags$a(
                      href   = "https://example.com/research_article.pdf",
@@ -45,10 +45,10 @@ app_ui <- function(request) {
         ),
         # workflow
         tabPanel(
-          title = "High Level Workflow",
+          title = "Workflow",
           fluidRow(
             column(width = 6,
-                   h2("High Level Workflow"),
+                   h2("Workflow"),
                    p("
                      The procedure (summarized in the Figure) begins with the candidate initialization, that is, the creation of an initial simulated dataset. The algorithm then iteratively refines the candidate by minimizing an objective function f that quantifies the discrepancy between the summary statistics of the candidate and the reported summary statistics, which we collect in a target vector. Because the targets are fixed, we treat f as a function of the candidate data alone. At each iteration, the following three steps are performed: \n\n
                      Candidate Modification: The data are modified through different types of moves within the search space. \n\n

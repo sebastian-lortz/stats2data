@@ -1,6 +1,9 @@
+# target SDs 0.95 and 1.04: with N = 12 integers in [1, 5] and mean 3, no SD
+# rounds to 1.00 (attainable: 0.9535, 1.0445), so SPRITE would only find the
+# closest one
 mlr_args <- list(
   N = 12, target_mean = c(X1 = 3, X2 = 3, Y = 3),
-  target_sd = c(X1 = 1, X2 = 1, Y = 1), range = c(1, 5), integer = TRUE,
+  target_sd = c(X1 = 0.95, X2 = 1.04, Y = 0.95), range = c(1, 5), integer = TRUE,
   target_cor = c(0.1, 0.2, 0.3), target_reg = c(1, 0.2, 0.3),
   reg_equation = "Y ~ X1 + X2", sprite_prec = c(2, 2), weight = 0.5,
   thresh = 1e-6, max_iter = 20, init_temp = 1, cooling_rate = 0.9,

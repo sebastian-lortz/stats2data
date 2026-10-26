@@ -118,7 +118,8 @@ optim_aov <- function(
   if (!((is.numeric(cooling_rate) && length(cooling_rate) == 1 &&
          cooling_rate > 0 && cooling_rate < 1) || is.null(cooling_rate)))
     stop("`cooling_rate` must be in (0,1) or NULL.")
-  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1)
+  if (!is.numeric(max_starts) || length(max_starts) != 1 ||
+      !is.finite(max_starts) || max_starts < 1 || max_starts %% 1 != 0)
     stop("`max_starts` must be a single positive integer.")
   if (!is.character(progress_mode) || length(progress_mode) != 1 ||
        !progress_mode %in% c("console", "shiny", "off"))
@@ -132,8 +133,10 @@ optim_aov <- function(
   structure   <- build_aov_structure(N, levels, factor_type, subgroup_sizes)
   factor_mat  <- structure$df[, -1, drop = FALSE]
   ID          <- structure$df$ID
-  group_ids   <- apply(factor_mat, 1, paste0, collapse = "")
-   group_idx   <- split(seq_along(group_ids), group_ids)
+   fac_int     <- lapply(factor_mat, function(f) as.integer(as.character(f)))
+   group_ids   <- do.call(paste, c(fac_int, sep = "_"))
+   cell_levels <- unique(group_ids[do.call(order, fac_int)])
+   group_idx   <- split(seq_along(group_ids), factor(group_ids, levels = cell_levels))
   group_sizes <- vapply(group_idx, length, integer(1))
   target_F    <- target_f_list$F_value
   formula_internal <- stats::as.formula(paste("outcome ~", deparse(formula[[2]])))
@@ -192,11 +195,21 @@ optim_aov <- function(
                        thresh      = 1e-12,
                        max_iter    = 1000)
     }
-    x <- do.call(optim_vec, c(
-      list(N = n_j, range = range, integer = integer, init_temp = 1e-3,
-           cooling_rate = NULL, max_starts = 1, progress_mode = "off"),
-      vec_args))$data$y
-    x[sample.int(n_j)] # permute
+    # starting candidate only: a missed ballpark SD is not reported
+    x <- withCallingHandlers(
+      do.call(optim_vec, c(
+        list(N = n_j, range = range, integer = integer, init_temp = 1e-3,
+             cooling_rate = NULL, max_starts = 1, progress_mode = "off"),
+        vec_args))$data$y,
+      warning = function(w) {
+        msg <- conditionMessage(w)
+        if (grepl("did not converge", msg, fixed = TRUE) ||
+            grepl("closest one found is used", msg, fixed = TRUE)) {
+          invokeRestart("muffleWarning")
+        }
+      }
+    )
+    x[sample.int(n_j)]
   }
 
   current_candidate <- numeric(length(group_ids))
@@ -330,7 +343,7 @@ optim_aov <- function(
     best_objective       = best_objective,
     data             = out_data,
     inputs           = list(
-      N = N, levels = levels,
+      S = N, levels = levels,
       target_group_means = target_group_means,
        target_f_list = target_f_list,
       integer = integer, range = range,

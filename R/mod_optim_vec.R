@@ -26,7 +26,7 @@ mod_optim_vec_ui <- function(id) {
                     paste("One row per variable: its name, reported mean and SD, lower (Min)",
                           "and upper (Max) bound, and whether it is integer-valued."),
                     "target_mean, target_sd, range, integer")),
-                   rHandsontableOutput(ns("targets")),
+                  rHandsontableOutput(ns("targets")),
                   fluidRow(
                     column(6, actionButton(ns("add_variable"),    "Add Variable",    class = "btn-sm btn-block")),
                     column(6, actionButton(ns("remove_variable"), "Remove Variable", class = "btn-sm btn-block"))
@@ -39,7 +39,7 @@ mod_optim_vec_ui <- function(id) {
                 wellPanel(
                   h4("Settings"),
                   s2d_settings_inputs(ns, thresh = 1e-2, max_iter = 1e5, max_starts = 3,
-                                       init_temp_default = "0.001"),
+                                      init_temp_default = "0.001"),
                   s2d_run_inputs(ns)
                 )
             )
@@ -48,7 +48,7 @@ mod_optim_vec_ui <- function(id) {
             h4("Results"),
             actionButton(ns("run"), name_with_info(
               "Run Optimization",
-               "Simulate one vector per variable that matches its target mean and SD (optim_vec())."),
+              "Simulate one vector per variable that matches its target mean and SD (optim_vec())."),
               class = "btn-primary"),
             br(), br(),
             mod_results_ui(ns("results"))
@@ -67,24 +67,27 @@ mod_optim_vec_server <- function(id) {
     targets <- reactiveVal(data.frame(
       variable    = paste0("V", 1:5),
       target_mean = c(10.53, 0.27, 2.49, -0.64, 0.03),
-       target_sd   = c( 7.82, 0.45, 11.68, 1.85, 2.05),
+      target_sd   = c( 7.82, 0.45, 11.68, 1.85, 2.05),
       range_min   = c( 0,    0,   -24,   -3,   -3),
       range_max   = c(36,    1,    24,    3,    3),
       integer     = rep(TRUE, 5),
       stringsAsFactors = FALSE
     ))
     redraw <- reactiveVal(0)
-     output$targets <- renderRHandsontable({
+    output$targets <- renderRHandsontable({
       redraw()
       s2d_targets_table(isolate(targets()))
     })
     observeEvent(input$targets, targets(hot_to_r(input$targets)))
 
+    # Reported Decimals: shown for integer variables, never below the table decimals
+    sprite_prec <- s2d_sprite_prec_server(input, output, session, targets)
+
     observeEvent(input$add_variable, {
       tg <- targets()
       targets(rbind(tg, data.frame(
         variable = paste0("V", nrow(tg) + 1), target_mean = 4, target_sd = 1,
-         range_min = 0, range_max = 9, integer = TRUE, stringsAsFactors = FALSE)))
+        range_min = 0, range_max = 9, integer = TRUE, stringsAsFactors = FALSE)))
       redraw(redraw() + 1)
     })
     observeEvent(input$remove_variable, {
@@ -94,7 +97,7 @@ mod_optim_vec_server <- function(id) {
     })
 
     result    <- reactiveVal(NULL)
-     call_code <- reactiveVal(NULL)
+    call_code <- reactiveVal(NULL)
     observeEvent(list(input$N, targets(), input$sprite_prec_mean, input$sprite_prec_sd,
                       input$thresh, input$max_iter, input$init_temp, input$cooling_rate,
                       input$max_starts, input$runs, input$seed),
@@ -102,25 +105,24 @@ mod_optim_vec_server <- function(id) {
 
     observeEvent(input$max_iter, s2d_cooling_placeholder(session, input$max_iter))
 
-     observeEvent(input$run, {
+    observeEvent(input$run, {
       if (!s2d_filled(list("Sample Size" = input$N, "Convergence Threshold" = input$thresh,
-                           "Max Iterations" = input$max_iter, "Max Restarts" = input$max_starts,
-                           "Reported Decimals (Mean)" = input$sprite_prec_mean,
-                           "Reported Decimals (SD)" = input$sprite_prec_sd))) return()
+                           "Max Iterations" = input$max_iter, "Max Restarts" = input$max_starts))) return()
       tg <- targets()
       if (nrow(tg) < 1 || any(!nzchar(tg$variable)) || anyDuplicated(tg$variable) ||
           anyNA(tg[, c("target_mean", "target_sd", "range_min", "range_max")])) {
         s2d_notify("Each variable needs a unique name, Mean, SD, Min and Max.")
         return()
       }
+      if (!s2d_sprite_prec_ok(sprite_prec(), tg)) return()
       args <- list(
         N            = input$N,
         target_mean  = stats::setNames(tg$target_mean, tg$variable),
         target_sd    = stats::setNames(tg$target_sd,   tg$variable),
         range        = rbind(tg$range_min, tg$range_max),
         integer      = as.logical(tg$integer),
-         thresh       = input$thresh,
-        sprite_prec  = c(input$sprite_prec_mean, input$sprite_prec_sd),
+        thresh       = input$thresh,
+        sprite_prec  = sprite_prec(),
         max_iter     = input$max_iter,
         init_temp    = na_null(input$init_temp) %||% 1e-3,  # empty: function default
         cooling_rate = na_null(input$cooling_rate),
@@ -133,19 +135,10 @@ mod_optim_vec_server <- function(id) {
       )
       if (!ok) return()
 
-      res <- s2d_execute("optim_vec", args, runs = input$runs, seed = input$seed,
-                         result = result, call_code = call_code)
-
-       runs <- if (inherits(res, "stats2data_parallel")) res$results else if (!is.null(res)) list(res)
-      msgs <- unique(unlist(lapply(runs, function(r) {
-        m  <- r$error_msgs
-        ok <- !vapply(m, is.null, logical(1))
-        if (any(ok)) paste0("Variable '", tg$variable[ok], "': ", unlist(m[ok]))
-      })))
-      for (m in msgs) {
-        showNotification(paste(m, "Consider adjusting the SD, range, or switching to continuous."),
-                          type = "warning", duration = 15)
-      }
+      # optim_vec() warns about variables without data or convergence;
+      # s2d_execute() shows these warnings as notifications
+      s2d_execute("optim_vec", args, runs = input$runs, seed = input$seed,
+                  result = result, call_code = call_code)
     })
 
     mod_results_server("results", result = result, call_code = call_code,

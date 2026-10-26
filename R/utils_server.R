@@ -5,7 +5,6 @@
 #' @return The return value, if any, from executing the utility.
 #'
 #' @noRd
-# info logo in name html wrapper; icon() attaches the Font Awesome dependency
 name_with_info <- function(name, description) {
   ic <- shiny::icon("circle-info")
   htmltools::attachDependencies(
@@ -22,8 +21,10 @@ arg_label <- function(label, description, arg = NULL) {
   tags$span(class = "s2d-label", name_with_info(label, description))
 }
 
-# define . function
 if (getRversion() >= "2.15.1") utils::globalVariables(".")
+
+
+# small helpers
 
 na_null <- function(x) {
   if (is.null(x) || length(x) == 0L || all(is.na(x))) NULL else x
@@ -56,6 +57,8 @@ s2d_level_grid <- function(names, levels) {
 }
 
 
+## shared UI pieces
+
 s2d_css <- function() {
   singleton(tags$head(tags$style(HTML("
     .s2d-module { white-space: nowrap; }
@@ -67,15 +70,15 @@ s2d_css <- function() {
     .s2d-results .btn { margin: 0 4px 6px 0; }
     .s2d-call { max-height: 320px; overflow: auto; font-size: 85%; }
     .btn code { color: inherit; background: transparent; padding: 0; }
-    .s2d-module .control-label, .s2d-module .s2d-label { color: black; }
+    .s2d-module .control-label, .s2d-module .s2d-label { color: steelblue; }
     .s2d-module .btn-primary { background-color: steelblue; border-color: #3a6a92; color: #fff; }
     .s2d-module .btn-primary:hover, .s2d-module .btn-primary:focus,
     .s2d-module .btn-primary:active { background-color: #3a6a92; border-color: #2e5576; color: #fff; }
     .s2d-module .btn-default:not(.btn-primary) { color: steelblue; border-color: steelblue; }
     .s2d-module .btn-default:not(.btn-primary):hover,
     .s2d-module .btn-default:not(.btn-primary):focus { background-color: #eef3f8; color: #3a6a92; }
-    .s2d-module input[type=checkbox], .s2d-module input[type=radio] { accent-color: black; }
-    .s2d-module .form-control:focus { border-color: black;
+    .s2d-module input[type=checkbox], .s2d-module input[type=radio] { accent-color: steelblue; }
+    .s2d-module .form-control:focus { border-color: steelblue;
                                       box-shadow: 0 0 0 2px rgba(70, 130, 180, 0.25); }
     .modal .btn-default.shiny-download-link { color: steelblue; border-color: steelblue; }
     .rhandsontable .ht_master .wtHolder,
@@ -86,7 +89,6 @@ s2d_css <- function() {
   "))))
 }
 
-# empty numericInput that shows the function default as placeholder
 s2d_default_input <- function(id, label, placeholder, ...) {
   htmltools::tagAppendAttributes(
     numericInput(id, label, value = NA, ...),
@@ -94,7 +96,6 @@ s2d_default_input <- function(id, label, placeholder, ...) {
   )
 }
 
-# default cooling rate of optim_vec(), optim_aov() and optim_mlr()
 s2d_cooling_default <- function(max_iter) {
   if (!is.numeric(max_iter) || length(max_iter) != 1L || is.na(max_iter) || max_iter <= 10) {
     return("(Max Iterations - 10) / Max Iterations")
@@ -132,7 +133,6 @@ s2d_settings_inputs <- function(ns, thresh, max_iter, max_starts, init_temp_defa
   )
 }
 
-# number of runs and seed; runs > 1 calls parallel_optim()
 s2d_run_inputs <- function(ns) {
   tagList(
     tags$hr(),
@@ -151,29 +151,109 @@ s2d_run_inputs <- function(ns) {
 
 s2d_sprite_prec_input <- function(ns) {
   tags$div(
+    id = ns("sprite_prec_box"),
     tags$label(arg_label(
       "Reported Decimals",
-      "Decimals to which the target mean and SD are reported; used by SPRITE for integer variables.",
+      paste("Decimals to which the means and SDs of the integer variables are reported;",
+            "used by SPRITE. They cannot be lower than the decimals entered in the table."),
       "sprite_prec")),
     fluidRow(
       column(6, numericInput(ns("sprite_prec_mean"), "Mean", value = 2, min = 0, step = 1)),
       column(6, numericInput(ns("sprite_prec_sd"),   "SD",   value = 2, min = 0, step = 1))
-    )
+    ),
+    uiOutput(ns("sprite_prec_note"))
   )
 }
 
 s2d_targets_table <- function(df) {
-  rhandsontable::hot_col(
-    rhandsontable::rhandsontable(
-      df, rowHeaders = NULL,
-      colHeaders = c("Variable", "Mean", "SD", "Min", "Max", "Integer")),
-    "Integer", type = "checkbox"
-  )
+  tb <- rhandsontable::rhandsontable(
+    df, rowHeaders = NULL,
+    colHeaders = c("Variable", "Mean", "SD", "Min", "Max", "Integer"))
+  tb <- rhandsontable::hot_col(
+    tb, c("Mean", "SD", "Min", "Max"),
+    renderer = "function(instance, td, row, col, prop, value, cellProperties) {
+      Handsontable.renderers.TextRenderer.apply(this, arguments);
+      td.style.textAlign = 'right';
+    }")
+  rhandsontable::hot_col(tb, "Integer", type = "checkbox")
+}
+
+s2d_decimals <- function(x) {
+  vapply(as.numeric(x), function(v) {
+    if (is.na(v)) return(NA_integer_)
+    for (d in 0:10) if (abs(v - round(v, d)) < 1e-9) return(as.integer(d))
+    10L
+  }, integer(1), USE.NAMES = FALSE)
 }
 
 
+s2d_sprite_needed <- function(tg) {
+  int <- as.logical(tg$integer) %in% TRUE
+  if (!any(int)) return(NULL)
+  c(mean = max(0L, s2d_decimals(tg$target_mean[int]), na.rm = TRUE),
+    sd   = max(0L, s2d_decimals(tg$target_sd[int]),   na.rm = TRUE))
+}
 
-# R code for one argument value
+
+s2d_sprite_prec_server <- function(input, output, session, targets) {
+  note <- reactiveVal(NULL)
+  output$sprite_prec_note <- renderUI({
+    req(note())
+    tags$div(style = "color: #8a6d3b; font-size: 90%; margin: -6px 0 8px 0;",
+             icon("triangle-exclamation"), note())
+  })
+
+
+  raise <- function(id, label, needed, what, fill_empty) {
+    cur <- input[[id]]
+    if (is.null(cur) || is.na(cur)) {
+      if (!fill_empty) return(NULL)
+    } else if (cur >= needed) {
+      return(NULL)
+    }
+    updateNumericInput(session, id, value = needed)
+    sprintf("%s raised to %d to match the %s of the integer variables in the table.",
+            label, needed, what)
+  }
+  check <- function(table_edit) {
+    need <- s2d_sprite_needed(targets())
+    if (is.null(need)) {
+      note(NULL)
+      return(invisible())
+    }
+    msg <- c(raise("sprite_prec_mean", "Mean decimals", need[["mean"]], "means", table_edit),
+             raise("sprite_prec_sd",   "SD decimals",   need[["sd"]],   "SDs",   table_edit))
+    if (length(msg)) note(paste(msg, collapse = " ")) else if (table_edit) note(NULL)
+  }
+
+  observe(shinyjs::toggle("sprite_prec_box", condition = !is.null(s2d_sprite_needed(targets()))))
+  observeEvent(targets(), check(table_edit = TRUE))
+  observeEvent(list(input$sprite_prec_mean, input$sprite_prec_sd),
+               check(table_edit = FALSE), ignoreInit = TRUE)
+
+  reactive({
+    if (is.null(s2d_sprite_needed(targets()))) NULL
+    else c(input$sprite_prec_mean, input$sprite_prec_sd)
+  })
+}
+
+s2d_sprite_prec_ok <- function(sprite_prec, tg) {
+  need <- s2d_sprite_needed(tg)
+  if (is.null(need)) return(TRUE)
+  if (length(sprite_prec) != 2L || anyNA(sprite_prec)) {
+    s2d_notify("Please fill in: Reported Decimals (Mean and SD).")
+    return(FALSE)
+  }
+  if (any(sprite_prec < need)) {
+    s2d_notify(sprintf(paste(
+      "Reported Decimals (%d, %d) are lower than the decimals of the integer variables'",
+      "means and SDs in the table (%d, %d)."), sprite_prec[1], sprite_prec[2], need[1], need[2]))
+    return(FALSE)
+  }
+  TRUE
+}
+
+## exported function call
 s2d_deparse <- function(x) {
   if (is.null(x)) return("NULL")
   if (is.matrix(x) && is.null(dimnames(x))) {
@@ -218,7 +298,6 @@ s2d_call_code <- function(fun_name, args, runs = 1L, seed, notes = NULL) {
   paste(c(header, body, footer), collapse = "\n")
 }
 
-
 s2d_execute <- function(fun_name, args, runs, seed, result, call_code,
                         notes = NULL) {
   runs <- if (is.null(runs) || is.na(runs) || runs < 1) 1L else as.integer(runs)
@@ -256,6 +335,8 @@ s2d_execute <- function(fun_name, args, runs, seed, result, call_code,
   invisible(res)
 }
 
+
+## input checks
 
 # input checks vec
 #' Validate inputs for optim_vec (in Shiny)
@@ -330,7 +411,8 @@ check_vec_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
+  if (!is.numeric(max_starts) || length(max_starts) != 1 ||
+      !is.finite(max_starts) || max_starts < 1 || max_starts %% 1 != 0) {
     showNotification(
       sprintf("Max Restarts (%s) must be a single positive integer.", max_starts),
       type = "error"
@@ -425,7 +507,8 @@ check_aov_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
+  if (!is.numeric(max_starts) || length(max_starts) != 1 ||
+      !is.finite(max_starts) || max_starts < 1 || max_starts %% 1 != 0) {
     showNotification(
       sprintf("Max Restarts (%s) must be a single positive integer.", max_starts),
       type = "error"
@@ -497,7 +580,8 @@ check_mlr_inputs <- function(
     )
     return(FALSE)
   }
-  if (!is.numeric(max_starts) || length(max_starts) != 1 || max_starts < 1) {
+  if (!is.numeric(max_starts) || length(max_starts) != 1 ||
+      !is.finite(max_starts) || max_starts < 1 || max_starts %% 1 != 0) {
     showNotification(
       sprintf("Max Restarts (%s) must be a single positive integer.", max_starts),
       type = "error"

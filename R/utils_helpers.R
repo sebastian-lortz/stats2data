@@ -595,3 +595,44 @@ remap_target_cor <- function(target_cor, sim_data, vars_new) {
 
   as.vector(mat_new[upper.tri(mat_new)])
 }
+
+# stats2data: internal checks for SPRITE input precision
+# number of decimals of each value (NA for missing values)
+n_decimals <- function(x) {
+  vapply(as.numeric(x), function(v) {
+    if (is.na(v)) return(NA_integer_)
+    for (d in 0:10) if (abs(v - round(v, d)) < 1e-9) return(as.integer(d))
+    10L
+  }, integer(1), USE.NAMES = FALSE)
+}
+
+# input check
+check_sprite_prec <- function(target_mean, target_sd, integer, range, sprite_prec) {
+  n_var <- length(target_mean)
+  if (is.null(sprite_prec) || n_var == 0L) return(invisible(TRUE))
+  integer <- rep_len(as.logical(integer), n_var)
+  rng     <- if (is.matrix(range)) range else matrix(range, nrow = 2, ncol = n_var)
+  sprite  <- integer & (rng[2, ] - rng[1, ] > 1)
+  if (!any(sprite)) return(invisible(TRUE))
+
+  vars <- names(target_mean)
+  d_mean <- n_decimals(target_mean)
+  d_sd   <- n_decimals(target_sd)
+  bad_mean <- which(sprite & !is.na(d_mean) & d_mean > sprite_prec[1])
+  bad_sd   <- which(sprite & !is.na(d_sd)   & d_sd   > sprite_prec[2])
+  if (length(bad_mean) == 0L && length(bad_sd) == 0L) return(invisible(TRUE))
+
+  describe <- function(i, x, what) {
+    if (length(i)) paste0(what, " of ", paste0("'", vars[i], "' (", x[i], ")", collapse = ", "))
+  }
+  needed <- c(max(sprite_prec[1], d_mean[sprite], na.rm = TRUE),
+              max(sprite_prec[2], d_sd[sprite],   na.rm = TRUE))
+  stop(
+    "`sprite_prec = c(", sprite_prec[1], ", ", sprite_prec[2], ")` has fewer decimals than the ",
+    paste(c(describe(bad_mean, target_mean, "mean"), describe(bad_sd, target_sd, "SD")),
+          collapse = " and the "),
+    ". SPRITE does not round the targets: set `sprite_prec = c(", needed[1], ", ", needed[2],
+    ")` or round the targets to the reported decimals.",
+    call. = FALSE
+  )
+}

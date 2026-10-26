@@ -26,7 +26,8 @@
 #' @param which Character; which panel to draw.
 #' @param ... Further arguments passed to the underlying plotting function.
 #'
-#' @return A \code{\link[ggplot2]{ggplot}} object, returned invisibly.
+#' @return The plot is drawn as a side effect; the
+#'   \code{\link[ggplot2]{ggplot}} object is returned invisibly.
 #'
 #' @seealso \code{\link{plot_convergence}}, \code{\link{plot_cooling}},
 #'   \code{\link{plot_fit}}, \code{\link{plot_stability}}
@@ -58,10 +59,11 @@ plot.stats2data_vec <- function(x,
   which <- match.arg(which)
   p <- switch(
     which,
-     convergence = plot_convergence(x, ...),
+    convergence = plot_convergence(x, ...),
      cooling     = plot_cooling(x, ...),
     fit         = plot_fit(x, ...)
   )
+  print(p)
   invisible(p)
 }
 
@@ -76,8 +78,9 @@ plot.stats2data_aov <- function(x,
     which,
     convergence = plot_convergence(x, ...),
     cooling     = plot_cooling(x, ...),
-     fit         = plot_fit(x, ...)
+    fit         = plot_fit(x, ...)
   )
+  print(p)
   invisible(p)
 }
 
@@ -86,14 +89,14 @@ plot.stats2data_aov <- function(x,
 #' @export
 plot.stats2data_mlr <- function(x,
                                 which = c("convergence", "ratio",
-                                          "cooling", "fit"),
+                                           "cooling", "fit"),
                                 ...) {
   which <- match.arg(which)
 
   if ("ratio" %in% names(list(...))) {
-      stop(
+    stop(
       "Use `which = \"ratio\"` rather than `ratio = TRUE` when calling ",
-      "`plot()`. Pass `ratio` directly to `plot_convergence()` instead.",
+       "`plot()`. Pass `ratio` directly to `plot_convergence()` instead.",
       call. = FALSE
     )
   }
@@ -101,10 +104,11 @@ plot.stats2data_mlr <- function(x,
   p <- switch(
     which,
     convergence = plot_convergence(x, ratio = FALSE, ...),
-     ratio       = plot_convergence(x, ratio = TRUE,  ...),
-    cooling     = plot_cooling(x, ...),
+    ratio       = plot_convergence(x, ratio = TRUE,  ...),
+     cooling     = plot_cooling(x, ...),
     fit         = plot_fit(x, ...)
   )
+  print(p)
   invisible(p)
 }
 
@@ -115,10 +119,11 @@ plot.stats2data_parallel <- function(x,
                                      which = c("stability", "fit"),
                                      ...) {
   which <- match.arg(which)
-   p <- switch(
+  p <- switch(
     which,
-    stability = plot_stability(x, ...),
+     stability = plot_stability(x, ...),
     fit       = plot_fit(x, ...)
   )
+  print(p)
   invisible(p)
 }

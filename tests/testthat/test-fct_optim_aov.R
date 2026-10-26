@@ -22,13 +22,20 @@ test_that("optim_aov validates its arguments", {
   }, "numeric vector")
   expect_error(run_aov(target_f_list = list(effect = c("a", "b"), F_value = 4)),
                "must match length")
+  expect_error({
+    bad <- aov_args()
+    bad["init_temp"] <- list(NULL)
+    do.call(optim_aov, bad)
+  }, "single positive finite number")
+  expect_error(run_aov(max_starts = 1.5), "single positive integer")
+  expect_error(run_aov(max_starts = Inf), "single positive integer")
   expect_error(run_aov(formula = 1), "formula or single character")
   expect_error(run_aov(factor_type = "sideways"), "between")
   expect_error(run_aov(subgroup_sizes = c(4, 4, 4)), "must have length")
   expect_error(run_aov(subgroup_sizes = c(4, 5)), "must equal sum")
   expect_error(run_aov(thresh = -1), "single non-negative number")
   expect_error(run_aov(max_iter = 0), "single positive number")
-  expect_error(run_aov(init_temp = 0), "positive number or NULL")
+  expect_error(run_aov(init_temp = 0), "single positive finite number")
   expect_error(run_aov(cooling_rate = 1.5), "must be in")
   expect_error(run_aov(max_starts = 0), "single positive integer")
   expect_error(run_aov(progress_mode = "loud"), "console")
@@ -67,4 +74,31 @@ test_that("optim_aov optimises a within-subject design", {
   expect_s3_class(res, "stats2data_aov")
   expect_equal(nrow(res$data), 12)
   expect_equal(res$inputs$factor_type, "within")
+})
+
+test_that("optim_aov applies the default temperature schedule for integer designs", {
+  skip_if_not_installed("car")
+  set.seed(32)
+  args <- utils::modifyList(
+    aov_args(),
+    list(integer = TRUE, max_iter = 100, subgroup_sizes = c(4, 4))
+  )
+  args$init_temp <- NULL
+  args["cooling_rate"] <- list(NULL)
+  res <- do.call(optim_aov, args)
+  expect_s3_class(res, "stats2data_aov")
+  expect_equal(res$inputs$init_temp, 1e-3)
+  expect_equal(res$inputs$cooling_rate, (100 - 10) / 100)
+})
+
+test_that("optim_aov keeps the input cell order for factors with 10+ levels", {
+  skip_if_not_installed("car")
+  skip_if_not_installed("afex")
+  set.seed(34)
+  means <- seq(1.5, 6, by = 0.5)
+  res <- suppressMessages(run_aov(S = 20, levels = 10, target_group_means = means,
+                                  max_iter = 5))
+  s <- suppressMessages(get_stats(res))
+  expect_named(s$mean, as.character(1:10))
+  expect_equal(unname(s$mean), means, tolerance = 0.01)
 })
